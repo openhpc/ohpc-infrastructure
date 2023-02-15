@@ -1,0 +1,23 @@
+[Unit]
+Description=OBS Worker Container
+After=network-online.target
+
+[Service]
+Type=simple
+TimeoutStartSec=5m
+ExecStartPre=-/usr/bin/podman rm obsworker
+
+ExecStart=/usr/bin/podman run --name obsworker --net host \
+	--uts host \
+	-v /workers/:/workers/:z \
+	-v /etc/sysconfig/obs-server:/etc/sysconfig/obs-server:z \
+        quay.io/ohpc/openhpc-obs-worker:latest
+
+ExecReload=/usr/bin/podman stop obsworker
+ExecReload=/usr/bin/podman rm obsworker
+ExecStop=/usr/bin/podman stop obsworker
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

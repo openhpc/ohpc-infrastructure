@@ -1,0 +1,11 @@
+FROM registry.opensuse.org/opensuse/leap:15.3
+
+MAINTAINER The OpenHPC Project
+
+COPY OBS_Server_2.10.repo /etc/zypp/repos.d/OBS_Server_2.10.repo
+
+RUN zypper -n install obs-worker
+
+COPY obs-server /etc/sysconfig/obs-server
+
+ENTRYPOINT  ["/bin/bash", "-c", "/usr/sbin/obsworker start; sleep infinity"]

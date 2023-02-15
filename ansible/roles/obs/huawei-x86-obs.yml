@@ -1,0 +1,67 @@
+- name: huawei-x86-obs obs workers
+  hosts: huawei_x86_obs
+  user: root
+  gather_facts: True
+  vars:
+    swapfile: /swapfile
+    obs_worker_instances: 2
+    obs_worker_jobs: 6
+  tasks:
+  - name: create OBS directories
+    file: dest="{{item}}" mode=0755 state=directory
+    with_items:
+    - /workers/
+    - /workers/cache
+
+  - name: add OBS repository definition
+    copy: src=OBS_Server_2.10.repo dest=/etc/zypp/repos.d/OBS_Server_2.10.repo
+          owner=root
+          group=root
+  - name: install packages
+    package:
+      state: present
+      name:
+      - obs-worker
+      - util-linux
+
+  - name: check for swapfile
+    stat: path={{ swapfile }}
+    register: swapfile_status
+
+  - name: create swapfile
+    command: "fallocate -l 12G {{ swapfile }}"
+    when: not swapfile_status.stat.exists
+
+  - name: change swapfile permission
+    file: path={{ swapfile }}
+          owner=root
+          group=root
+          mode=0600
+
+  - name: format swapfile
+    command: "mkswap {{ swapfile }}"
+    when: not swapfile_status.stat.exists
+
+  - name: add swapfile to fstab
+    mount: name=none
+           src={{ swapfile }}
+           fstype=swap
+           opts=sw
+           passno=0
+           dump=0
+           state=present
+
+  - name: activate swapfile
+    command: "swapon {{ swapfile }}"
+    when: ansible_swaptotal_mb < 1
+
+  - name: install obs worker configuration
+    template:
+      src: obs-server
+      dest: /etc/sysconfig/obs-server
+      owner: root
+      group: root
+      mode: 0644
+
+  - name: enable obs worker service
+    service: name=obsworker enabled=yes state=started

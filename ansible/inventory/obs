@@ -1,0 +1,11 @@
+[huawei_x86_obs]
+huawei-obs-centos-x64-1
+
+[huawei_x86_obs:vars]
+ansible_python_interpreter=/usr/bin/python3
+
+[huawei_arm64_obs]
+huawei-obs-centos-arm64-1
+
+[huawei_arm64_obs:vars]
+ansible_python_interpreter=/usr/libexec/platform-python
