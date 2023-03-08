@@ -4,7 +4,7 @@ MAINTAINER The OpenHPC Project
 
 COPY OBS_Server_2.10.repo /etc/zypp/repos.d/OBS_Server_2.10.repo
 
-RUN zypper -n install obs-worker
+RUN zypper -n install obs-worker hostname
 
 COPY obs-server /etc/sysconfig/obs-server
 

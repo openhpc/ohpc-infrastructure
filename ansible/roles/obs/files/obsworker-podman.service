@@ -8,7 +8,7 @@ TimeoutStartSec=5m
 ExecStartPre=-/usr/bin/podman rm obsworker
 
 ExecStart=/usr/bin/podman run --name obsworker --net host \
-	--uts host \
+	--uts host --privileged \
 	-v /workers/:/workers/:z \
 	-v /etc/sysconfig/obs-server:/etc/sysconfig/obs-server:z \
         quay.io/ohpc/openhpc-obs-worker:latest
