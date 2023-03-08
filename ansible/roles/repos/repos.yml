@@ -20,8 +20,8 @@
     - /rhel/repositories
   # the reposync configuration requires following files
   # to be copied to the destination system:
-  # - sync-key.pem
-  # - sync.pem
+  # - {{ item.arch }}-sync-key.pem
+  # - {{ item.arch }}-sync.pem
   # - redhat.pem
   - name: install reposync configuration
     template:
