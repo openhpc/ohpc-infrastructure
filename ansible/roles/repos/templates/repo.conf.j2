@@ -1,0 +1,50 @@
+[main]
+cachedir=/rhel/var/cache/reposync/$basearch/$releasever
+keepcache=0
+logfile=/rhel/var/log/reposync.log
+gpgcheck=1
+clean_requirements_on_remove=0
+best=0
+module_platform_id = "platform:el{{ item.version }}"
+
+[rhel-{{ item.version }}-for-{{ item.arch }}-appstream-rpms]
+name = Red Hat Enterprise Linux {{ item.version }} for {{ item.arch }} - AppStream (RPMs)
+baseurl = https://cdn.redhat.com/content/dist/rhel{{ item.version }}/{{ item.version }}/{{ item.arch }}/appstream/os
+enabled = 1
+gpgcheck = 1
+gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+sslverify = 1
+sslcacert = /rhel/etc/redhat.pem
+sslclientkey = /rhel/etc/sync-key.pem
+sslclientcert = /rhel/etc/sync.pem
+metadata_expire = 86400
+enable_metadata = 1
+ui_repoid_vars = releasever
+
+[rhel-{{ item.version }}-for-{{ item.arch }}-baseos-rpms]
+name = Red Hat Enterprise Linux {{ item.version }} for {{ item.arch }} - BaseOS (RPMs)
+baseurl = https://cdn.redhat.com/content/dist/rhel{{ item.version }}/{{ item.version }}/{{ item.arch }}/baseos/os
+enabled = 1
+gpgcheck = 1
+gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+sslverify = 1
+sslcacert = /rhel/etc/redhat.pem
+sslclientkey = /rhel/etc/sync-key.pem
+sslclientcert = /rhel/etc/sync.pem
+metadata_expire = 86400
+enable_metadata = 1
+ui_repoid_vars = releasever
+
+[codeready-builder-for-rhel-{{ item.version }}-{{ item.arch }}-rpms]
+name = Red Hat CodeReady Linux Builder for RHEL {{ item.version }} {{ item.arch }} (RPMs)
+baseurl = https://cdn.redhat.com/content/dist/rhel{{ item.version }}/{{ item.version }}/{{ item.arch }}/codeready-builder/os
+enabled = 0
+gpgcheck = 1
+gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+sslverify = 1
+sslcacert = /rhel/etc/redhat.pem
+sslclientkey = /rhel/etc/sync-key.pem
+sslclientcert = /rhel/etc/sync.pem
+metadata_expire = 86400
+enable_metadata = 1
+ui_repoid_vars = releasever

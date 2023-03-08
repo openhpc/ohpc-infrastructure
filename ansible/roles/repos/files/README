@@ -1,0 +1,10 @@
+Area to sync RHEL 8 and 9 to /rhel/repositories.
+
+This area is ansible managed.
+
+For each combination of architecture and version there is a separate
+sync script in /rhel/bin. The sync scripts are running inside of
+Podman because the RPM on the host (CentOS 7) is too old.
+
+The content of /rhel/repositories is only made available to the OBS
+server on port 82.

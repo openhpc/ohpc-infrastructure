@@ -1,0 +1,23 @@
+#!/bin/bash
+
+RELEASE={{ item.version }}
+ARCH={{ item.arch }}
+
+REPOSITORIES="rhel-${RELEASE}-for-${ARCH}-baseos-rpms \
+	rhel-${RELEASE}-for-${ARCH}-appstream-rpms \
+	codeready-builder-for-rhel-${RELEASE}-${ARCH}-rpms"
+
+# This container cannot currently run on anything 9 because
+# the hist is still CentOS 7 and it does not seem to have
+# the correct seccomp filters to allow clone3() in RHEL 9.
+
+for repo in ${REPOSITORIES}; do
+        podman run --rm -it -v /rhel:/rhel ubi8 bash -c "\
+                dnf -y install dnf-utils; \
+                cd /rhel/repositories; \
+                dnf reposync -c /rhel/etc/rhel-${RELEASE}-${ARCH}.conf \
+                        --download-metadata \
+                        --repoid=${repo} \
+                        -a ${ARCH} -a noarch -n"
+done
+

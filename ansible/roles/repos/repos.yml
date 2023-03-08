@@ -1,0 +1,63 @@
+- name: repos.openhpc.community
+  hosts: repos
+  become: yes
+  gather_facts: True
+  tasks:
+  - name: install packages
+    package:
+      state: present
+      name:
+      - yum-utils
+      - podman
+  - name: create OBS directories
+    file: dest="{{item}}" mode=0755 state=directory owner=rhel group=rhel
+    with_items:
+    - /rhel/etc
+    - /rhel/bin
+    - /rhel/var
+    - /rhel/var/log
+    - /rhel/var/cache
+    - /rhel/repositories
+  # the reposync configuration requires following files
+  # to be copied to the destination system:
+  # - sync-key.pem
+  # - sync.pem
+  # - redhat.pem
+  - name: install reposync configuration
+    template:
+      src: repo.conf.j2
+      dest: /rhel/etc/rhel-{{ item.version }}-{{ item.arch}}.conf
+      owner: rhel
+      group: rhel
+      mode: 0644
+    with_items:
+    - { version: 9, arch: "x86_64" }
+    - { version: 9, arch: "aarch64" }
+    - { version: 8, arch: "x86_64" }
+    - { version: 8, arch: "aarch64" }
+  - name: install reposync scripts
+    template:
+      src: sync.sh.j2
+      dest: /rhel/bin/sync-rhel-{{ item.version }}-{{ item.arch}}.sh
+      owner: rhel
+      group: rhel
+      mode: 0755
+    with_items:
+    - { version: 9, arch: "x86_64" }
+    - { version: 9, arch: "aarch64" }
+    - { version: 8, arch: "x86_64" }
+    - { version: 8, arch: "aarch64" }
+  - name: install README
+    copy:
+      src: README
+      dest: /rhel/README
+      owner: rhel
+      group: rhel
+      mode: 0644
+  - name: install apache httpd config
+    copy:
+      src: rhel.conf
+      dest: /etc/httpd/conf.d/rhel.conf
+      owner: root
+      group: root
+      mode: 0644
