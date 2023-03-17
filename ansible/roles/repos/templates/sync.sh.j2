@@ -8,7 +8,7 @@ REPOSITORIES="rhel-${RELEASE}-for-${ARCH}-baseos-rpms \
 	codeready-builder-for-rhel-${RELEASE}-${ARCH}-rpms"
 
 # This container cannot currently run on anything 9 because
-# the hist is still CentOS 7 and it does not seem to have
+# the host is still CentOS 7 and it does not seem to have
 # the correct seccomp filters to allow clone3() in RHEL 9.
 
 for repo in ${REPOSITORIES}; do
@@ -18,6 +18,8 @@ for repo in ${REPOSITORIES}; do
                 dnf reposync -c /rhel/etc/rhel-${RELEASE}-${ARCH}.conf \
                         --download-metadata \
                         --repoid=${repo} \
+{% if item.arch == "x86_64" %}
+			-a i686 \
+{% endif %}
                         -a ${ARCH} -a noarch -n"
 done
-
