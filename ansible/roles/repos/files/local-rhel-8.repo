@@ -1,0 +1,17 @@
+[local-rhel-8-for-x86_64-appstream-rpms]
+name = Local Red Hat Enterprise Linux 8 for x86_64 - AppStream (RPMs)
+baseurl = file:///rhel/repositories/rhel-8-for-x86_64-appstream-rpms
+enabled = 1
+gpgcheck = 0
+
+[local-rhel-8-for-x86_64-baseos-rpms]
+name = Local Red Hat Enterprise Linux 8 for x86_64 - BaseOS (RPMs)
+baseurl = file:///rhel/repositories/rhel-8-for-x86_64-baseos-rpms
+enabled = 1
+gpgcheck = 0
+
+[local-codeready-builder-for-rhel-8-x86_64-rpms]
+name = Local Red Hat CodeReady Linux Builder for RHEL 8 x86_64 (RPMs)
+baseurl = file:///rhel/repositories/codeready-builder-for-rhel-8-x86_64-rpms
+enabled = 1
+gpgcheck = 0

@@ -13,13 +13,13 @@ REPOSITORIES="rhel-${RELEASE}-for-${ARCH}-baseos-rpms \
 
 for repo in ${REPOSITORIES}; do
         podman run --rm -it -v /rhel:/rhel ubi8 bash -c "\
-                dnf -y install dnf-utils; \
+		cp /rhel/etc/local-rhel-8.repo /etc/yum.repos.d/local.repo; \
+                dnf -y install dnf-utils createrepo_c; \
                 cd /rhel/repositories; \
                 dnf reposync -c /rhel/etc/rhel-${RELEASE}-${ARCH}.conf \
                         --download-metadata \
                         --repoid=${repo} \
-{% if item.arch == "x86_64" %}
-			-a i686 \
-{% endif %}
-                        -a ${ARCH} -a noarch -n"
+                        -a ${ARCH} -a noarch -n; \
+		cd ${repo}; \
+		createrepo_c --update ."
 done

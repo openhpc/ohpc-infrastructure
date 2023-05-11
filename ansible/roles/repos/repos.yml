@@ -61,3 +61,10 @@
       owner: root
       group: root
       mode: 0644
+  - name: install local rhel 8 repository configuration
+    copy:
+      src: local-rhel-8.repo
+      dest: /rhel/etc/local-rhel-8.repo
+      owner: rhel
+      group: rhel
+      mode: 0644
