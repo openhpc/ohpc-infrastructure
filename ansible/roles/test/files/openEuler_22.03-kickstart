@@ -1,0 +1,76 @@
+text
+
+%packages
+@standard
+ipmitool
+-gtk2
+-gtk3
+-security-tool
+-libvirt-bash-completion
+-libvirt-libs
+-libvirt-daemon
+-libvirt-daemon-driver-network
+-libvirt-daemon-driver-nwfilter
+-libvirt-daemon-driver-qemu
+-libvirt-daemon-config-nwfilter
+-libvirt-daemon-config-network
+-libvirt-daemon-driver-interface
+-libvirt-daemon-driver-nodedev
+-libvirt-daemon-driver-secret
+-libvirt-client
+-cockpit
+-libvirt-daemon-driver-storage-core
+-libvirt-daemon-driver-storage-disk
+-libvirt-daemon-driver-storage-gluster
+-libvirt-daemon-driver-storage-iscsi-direct
+-libvirt-daemon-driver-storage-mpath
+-libvirt-daemon-driver-storage-rbd
+-libvirt-daemon-driver-storage-scsi
+-libvirt-daemon-driver-storage-iscsi
+-libvirt-daemon-driver-storage-logical
+-libvirt-daemon-driver-storage
+-libvirt
+-virt-manager-common
+-virt-install
+-dkms
+-rsyslog-relp
+-firewalld
+-mtr
+-lshw
+-tuned
+%end
+
+lang en_US.UTF-8
+
+network --hostname=openhpc-oe-jenkins-sms --device=enp189s0f0 --ip=192.168.1.220 --netmask=255.255.255.0 --gateway=192.168.1.218 --bootproto=static
+
+ignoredisk --only-use=sda,sdb
+bootloader --location=mbr --boot-drive=sda
+clearpart --all --initlabel --drives=sda,sdb
+autopart
+timezone Asia/Shanghai --utc
+
+url --url http://192.168.1.223/openEuler-22.03-LTS-everything-aarch64-dvd/
+
+skipx
+services --enabled="chronyd"
+
+rootpw --iscrypted $6$0m8tdmpXe0d4.WSk$AOmMgAd8Plj0VqqKh3KtKd6K4amPwMr/9RzEaE5mNfm/Ai2aIwdOc9GTJ0jlEa4hD6HEvGDUQSkJQTpH/TrZ30
+
+reboot --kexec
+
+%post
+mkdir /root/.ssh/
+curl --output-dir /root/.ssh/ --remote-name http://192.168.1.223/authorized_keys
+cp /root/.ssh/authorized_keys /root/.ssh/jumper.pub
+ssh-keygen -t rsa -f /root/.ssh/cluster -N '' > /root/keygen.output
+ssh-keygen -t rsa -f /root/.ssh/id_rsa -N '' >> /root/keygen.output
+ssh-keygen -t ed25519 -f /root/.ssh/id_ed25519 -N '' >> /root/keygen.output
+ssh-keygen -t dsa -f /root/.ssh/id_dsa -N '' >> /root/keygen.output
+cat /root/.ssh/cluster.pub >> /root/.ssh/authorized_keys
+ipmitool chassis bootdev disk
+sed '/Banner/d;/AllowTcpForwarding/d;/AllowAgentForwarding/d;/GatewayPorts/d;/PermitTunnel/d;' -i /etc/ssh/sshd_config
+sed 's,/usr/libexec/openssh/openssh/sftp-server,/usr/libexec/openssh/sftp-server,g;' -i /etc/ssh/sshd_config
+mkdir -p /root/.cpan/CPAN/
+curl --output-dir /root/.cpan/CPAN/ --remote-name http://192.168.1.223/MyConfig.pm
+%end

@@ -1,0 +1,11 @@
+[OpenHPC_3.0_Factory]
+name=Rolling development build for 3.0
+type=rpm-md
+{% if distro.startswith('rocky') %}
+baseurl=http://obs.openhpc.community:82/OpenHPC3:/3.0:/Factory/EL_9/
+{% endif %}
+{% if distro.startswith('openEuler') %}
+baseurl=http://obs.openhpc.community:82/OpenHPC3:/3.0:/Factory/{{ distro }}/
+{% endif %}
+gpgcheck=0
+enabled=1

@@ -1,0 +1,6 @@
+[EPOL-update]
+name=EPOL-update
+baseurl=http://repo.openeuler.org/openEuler-22.03-LTS/EPOL/update/main/$basearch/
+enabled=1
+gpgcheck=1
+gpgkey=http://repo.openeuler.org/openEuler-22.03-LTS/OS/$basearch/RPM-GPG-KEY-openEuler

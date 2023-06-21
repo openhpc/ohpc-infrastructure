@@ -1,0 +1,129 @@
+- name: openhpc-oe-jenkins-sms
+  hosts: openhpc_oe_jenkins_sms
+  gather_facts: True
+  tasks:
+  - name: configure proxy
+    copy:
+      dest: /etc/profile.d/proxy.sh
+      content: |
+        export https_proxy=http://192.168.1.218:3712
+        export http_proxy=http://192.168.1.218:3712
+        export no_proxy="openhpc-oe-jenkins-repo,test.openhpc.community"
+
+  - name: install obs repository configuration
+    template:
+      src: "{{ item }}"
+      dest: /etc/yum.repos.d/
+      owner: root
+      group: root
+      mode: 0644
+    with_items:
+      - OpenHPC-obs-factory.repo
+
+  - name: install obs repository configuration
+    template:
+      src: "{{ item }}"
+      dest: /etc/yum.repos.d/
+      owner: root
+      group: root
+      mode: 0644
+    with_items:
+      - epol-update.repo
+    when: distro == "openEuler_22.03"
+
+  - name: install packages
+    package:
+      state: present
+      name:
+      - epel-release
+    when: distro == "rocky9.2"
+
+  - name: install packages
+    package:
+      state: present
+      name:
+      - java-11-openjdk-headless
+      - openvpn
+      - git
+      - ipmitool
+      - rsync
+
+  - import_tasks: test-oe-common.yml
+
+  - name: install openvpn server file
+    copy:
+      src: server-tun1.conf
+      dest: /etc/openvpn/server/tun1.conf
+      owner: root
+      group: root
+      mode: 0600
+
+  - name: install openvpn key file
+    copy:
+      src: /etc/openvpn/client/test.key
+      dest: /etc/openvpn/server/test.key
+      owner: root
+      group: root
+      mode: 0600
+
+  - name: enable openvpn-server@tun1
+    service: name=openvpn-server@tun1 enabled=yes state=started
+
+  - name: add route to jenkins
+    ansible.builtin.command: ip route add 129.114.60.186 via 172.31.31.32
+    ignore_errors: true
+
+  - name: sync time from jumper via vpn
+    ansible.builtin.lineinfile:
+      path: /etc/chrony.conf
+      state: present
+      line: 'server 172.31.31.32'
+    register: chrony_changed
+
+  - name: allow time jumps
+    ansible.builtin.lineinfile:
+      path: /etc/chrony.conf
+      state: present
+      line: 'makestep 1 -1'
+    register: chrony_changed
+
+  - name: restart chronyd
+    service:
+      name: chronyd
+      state: restarted
+    when: chrony_changed.changed
+
+  - name: install install.sh
+    copy:
+      src: "{{ item }}"
+      dest: /var/cache/jenkins-agent/
+      owner: root
+      group: root
+    with_items:
+      - install.sh
+      - support_functions.sh
+      - computes_installed.py
+      - huawei.mapping
+      - gen_inputs.pl
+
+  - name: make install script executable
+    ansible.builtin.file:
+      path: /var/cache/jenkins-agent/install.sh
+      mode: '0755'
+
+  - name: install jenkins systemd unit files
+    template:
+      src: jenkins-swarm-agent.service
+      dest: /etc/systemd/system/jenkins-swarm-agent.service
+      owner: root
+      group: root
+      mode: 0644
+    register: swarm_agent_service
+
+  - name: systemd daemon-reload
+    ansible.builtin.systemd:
+      daemon_reload: true
+    when: swarm_agent_service.changed
+
+  - name: start jenkins agent service
+    service: name=jenkins-swarm-agent state=started
