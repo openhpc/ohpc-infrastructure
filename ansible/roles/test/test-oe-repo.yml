@@ -1,0 +1,146 @@
+- name: openhpc-oe-jenkins-repo
+  hosts: openhpc_oe_jenkins_repo
+  gather_facts: True
+  vars:
+    distro: openEuler_22.03
+  tasks:
+  - name: configure proxy
+    copy:
+      dest: /etc/profile.d/proxy.sh
+      content: |
+        export https_proxy=http://192.168.1.218:3712
+        export http_proxy=http://192.168.1.218:3712
+        export no_proxy="openhpc-oe-jenkins-repo"
+  - name: install packages
+    package:
+      state: present
+      name:
+      - git
+      - ipmitool
+      - dhcp
+      - tftp-server
+      - grub2-efi-aa64
+      - httpd
+      - rsync
+
+  - import_tasks: test-oe-common.yml
+
+  - name: enable needed services
+    service: name="{{ item }}" enabled=yes state=started
+    with_items:
+    - httpd
+    - tftp
+
+  - name: serve {{ item }} via httpd
+    ansible.builtin.copy:
+      src: "{{ item }}.conf"
+      dest: /etc/httpd/conf.d
+    register: httpd_changed
+    with_items:
+    - rocky
+    - almalinux
+
+  - name: restart httpd
+    service:
+      name: httpd
+      state: restarted
+    when: httpd_changed.changed
+
+  - name: sync time from sms
+    ansible.builtin.lineinfile:
+      path: /etc/chrony.conf
+      state: present
+      line: 'server 192.168.1.220'
+    register: chrony_changed
+
+  - name: restart chronyd
+    service:
+      name: chronyd
+      state: restarted
+    when: chrony_changed.changed
+
+  - name: mount openeuler dvd as installation source
+    ansible.posix.mount:
+      path: /var/www/html/openEuler-22.03-LTS-everything-aarch64-dvd
+      src: /mnt/images/openEuler-22.03-LTS-everything-aarch64-dvd.iso
+      opts: defaults,ro
+      state: mounted
+      fstype: iso9660
+
+  - name: mount leap dvd as installation source
+    ansible.posix.mount:
+      path: /var/www/html/openSUSE-Leap-15.5-DVD-aarch64-Current
+      src: /mnt/images/openSUSE-Leap-15.5-DVD-aarch64-Current.iso
+      opts: defaults,ro
+      state: mounted
+      fstype: iso9660
+
+  - name: setup tftp booting
+    ansible.builtin.copy:
+      remote_src: yes
+      src: "{{ item }}"
+      dest: /var/lib/tftpboot/
+    with_items:
+      - /boot/efi/EFI/openEuler/grubaa64.efi
+
+  - name: setup tftp booting for openEuler 22.03
+    ansible.builtin.copy:
+      remote_src: yes
+      src: "{{ item }}"
+      dest: /var/lib/tftpboot/
+    with_items:
+      - /var/www/html/openEuler-22.03-LTS-everything-aarch64-dvd/images/pxeboot/initrd.img
+      - /var/www/html/openEuler-22.03-LTS-everything-aarch64-dvd/images/pxeboot/vmlinuz
+    when: distro == "openEuler_22.03"
+
+  - name: setup tftp booting for rocky9
+    ansible.builtin.copy:
+      remote_src: yes
+      src: "{{ item }}"
+      dest: /var/lib/tftpboot/
+    with_items:
+      - /home/rocky/9/BaseOS/aarch64/os/images/pxeboot/initrd.img
+      - /home/rocky/9/BaseOS/aarch64/os/images/pxeboot/vmlinuz
+    when: distro == "rocky9.2"
+
+  - name: setup tftp booting for almalinux9
+    ansible.builtin.copy:
+      remote_src: yes
+      src: "{{ item }}"
+      dest: /var/lib/tftpboot/
+    with_items:
+      - /home/almalinux/9/BaseOS/aarch64/os/images/pxeboot/initrd.img
+      - /home/almalinux/9/BaseOS/aarch64/os/images/pxeboot/vmlinuz
+    when: distro == "almalinux9.2"
+
+  - name: setup tftp booting for leap15.5
+    ansible.builtin.copy:
+      remote_src: yes
+      src: "{{ item }}"
+      dest: /var/lib/tftpboot/
+    with_items:
+      - /var/www/html/openSUSE-Leap-15.5-DVD-aarch64-Current/boot/aarch64/initrd
+      - /var/www/html/openSUSE-Leap-15.5-DVD-aarch64-Current/boot/aarch64/linux
+    when: distro == "leap15.5"
+
+  - name: "{{ distro }}-kickstart"
+    template:
+      src: "{{ distro }}-kickstart"
+      dest: /var/www/html
+    when: (distro == "openEuler_22.03") or (distro == "rocky9.2") or (distro == "almalinux9.2")
+
+  - name: "{{ distro }}-autoyast"
+    template:
+      src: "{{ distro }}-autoyast"
+      dest: /var/www/html
+    when: distro == "leap15.5"
+
+  - name: network boot grub.cfg ({{ distro }})
+    template:
+      src: grub.cfg
+      dest: /var/lib/tftpboot/grub.cfg
+
+  - name: dhcpd.conf
+    ansible.builtin.copy:
+      src: dhcpd.conf
+      dest: /etc/dhcp/

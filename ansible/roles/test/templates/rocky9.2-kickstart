@@ -1,0 +1,49 @@
+text
+
+%packages
+@standard
+ipmitool
+python3-pip
+perl-ph
+-firewalld
+%end
+
+lang en_US.UTF-8
+
+network --hostname=openhpc-oe-jenkins-sms --device=enp189s0f0 --ip=192.168.1.220 --netmask=255.255.255.0 --gateway=192.168.1.218 --bootproto=static
+
+ignoredisk --only-use=sda,sdb
+bootloader --location=mbr --boot-drive=sda
+clearpart --all --initlabel --drives=sda,sdb
+autopart
+timezone Asia/Shanghai --utc
+
+url --url http://192.168.1.223/rocky/9/BaseOS/aarch64/os/
+repo --cost=1 --install --name="BaseOS" --baseurl="http://192.168.1.223/rocky/9/BaseOS/aarch64/os/"
+repo --cost=1 --install --name="AppStream" --baseurl="http://192.168.1.223/rocky/9/AppStream/aarch64/os/"
+repo --cost=1 --install --name="CRB" --baseurl="http://192.168.1.223/rocky/9/CRB/aarch64/os/"
+
+skipx
+services --enabled="chronyd"
+
+rootpw --iscrypted {{ root_password_crypted }}
+
+reboot --kexec
+
+%post
+dnf -y upgrade
+mkdir /root/.ssh/
+curl --output-dir /root/.ssh/ --remote-name http://192.168.1.223/authorized_keys
+cp /root/.ssh/authorized_keys /root/.ssh/jumper.pub
+ssh-keygen -t rsa -f /root/.ssh/cluster -N '' > /root/keygen.output
+ssh-keygen -t rsa -f /root/.ssh/id_rsa -N '' >> /root/keygen.output
+ssh-keygen -t ed25519 -f /root/.ssh/id_ed25519 -N '' >> /root/keygen.output
+ssh-keygen -t dsa -f /root/.ssh/id_dsa -N '' >> /root/keygen.output
+cat /root/.ssh/cluster.pub >> /root/.ssh/authorized_keys
+ipmitool chassis bootdev disk
+mkdir -p /root/.cpan/CPAN/
+curl --output-dir /root/.cpan/CPAN/ --remote-name http://192.168.1.223/MyConfig.pm
+echo "gpgcheck=0" >> /etc/yum.repos.d/BaseOS.repo
+echo "gpgcheck=0" >> /etc/yum.repos.d/AppStream.repo
+echo "gpgcheck=0" >> /etc/yum.repos.d/CRB.repo
+%end

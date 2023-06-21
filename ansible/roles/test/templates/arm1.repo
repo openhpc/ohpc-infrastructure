@@ -1,0 +1,14 @@
+[ARM1]
+name=Arm1
+type=rpm-md
+{% if distro.startswith('rocky') %}
+baseurl=http://192.168.1.223/arm1/EL_9/
+{% endif %}
+{% if distro.startswith('almalinux') %}
+baseurl=http://192.168.1.223/arm1/EL_9/
+{% endif %}
+{% if distro.startswith('leap') %}
+baseurl=http://192.168.1.223/arm1/LEAP_15/
+{% endif %}
+gpgcheck=0
+enabled=0
