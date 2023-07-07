@@ -92,15 +92,32 @@
       - /home/rocky/9/BaseOS/aarch64/os/images/pxeboot/vmlinuz
     when: distro == "rocky9.2"
 
-  - name: "{{ distro }}-kickstart"
+  - name: setup tftp booting for leap15.5
     ansible.builtin.copy:
-      src: "{{ distro }}-kickstart"
-      dest: /var/www/html
+      src: "{{ item }}"
+      dest: /var/lib/tftpboot/
+    with_items:
+      - /home/leap/15.5/BaseOS/x86/os/images/pxeboot/linuxrc
+      - /home/leap/15.5/BaseOS/x86/os/images/pxeboot/vmlinuz
+    when: distro == "leap15.5"
 
-  - name: network boot grub.cfg ({{ distro }})
+  - name: network boot grub.cfg kicksart
+    template:
+      src: grub.cfg.kickstart
+      dest: /var/lib/tftpboot/grub.cfg
+    when: distro == "rocky9.2" || distro == "openEuler_22.03"
+
+  - name: network boot grub.cfg kicksart
+    template:
+      src: grub.cfg.autoyast
+      dest: /var/lib/tftpboot/grub.cfg
+    when: distro == "leap15.5"
+
+  - name: network boot grub.cfg kicksart
     template:
       src: grub.cfg
       dest: /var/lib/tftpboot/grub.cfg
+    when: distro == "rocky9.2" || distro == "openEuler_22.03"
 
   - name: dhcpd.conf
     ansible.builtin.copy:
