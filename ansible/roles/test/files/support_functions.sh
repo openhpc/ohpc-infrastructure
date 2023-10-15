@@ -450,34 +450,43 @@ wait_for_computes() {
 }
 
 enable_repo() {
-	if [[ $Repo == "Factory" ]]; then
-		# The "Factory" repository is setup via ansible
-		return
-	fi
-	# remove the "Factory" repository
-	rm -vf /etc/yum.repos.d/OpenHPC-obs-factory.repo /etc/zypp/repos.d/OpenHPC-obs-factory.repo
-
 	local VERSION_MAJOR VERSION_MAJOR_MINOR RELEASE_REPO STAGING_REPO RELEASE_RPM
 	local VERSION_MAJOR_MINOR
 	# is this an update (micro) release?
 	VERSION_MAJOR=$(echo "${Version}" | awk -F. '{print $1}')
 	VERSION_MINOR=$(echo "${Version}" | awk -F. '{print $2}')
+	VERSION_MICRO=$(echo "${Version}" | awk -F. '{print $3}')
 	VERSION_MAJOR_MINOR=$(echo "${Version}" | awk -F. '{print $1"."$2}')
 
 	echo "VERSION_MAJOR=${VERSION_MAJOR}"
 	echo "VERSION_MINOR=${VERSION_MINOR}"
+	if [ -n "${VERSION_MICRO}" ]; then
+		echo "VERSION_MICRO=${VERSION_MICRO}"
+	fi
 	echo "VERSION_MAJOR_MINOR=${VERSION_MAJOR_MINOR}"
 
 	RELEASE_REPO="http://repos.openhpc.community/OpenHPC/${VERSION_MAJOR}"
 	STAGING_REPO="http://repos.openhpc.community/.staging/OpenHPC/${VERSION_MAJOR}"
 	OBS_KEY="https://obs.openhpc.community/projects/OpenHPC${VERSION_MAJOR}/public_key"
 	STAGING_REPO_KEY="${STAGING_REPO}/${os_repo}/repodata/repomd.xml.key"
+	RELEASE_REPO_KEY="${RELEASE_REPO}/${os_repo}/repodata/repomd.xml.key"
 
-	rpm --import "${OBS_KEY}" "${STAGING_REPO_KEY}"
+	rpm --import "${OBS_KEY}"
+	rpm --import "${STAGING_REPO_KEY}"
+	rpm --import "${RELEASE_REPO_KEY}"
 
-	if [[ "${Repo}" == "Release" ]]; then
+	if [[ "${Repo}" != "Factory" ]]; then
+		# The "Factory" repository is setup via ansible.
+		# Remove the "Factory" repository if not testing "Factory"
+		rm -vf /etc/yum.repos.d/OpenHPC-obs-factory.repo /etc/zypp/repos.d/OpenHPC-obs-factory.repo
+	fi
+
+	if [[ "${VERSION_MINOR}" == "0" ]] && [ -n "${VERSION_MICRO}" ]; then
+		# If not testing the intial release we always want to install
+		# the release RPM.
 		RELEASE_RPM="${RELEASE_REPO}/${os_repo}/${Architecture}/ohpc-release-${VERSION_MAJOR}-1${os_dist}.${Architecture}.rpm"
-	elif [[ "${Repo}" == "Staging" ]]; then
+	fi
+	if [[ "${Repo}" == "Staging" ]]; then
 		# need staging repo if this is first release in the series...
 		if [[ "${VERSION_MINOR}" == "0" ]]; then
 			RELEASE_RPM="${STAGING_REPO}/${os_repo}/${Architecture}/ohpc-release-${VERSION_MAJOR}-1${os_dist}.${Architecture}.rpm"
@@ -488,9 +497,11 @@ enable_repo() {
 		ERROR "Unknown Repo setting (RELEASE_RPM)"
 	fi
 
-	echo "RELEASE_RPM = ${RELEASE_RPM}"
+	if [ -n "${RELEASE_RPM}" ]; then
+		echo "RELEASE_RPM = ${RELEASE_RPM}"
 
-	install_package "${RELEASE_RPM}"
+		install_package "${RELEASE_RPM}"
+	fi
 
 	# Use .staging area for final release testing (assuming this is not an upgrade test)
 	if [ "${Upgrade}" == "false" ]; then
