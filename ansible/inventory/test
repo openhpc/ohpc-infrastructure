@@ -6,3 +6,6 @@ openhpc-oe-jenkins-sms
 
 [openhpc_oe_jenkins_repo]
 openhpc-oe-jenkins-repo
+
+[draconis]
+draconis.ftp.sh

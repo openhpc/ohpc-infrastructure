@@ -6,8 +6,7 @@ After=network.target
 Type=oneshot
 ExecStartPre=mkdir -p /var/cache/jenkins-agent
 ExecStart=curl --continue-at - --silent \
-	--output-dir /var/cache/jenkins-agent \
-	--remote-name \
+	--output /var/cache/jenkins-agent/agent.jar \
 	http://test.openhpc.community:8080/jnlpJars/agent.jar
 
 [Install]

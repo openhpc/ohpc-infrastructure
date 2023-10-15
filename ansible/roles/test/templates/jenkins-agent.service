@@ -6,7 +6,7 @@ Requires=jenkins-prepare.service
 [Service]
 WorkingDirectory=/root
 EnvironmentFile=/etc/sysconfig/jenkins-agent
-ExecStart=/usr/bin/java -jar /var/cache/jenkins-agent/agent.jar -jnlpUrl http://test.openhpc.community:8080/manage/computer/huawei/jenkins-agent.jnlp -secret $AGENT_PASSWORD -workDir "/root/."
+ExecStart=/usr/bin/java -jar /var/cache/jenkins-agent/agent.jar -jnlpUrl http://test.openhpc.community:8080/manage/computer/{{ jenkins_name }}/jenkins-agent.jnlp -secret $AGENT_PASSWORD -workDir "/root/."
 
 [Install]
 WantedBy=multi-user.target

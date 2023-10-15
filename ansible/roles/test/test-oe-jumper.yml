@@ -4,6 +4,7 @@
   gather_facts: True
   vars:
     distro: rocky9.2
+    jenkins_name: huawei
   tasks:
   - name: install obs repository configuration
     template:
