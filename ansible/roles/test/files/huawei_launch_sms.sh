@@ -9,14 +9,15 @@ fi
 # shellcheck disable=SC1091
 . /etc/sysconfig/openhpc-test.config
 
-if [ $# -ne 3 ]; then
-	echo "Exactly three parameter required: ${0} <TARGET> <OS> <ROOT_PASSWORD_CRYPTED>"
+if [ $# -ne 4 ]; then
+	echo "Exactly three parameter required: ${0} <TARGET> <OS> <RELEASE> <ROOT_PASSWORD_CRYPTED>"
 	exit 1
 fi
 
 TARGET=$1
 OS=$2
-ROOT_PASSWORD_CRYPTED=$3
+RELEASE=$3
+ROOT_PASSWORD_CRYPTED=$4
 
 if [[ "${TARGET}" == "unknown" ]]; then
 	echo
@@ -30,9 +31,10 @@ BMC="m${TARGET}"
 echo
 echo "-----------------------------------------------------------"
 echo "LAUNCH SMS"
-echo "--> SMS = ${TARGET}"
-echo "--> OS  = ${OS}"
-echo "--> BMC = ${BMC}"
+echo "--> SMS      = ${TARGET}"
+echo "--> OS       = ${OS}"
+echo "--> RELEASE  = ${RELEASE}"
+echo "--> BMC      = ${BMC}"
 
 # sleep to allow for potential finish of upstream Cleanup job
 HOLD="${SMS_REBOOT_WAIT:-5}"
@@ -98,7 +100,7 @@ ssh "${TARGET}" "echo SWARM_PASSWORD=$SWARM_PASSWORD >> /etc/sysconfig/swarm-age
 ssh "${BOOT_SERVER}" systemctl stop dhcpd
 
 cd ansible || exit
-ansible-playbook --extra-vars "distro=${OS}" -i inventory/test roles/test/test-oe-sms.yml
+ansible-playbook --extra-vars "distro=${OS} release=${RELEASE}" -i inventory/test roles/test/test-oe-sms.yml
 cd ..
 
 # for openEuler we need to use CPAN. This speeds up the
