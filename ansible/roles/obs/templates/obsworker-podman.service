@@ -11,7 +11,7 @@ ExecStart=/usr/bin/podman run --name obsworker --net host \
 	--uts host --privileged \
 	-v /workers/:/workers/:z \
 	-v /etc/sysconfig/obs-server:/etc/sysconfig/obs-server:z \
-        quay.io/ohpc/openhpc-obs-worker:latest
+        quay.io/ohpc/openhpc-obs-worker:"{{ container_tag }}"
 
 ExecReload=/usr/bin/podman stop obsworker
 ExecReload=/usr/bin/podman rm obsworker

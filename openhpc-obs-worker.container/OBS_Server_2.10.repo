@@ -1,7 +1,7 @@
 [OBS_Server_2.10]
-name=2.10 version of the Open Build Service Server (15.3)
+name=2.10 version of the Open Build Service Server (15.5)
 type=rpm-md
-baseurl=https://download.opensuse.org/repositories/OBS:/Server:/2.10/15.3/
-gpgcheck=0
-gpgkey=https://download.opensuse.org/repositories/OBS:/Server:/2.10/15.3/repodata/repomd.xml.key
+baseurl=https://download.opensuse.org/repositories/OBS:/Server:/2.10/15.5/
+gpgcheck=1
+gpgkey=https://download.opensuse.org/repositories/OBS:/Server:/2.10/15.5/repodata/repomd.xml.key
 enabled=1

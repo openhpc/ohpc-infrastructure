@@ -1,0 +1,107 @@
+- name: openhpc-lenovo-jenkins-sms
+  hosts: openhpc_lenovo_jenkins_sms
+  gather_facts: True
+  tasks:
+  - name: fix dnf.conf
+    ansible.builtin.lineinfile:
+      path: /etc/dnf/dnf.conf
+      line: "{{ item }}"
+    with_items:
+      - user_agent="curl"
+
+  - name: install obs repository configuration
+    template:
+      src: "{{ item }}"
+      dest: /etc/yum.repos.d/
+      owner: root
+      group: root
+      mode: 0644
+    with_items:
+      - OpenHPC-obs-factory.repo
+    when: distro == "openEuler_22.03"
+
+  - name: install obs repository configuration
+    template:
+      src: "{{ item }}"
+      dest: /etc/yum.repos.d/
+      owner: root
+      group: root
+      mode: 0644
+    with_items:
+      - OpenHPC-obs-factory.repo
+    when: (distro == "rocky9.2") or (distro == "almalinux9.2")
+
+  - name: install obs repository configuration
+    template:
+      src: "{{ item }}"
+      dest: /etc/zypp/repos.d/
+      owner: root
+      group: root
+      mode: 0644
+    with_items:
+      - OpenHPC-obs-factory.repo
+    when: distro == "leap15.5"
+
+  - name: install packages
+    package:
+      state: present
+      name:
+      - epel-release
+      - tzdata-java
+    when: (distro == "rocky9.2") or (distro == "almalinux9.2")
+
+  - name: install packages
+    package:
+      state: present
+      name:
+      - java-17-openjdk-headless
+      - git
+      - ipmitool
+      - rsync
+      - chrony
+
+  - import_tasks: test-lenovo-common.yml
+
+  - name: copy helper scripts
+    copy:
+      src: "{{ item }}"
+      dest: /var/cache/jenkins-agent/
+      owner: root
+      group: root
+    with_items:
+      - install.sh
+      - support_functions.sh
+      - computes_installed.py
+      - sms_installed.py
+      - gen_inputs.pl
+
+  - name: install installation templates
+    template:
+      src: "{{ item }}"
+      dest: /var/cache/jenkins-agent/
+      owner: root
+      group: root
+    with_items:
+      - lenovo.mapping
+
+  - name: make install script executable
+    ansible.builtin.file:
+      path: /var/cache/jenkins-agent/install.sh
+      mode: '0755'
+
+  - name: install jenkins systemd unit files
+    template:
+      src: jenkins-swarm-agent.service
+      dest: /etc/systemd/system/jenkins-swarm-agent.service
+      owner: root
+      group: root
+      mode: 0644
+    register: swarm_agent_service
+
+  - name: systemd daemon-reload
+    ansible.builtin.systemd:
+      daemon_reload: true
+    when: swarm_agent_service.changed
+
+  - name: start jenkins agent service
+    service: name=jenkins-swarm-agent state=started

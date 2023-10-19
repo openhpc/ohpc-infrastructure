@@ -7,5 +7,9 @@ openhpc-oe-jenkins-sms
 [openhpc_oe_jenkins_repo]
 openhpc-oe-jenkins-repo
 
-[draconis]
-draconis.ftp.sh
+[openhpc_lenovo_repo]
+openhpc-lenovo-repo
+
+[openhpc_lenovo_jenkins_sms]
+openhpc-lenovo-jenkins-sms
+

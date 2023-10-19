@@ -1,0 +1,58 @@
+# Linary aarch64 OpenHPC host definitions for CI testing
+# UK datacenter
+
+enable_ib=0
+enable_ipoib=0
+
+enable_genders=1
+enable_mrsh=1
+enable_powerman=1
+enable_ipmisol=1
+enable_clustershell=1
+enable_geopm=1
+enable_magpie=1
+
+ntp_server=pool.ntp.org
+
+sms_eth_internal_rocky9.2=enp189s0f0
+sms_eth_internal_almalinux9.2=ens2f0
+sms_eth_internal_openEuler_22.03=eth0
+sms_eth_internal_leap15.5=eth0
+
+{% if distro.startswith('rocky') %}
+eth_provision=ens2f0
+{% endif %}
+{% if distro.startswith('almalinux') %}
+eth_provision=ens2f0
+{% endif %}
+{% if distro.startswith('openEuler') %}
+eth_provision=eth2
+{% endif %}
+{% if distro.startswith('leap') %}
+eth_provision=eth2
+{% endif %}
+
+openhpc-lenovo-jenkins-sms_ip=10.241.58.134
+
+bmc_username=root
+
+# Compute node IPs
+
+openhpc-lenovo-jenkins-c1_ip=10.241.58.132
+openhpc-lenovo-jenkins-c2_ip=10.241.58.133
+
+# Compute node BMCs
+
+openhpc-lenovo-jenkins-c1_bmc=10.241.58.139
+openhpc-lenovo-jenkins-c2_bmc=10.241.58.138
+
+# Compute node MACs
+
+openhpc-lenovo-jenkins-c1_mac=f4:c7:aa:44:41:4a
+openhpc-lenovo-jenkins-c2_mac=f4:c7:aa:44:40:f0
+
+
+# Compute node IPoIB (not used)
+
+openhpc-lenovo-jenkins-c1_ipoib=172.17.1.1
+openhpc-lenovo-jenkins-c2_ipoib=172.17.1.2

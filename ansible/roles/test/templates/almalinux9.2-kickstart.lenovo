@@ -1,0 +1,49 @@
+text
+
+%packages
+@standard
+ipmitool
+python3-pip
+perl-ph
+-firewalld
+%end
+
+lang en_US.UTF-8
+
+network --hostname=openhpc-lenovo-jenkins-sms --device=ens2f0 --ip=10.241.58.134 --netmask=255.255.255.240 --gateway=10.241.58.129 --bootproto=static --nameserver=1.1.1.1
+
+ignoredisk --only-use=sda
+bootloader --location=mbr --boot-drive=sda
+clearpart --all --initlabel --drives=sda
+autopart
+timezone UTC --utc
+
+url --url http://10.241.58.130/almalinux/9/BaseOS/x86_64/os/
+repo --cost=1 --install --name="BaseOS" --baseurl="http://10.241.58.130/almalinux/9/BaseOS/x86_64/os/"
+repo --cost=1 --install --name="AppStream" --baseurl="http://10.241.58.130/almalinux/9/AppStream/x86_64/os/"
+repo --cost=1 --install --name="CRB" --baseurl="http://10.241.58.130/almalinux/9/CRB/x86_64/os/"
+
+skipx
+services --enabled="chronyd"
+
+rootpw --iscrypted {{ root_password_crypted }}
+
+reboot --kexec
+
+%post
+dnf -y upgrade
+mkdir /root/.ssh/
+curl --output-dir /root/.ssh/ --remote-name http://10.241.58.130/authorized_keys
+cp /root/.ssh/authorized_keys /root/.ssh/jumper.pub
+ssh-keygen -t rsa -f /root/.ssh/cluster -N '' > /root/keygen.output
+ssh-keygen -t rsa -f /root/.ssh/id_rsa -N '' >> /root/keygen.output
+ssh-keygen -t ed25519 -f /root/.ssh/id_ed25519 -N '' >> /root/keygen.output
+ssh-keygen -t dsa -f /root/.ssh/id_dsa -N '' >> /root/keygen.output
+cat /root/.ssh/cluster.pub >> /root/.ssh/authorized_keys
+ipmitool chassis bootdev disk
+mkdir -p /root/.cpan/CPAN/
+curl --output-dir /root/.cpan/CPAN/ --remote-name http://10.241.58.130/MyConfig.pm
+echo "gpgcheck=0" >> /etc/yum.repos.d/BaseOS.repo
+echo "gpgcheck=0" >> /etc/yum.repos.d/AppStream.repo
+echo "gpgcheck=0" >> /etc/yum.repos.d/CRB.repo
+%end

@@ -244,11 +244,14 @@ install_openHPC_cluster() {
 			echo "CI Customization: setting DHCPD_INTERFACE=eth2 for sles on Moontower"
 			perl -pi -e 's/DHCPD_INTERFACE=\${sms_eth_internal}/DHCPD_INTERFACE=eth0/' "${recipeFile}"
 		fi
+	elif [[ $CI_CLUSTER == "lenovo" ]]; then
+		echo "CI Customization: PXE boot selection is not persistent"
+		sed -e 's,ipmitool,ipmitool -E -I lanplus -H ${c_bmc[$i]} -U ${bmc_username} -P ${bmc_password} chassis bootdev pxe options=efiboot; ipmitool,g' -i "${recipeFile}"
 	else
 		echo "No CI specialization"
-		echo "BaseOS = $BaseOS"
-		echo "CI_CLUSTER = $CI_CLUSTER"
 	fi
+	echo "BaseOS = $BaseOS"
+	echo "CI_CLUSTER = $CI_CLUSTER"
 
 	if [ "${EnableArmCompiler}" == "true" ]; then
 		# enable local ARM1 repository
@@ -486,15 +489,16 @@ enable_repo() {
 		# the release RPM.
 		RELEASE_RPM="${RELEASE_REPO}/${os_repo}/${Architecture}/ohpc-release-${VERSION_MAJOR}-1${os_dist}.${Architecture}.rpm"
 	fi
+	if [[ "${Repo}" == "Release" ]]; then
+		RELEASE_RPM="${RELEASE_REPO}/${os_repo}/${Architecture}/ohpc-release-${VERSION_MAJOR}-1${os_dist}.${Architecture}.rpm"
+	fi
 	if [[ "${Repo}" == "Staging" ]]; then
 		# need staging repo if this is first release in the series...
-		if [[ "${VERSION_MINOR}" == "0" ]]; then
+		if [[ "${VERSION_MINOR}" == "0" ]] && [ -z "${VERSION_MICRO}" ]; then
 			RELEASE_RPM="${STAGING_REPO}/${os_repo}/${Architecture}/ohpc-release-${VERSION_MAJOR}-1${os_dist}.${Architecture}.rpm"
 		else
 			RELEASE_RPM="${RELEASE_REPO}/${os_repo}/${Architecture}/ohpc-release-${VERSION_MAJOR}-1${os_dist}.${Architecture}.rpm"
 		fi
-	else
-		ERROR "Unknown Repo setting (RELEASE_RPM)"
 	fi
 
 	if [ -n "${RELEASE_RPM}" ]; then
