@@ -125,6 +125,15 @@ class InstallTests_sms_installed(unittest.TestCase):
             self.assertEqual(entries[0], 'NAME="openEuler"')
             self.assertEqual(entries[1], 'VERSION="22.03 LTS"')
 
+        elif baseOS == "rocky8.8":
+            self.assertTrue(os.path.isfile("/etc/os-release"))
+            with open("/etc/os-release", "r") as fh:
+                entries = fh.readlines()
+
+            entries = [x.strip() for x in entries]
+            self.assertEqual(entries[0], 'NAME="Rocky Linux"')
+            self.assertEqual(entries[1], 'VERSION="8.8 (Green Obsidian)"')
+
         elif baseOS == "rocky9.2":
             self.assertTrue(os.path.isfile("/etc/os-release"))
             with open("/etc/os-release", "r") as fh:

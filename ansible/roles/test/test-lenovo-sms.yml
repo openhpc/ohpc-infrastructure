@@ -29,7 +29,7 @@
       mode: 0644
     with_items:
       - OpenHPC-obs-factory.repo
-    when: (distro == "rocky9.2") or (distro == "almalinux9.2")
+    when: (distro.startswith("rocky")) or (distro == "almalinux9.2")
 
   - name: install obs repository configuration
     template:
@@ -48,7 +48,7 @@
       name:
       - epel-release
       - tzdata-java
-    when: (distro == "rocky9.2") or (distro == "almalinux9.2")
+    when: (distro.startswith("rocky")) or (distro == "almalinux9.2")
 
   - name: install packages
     package:

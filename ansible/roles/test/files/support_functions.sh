@@ -273,7 +273,7 @@ install_openHPC_cluster() {
 	export BATS_JUNIT_GROUP="RootLevelTests"
 
 	# needed for computes_installed.py
-	pip install xmlrunner
+	pip3 install xmlrunner
 
 	cp /var/cache/jenkins-agent/computes_installed.py .
 	if ! python3 computes_installed.py; then
@@ -371,7 +371,7 @@ gen_localized_inputs() {
 	echo
 	echo "[Running SMS tests]"
 	# needed for sms_installed.py
-	pip install xmlrunner
+	pip3 install xmlrunner
 	cp /var/cache/jenkins-agent/sms_installed.py .
 	if ! python3 sms_installed.py; then
 		# shellcheck disable=SC2034
@@ -470,7 +470,11 @@ enable_repo() {
 
 	RELEASE_REPO="http://repos.openhpc.community/OpenHPC/${VERSION_MAJOR}"
 	STAGING_REPO="http://repos.openhpc.community/.staging/OpenHPC/${VERSION_MAJOR}"
-	OBS_KEY="https://obs.openhpc.community/projects/OpenHPC${VERSION_MAJOR}/public_key"
+	if [[ "${VERSION_MAJOR}" == "2" ]]; then
+		OBS_KEY="https://obs.openhpc.community/projects/OpenHPC/public_key"
+	else
+		OBS_KEY="https://obs.openhpc.community/projects/OpenHPC${VERSION_MAJOR}/public_key"
+	fi
 	STAGING_REPO_KEY="${STAGING_REPO}/${os_repo}/repodata/repomd.xml.key"
 	RELEASE_REPO_KEY="${RELEASE_REPO}/${os_repo}/repodata/repomd.xml.key"
 

@@ -65,6 +65,12 @@ rocky9.2)
 	os_dist=".el9"
 	repo_dir=/etc/yum.repos.d
 	;;
+rocky8.8)
+	os_major=rocky8
+	os_repo=EL_8
+	os_dist=".el8"
+	repo_dir=/etc/yum.repos.d
+	;;
 almalinux9.2)
 	os_major=almalinux9
 	os_repo=EL_9
