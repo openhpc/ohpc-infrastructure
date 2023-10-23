@@ -182,6 +182,8 @@ run_user_level_tests() {
 		echo "ipmitool test already fixed in the git repository"
 		sed -e "/TESTS  += nagios/d" -i admin/Makefile.am
 		sed -e "/TESTS += ipmitool/d" -i oob/Makefile.am
+		sed -e "s,init.sh ipmitool conman,init.sh conman,g" -i oob/Makefile.in
+		sed -e "s,genders nagios nhc,genders nhc,g" -i admin/Makefile.in
 	fi
 
 	# Build test-script for execution
