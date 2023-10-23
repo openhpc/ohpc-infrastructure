@@ -6,25 +6,22 @@
     distro: rocky9.2
     jenkins_name: huawei
   tasks:
-  - name: install obs repository configuration
-    template:
-      src: OpenHPC-obs-factory.repo
-      dest: /etc/yum.repos.d/
-      owner: root
-      group: root
-      mode: 0644
   - name: install packages
     package:
       state: present
       name:
       - java-17-openjdk-headless
-      - losf-ohpc
       - openvpn
       - git
       - ipmitool
       - netcat
       - rsync
       - ansible
+
+  - name: create directories
+    file: dest="{{item}}" state=directory
+    with_items:
+    - /var/cache/jenkins-agent
 
   - name: install jenkins systemd unit files
     copy:
@@ -33,16 +30,24 @@
       owner: root
       group: root
       mode: 0644
-    register: jenkins_agent_service
+    register: jenkins_agent_service_1
     with_items:
     - swarm-prepare.service
     - jenkins-prepare.service
-    - jenkins-agent.service
+
+  - name: install jenkins systemd unit files
+    template:
+      src: jenkins-agent.service
+      dest: /etc/systemd/system/jenkins-agent.service
+      owner: root
+      group: root
+      mode: 0644
+    register: jenkins_agent_service_2
 
   - name: systemd daemon-reload
     ansible.builtin.systemd:
       daemon_reload: true
-    when: jenkins_agent_service.changed
+    when: jenkins_agent_service_1.changed or jenkins_agent_service_2.changed
 
   - name: enable jenkins agent service
     service: name=jenkins-agent enabled=yes state=started
