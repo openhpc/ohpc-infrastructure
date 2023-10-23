@@ -177,6 +177,13 @@ run_user_level_tests() {
 		config_opts="${USER_TEST_OPTIONS} $config_opts"
 	fi
 
+	if [[ ${CI_CLUSTER} == "lenovo" ]]; then
+		echo "disabling nagios and ipmitool tests on ${CI_CLUSTER} CI cluster"
+		echo "ipmitool test already fixed in the git repository"
+		sed -e "/TESTS  += nagios/d" -i admin/Makefile.am
+		sed -e "/TESTS += ipmitool/d" -i oob/Makefile.am
+	fi
+
 	# Build test-script for execution
 
 	cat <<EOF >/tmp/user_integration_tests
