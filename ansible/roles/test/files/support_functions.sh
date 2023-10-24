@@ -52,6 +52,24 @@ show_booted_os() {
 	echo " "
 }
 
+loop_command() {
+        local retry_counter=0
+        local max_retries=5
+
+        while true; do
+                (( retry_counter+=1 ))
+                if [ "${retry_counter}" -gt "${max_retries}" ]; then
+                        ERROR "Failed to run: $*"
+                fi
+                # shellcheck disable=SC2068
+                $@ && break
+
+                # In case it is a network error let's wait a bit.
+                echo "Retrying attempt ${retry_counter}"
+                sleep "${retry_counter}"
+        done
+}
+
 show_pwd() {
 	echo "Launching jenkins test from $(pwd)"
 	echo "--> OpenHPC revision       = $Version"
@@ -279,7 +297,7 @@ install_openHPC_cluster() {
 	export BATS_JUNIT_GROUP="RootLevelTests"
 
 	# needed for computes_installed.py
-	pip3 install xmlrunner
+	loop_command pip3 install xmlrunner
 
 	cp /var/cache/jenkins-agent/computes_installed.py .
 	if ! python3 computes_installed.py; then
@@ -377,7 +395,7 @@ gen_localized_inputs() {
 	echo
 	echo "[Running SMS tests]"
 	# needed for sms_installed.py
-	pip3 install xmlrunner
+	loop_command pip3 install xmlrunner
 	cp /var/cache/jenkins-agent/sms_installed.py .
 	if ! python3 sms_installed.py; then
 		# shellcheck disable=SC2034

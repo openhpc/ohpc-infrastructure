@@ -85,11 +85,15 @@ echo "Host ${TARGET} is up. Launching Jenkins Swarm client" | logger -s
 # Handling new SSH host keys
 ssh-keygen -R "${TARGET}"
 ssh -o StrictHostKeyChecking=accept-new "${TARGET}" hostname
+ssh "${BOOT_SERVER}" "ssh-keygen -R ${TARGET}"
+ssh "${BOOT_SERVER}" "ssh -o StrictHostKeyChecking=accept-new ${TARGET} hostname"
 
-# swarm client jar and jar cache
+# swarm client jar
+rsync -az --info=progress2 --zl 9 /var/cache/jenkins-agent "${TARGET}":/var/cache/
+
 # jar cache is especially important as it reduces
 # the swarm client startup by up to 30 minutes
-rsync -az --info=progress2 --zl 9 /var/cache/jenkins-agent "${TARGET}":/var/cache/
+ssh "${BOOT_SERVER}" "bash -c \"rsync -az --info=progress2 --zl 9 /root/.cache/jenkins-agent/jar-cache ${TARGET}:/var/cache/jenkins-agent/\""
 
 # shellcheck disable=SC2029
 ssh "${TARGET}" "echo SWARM_USER=$SWARM_USER > /etc/sysconfig/swarm-agent"
@@ -105,7 +109,7 @@ cd ..
 
 # for openEuler we need to use CPAN. This speeds up the
 # CPAN module installation.
-rsync -az --info=progress2 --zl 9 /root/.cpan-backup/ "${TARGET}":/root/.cpan/
+ssh "${BOOT_SERVER}" "bash -c \"rsync -az --info=progress2 --zl 9 --exclude=CPAN/MyConfig.pm /root/.cache/cpan-backup/ ${TARGET}:/root/.cpan/\""
 
 # sync time
 ssh "${TARGET}" date
