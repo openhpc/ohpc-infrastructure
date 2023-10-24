@@ -122,6 +122,12 @@ run_root_level_tests() {
 			localOptions="--enable-lustre"
 		fi
 	fi
+	if [[ ${CI_CLUSTER} == "lenovo" ]]; then
+		echo "disabling nagios and ipmitool tests on ${CI_CLUSTER} CI cluster"
+		echo "ipmitool test already fixed in the git repository"
+		sed -e "/TESTS  += nagios/d" -i admin/Makefile.am
+		sed -e "/TESTS += ipmitool/d" -i oob/Makefile.am
+	fi
 
 	if [ "x${USER_TEST_OPTIONS}" != "x" ]; then
 		echo " "
@@ -175,15 +181,6 @@ run_user_level_tests() {
 		echo "adding ${USER_TEST_OPTIONS} to user tests"
 		echo " "
 		config_opts="${USER_TEST_OPTIONS} $config_opts"
-	fi
-
-	if [[ ${CI_CLUSTER} == "lenovo" ]]; then
-		echo "disabling nagios and ipmitool tests on ${CI_CLUSTER} CI cluster"
-		echo "ipmitool test already fixed in the git repository"
-		sed -e "/TESTS  += nagios/d" -i admin/Makefile.am
-		sed -e "/TESTS += ipmitool/d" -i oob/Makefile.am
-		sed -e "s,init.sh ipmitool conman,init.sh conman,g" -i oob/Makefile.in
-		sed -e "s,genders nagios nhc,genders nhc,g" -i admin/Makefile.in
 	fi
 
 	# Build test-script for execution
