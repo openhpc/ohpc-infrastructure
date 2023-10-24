@@ -83,6 +83,12 @@ leap15.5)
 	os_dist=".leap15"
 	repo_dir=/etc/zypp/repos.d
 	;;
+leap15.3)
+	os_major=leap15
+	os_repo=Leap_15
+	os_dist=".leap15"
+	repo_dir=/etc/zypp/repos.d
+	;;
 *)
 	echo "Unkown BaseOS ${BaseOS}. Exiting!"
 	exit 1

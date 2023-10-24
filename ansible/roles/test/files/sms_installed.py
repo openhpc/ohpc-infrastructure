@@ -107,6 +107,15 @@ class InstallTests_sms_installed(unittest.TestCase):
             self.assertEqual(entries[0], 'NAME=\"openSUSE Leap\"')
             self.assertEqual(entries[1], 'VERSION=\"15.1 \"')
 
+        elif baseOS == "leap15.3":
+            self.assertTrue(os.path.isfile("/etc/os-release"))
+            with open("/etc/os-release", "r") as fh:
+                entries = fh.readlines()
+
+            entries = [x.strip() for x in entries]
+            self.assertEqual(entries[0], 'NAME=\"openSUSE Leap\"')
+            self.assertEqual(entries[1], 'VERSION=\"15.3\"')
+
         elif baseOS == "leap15.5":
             self.assertTrue(os.path.isfile("/etc/os-release"))
             with open("/etc/os-release", "r") as fh:

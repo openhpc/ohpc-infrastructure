@@ -1,0 +1,142 @@
+<?xml version="1.0"?>
+<!DOCTYPE profile>
+<profile
+	xmlns="http://www.suse.com/1.0/yast2ns"
+	xmlns:config="http://www.suse.com/1.0/configns">
+	<users config:type="list">
+		<user>
+			<user_password>{{ root_password_crypted }}</user_password>
+			<username>root</username>
+		</user>
+	</users>
+	<language>
+		<language>en_US</language>
+	</language>
+	<general t="map">
+		<signature-handling t="map">
+			<accept_file_without_checksum t="boolean">true</accept_file_without_checksum>
+			<accept_non_trusted_gpg_key t="boolean">true</accept_non_trusted_gpg_key>
+			<accept_unknown_gpg_key t="boolean">true</accept_unknown_gpg_key>
+			<accept_unsigned_file t="boolean">true</accept_unsigned_file>
+			<accept_verification_failed t="boolean">true</accept_verification_failed>
+			<import_gpg_key t="boolean">true</import_gpg_key>
+		</signature-handling>
+		<mode>
+			<confirm config:type="boolean">false</confirm>
+		</mode>
+	</general>
+	<partitioning config:type="list">
+		<drive>
+			<device>/dev/sda</device>
+			<use>all</use>
+			<partitions config:type="list">
+				<partition>
+					<filesystem config:type="symbol">xfs</filesystem>
+					<mount>/</mount>
+					<size>max</size>
+				</partition>
+				<partition>
+					<mount>swap</mount>
+					<size>12GiB</size>
+				</partition>
+			</partitions>
+		</drive>
+	</partitioning>
+	<storage>
+		<proposal>
+			<windows_delete_mode config:type="symbol">all</windows_delete_mode>
+			<linux_delete_mode config:type="symbol">all</linux_delete_mode>
+			<other_delete_mode config:type="symbol">all</other_delete_mode>
+		</proposal>
+	</storage>
+	<software>
+		<packages config:type="list">
+			<package>make</package>
+			<package>sudo</package>
+			<package>wget</package>
+			<package>rsync</package>
+			<package>iputils</package>
+			<package>ipmitool</package>
+			<package>openssh</package>
+			<package>openssh-server</package>
+		</packages>
+		<do_online_update config:type="boolean">false</do_online_update>
+	</software>
+	<services-manager>
+		<default_target>multi-user</default_target>
+		<services>
+			<disable config:type="list">
+				<service>sshd</service>
+			</disable>
+		</services>
+	</services-manager>
+	<add-on t="map">
+		<add_on_others t="list">
+			<listentry t="map">
+				<alias>leap</alias>
+				<media_url>http://download.opensuse.org/distribution/leap/15.3/repo/oss/</media_url>
+			</listentry>
+		</add_on_others>
+	</add-on>
+	<networking t="map">
+		<dns t="map">
+			<dhcp_hostname t="boolean">false</dhcp_hostname>
+			<hostname>openhpc-lenovo-jenkins-sms</hostname>
+			<resolv_conf_policy>auto</resolv_conf_policy>
+			<nameservers config:type="list">
+				<nameserver>1.1.1.1</nameserver>
+			</nameservers>
+		</dns>
+		<interfaces t="list">
+			<interface t="map">
+				<bootproto>static</bootproto>
+				<ipaddr>10.241.58.134</ipaddr>
+				<mtu>0</mtu>
+				<name>ens2f0</name>
+				<prefixlen>28</prefixlen>
+				<startmode>hotplug</startmode>
+			</interface>
+		</interfaces>
+		<ipv6 t="boolean">true</ipv6>
+		<keep_install_network t="boolean">true</keep_install_network>
+		<managed t="boolean">false</managed>
+		<routing t="map">
+			<routes config:type="list">
+				<route>
+					<destination>default</destination>
+					<device>ens2f0</device>
+					<gateway>10.241.58.129</gateway>
+				</route>
+			</routes>
+			<ipv4_forward t="boolean">false</ipv4_forward>
+			<ipv6_forward t="boolean">false</ipv6_forward>
+		</routing>
+	</networking>
+	<scripts>
+		<post-scripts config:type="list">
+			<script>
+				<source>
+					<![CDATA[
+zypper -n update
+mv /etc/login.defs.d/* /root/
+systemctl disable --now firewalld
+mkdir /root/.ssh/
+curl --output /root/.ssh/authorized_keys --remote-name http://10.241.58.130/authorized_keys
+cp /root/.ssh/authorized_keys /root/.ssh/jumper.pub
+ssh-keygen -t rsa -f /root/.ssh/cluster -N '' > /root/keygen.output
+ssh-keygen -t rsa -f /root/.ssh/id_rsa -N '' >> /root/keygen.output
+ssh-keygen -t ed25519 -f /root/.ssh/id_ed25519 -N '' >> /root/keygen.output
+ssh-keygen -t dsa -f /root/.ssh/id_dsa -N '' >> /root/keygen.output
+cat /root/.ssh/cluster.pub >> /root/.ssh/authorized_keys
+ipmitool chassis bootdev disk
+mkdir -p /root/.cpan/CPAN/
+curl --output /root/.cpan/CPAN/MyConfig.pm --remote-name http://10.241.58.130/MyConfig.pm
+# Enable and start as late as possible.
+# The host up detection looks for SSH available.
+systemctl enable --now sshd
+                      ]]>
+				</source>
+			</script>
+		</post-scripts>
+	</scripts>
+</profile>

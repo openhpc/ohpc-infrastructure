@@ -19,6 +19,7 @@ sms_eth_internal_rocky8.8=ens2f0
 sms_eth_internal_almalinux9.2=ens2f0
 sms_eth_internal_openEuler_22.03=eth0
 sms_eth_internal_leap15.5=eth0
+sms_eth_internal_leap15.3=eth0
 
 internal_netmask=255.255.255.240
 
@@ -32,7 +33,7 @@ eth_provision=ens2f0
 eth_provision=eth2
 {% endif %}
 {% if distro.startswith('leap') %}
-eth_provision=eth2
+eth_provision=eth0
 {% endif %}
 
 openhpc-lenovo-jenkins-sms_ip=10.241.58.134

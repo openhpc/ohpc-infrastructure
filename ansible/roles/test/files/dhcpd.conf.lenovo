@@ -1,6 +1,7 @@
 subnet 10.241.58.128 netmask 255.255.255.240 {
 	allow bootp;
 	option routers 10.241.58.129;
+	option domain-name-servers 1.1.1.1;
 	group {
 		filename "grubx64.efi";
 		host openhpc-lenovo-jenkins-sms {

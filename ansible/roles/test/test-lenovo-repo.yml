@@ -17,6 +17,11 @@
 
   - import_tasks: test-lenovo-common.yml
 
+  - name: create directories
+    file: dest="{{item}}" state=directory
+    with_items:
+    - /var/www/html/openSUSE-Leap-15.3-DVD-x86_64-Current
+
   - name: enable needed services
     service: name="{{ item }}" enabled=yes state=started
     with_items:
@@ -46,10 +51,18 @@
       state: mounted
       fstype: iso9660
 
-  - name: mount leap dvd as installation source
+  - name: mount leap 15.5 dvd as installation source
     ansible.posix.mount:
       path: /var/www/html/openSUSE-Leap-15.5-DVD-x86_64-Current
       src: /mnt/images/openSUSE-Leap-15.5-DVD-x86_64-Current.iso
+      opts: defaults,ro
+      state: mounted
+      fstype: iso9660
+
+  - name: mount leap 15.3 dvd as installation source
+    ansible.posix.mount:
+      path: /var/www/html/openSUSE-Leap-15.3-DVD-x86_64-Current
+      src: /mnt/images/openSUSE-Leap-15.3-DVD-x86_64-Current.iso
       opts: defaults,ro
       state: mounted
       fstype: iso9660
@@ -108,9 +121,19 @@
       src: "{{ item }}"
       dest: /var/lib/tftpboot/
     with_items:
-      - /var/www/html/openSUSE-Leap-15.5-DVD-x86_64-Current/boot/x86_64/initrd
-      - /var/www/html/openSUSE-Leap-15.5-DVD-x86_64-Current/boot/x86_64/linux
+      - /var/www/html/openSUSE-Leap-15.5-DVD-x86_64-Current/boot/x86_64/loader/initrd
+      - /var/www/html/openSUSE-Leap-15.5-DVD-x86_64-Current/boot/x86_64/loader/linux
     when: distro == "leap15.5"
+
+  - name: setup tftp booting for leap15.3
+    ansible.builtin.copy:
+      remote_src: yes
+      src: "{{ item }}"
+      dest: /var/lib/tftpboot/
+    with_items:
+      - /var/www/html/openSUSE-Leap-15.3-DVD-x86_64-Current/boot/x86_64/loader/initrd
+      - /var/www/html/openSUSE-Leap-15.3-DVD-x86_64-Current/boot/x86_64/loader/linux
+    when: distro == "leap15.3"
 
   - name: "{{ distro }}-kickstart"
     template:
@@ -120,9 +143,9 @@
 
   - name: "{{ distro }}-autoyast"
     template:
-      src: "{{ distro }}-autoyast"
-      dest: /var/www/html
-    when: distro == "leap15.5"
+      src: "{{ distro }}-autoyast.lenovo"
+      dest: "/var/www/html/{{ distro }}-autoyast"
+    when: distro.startswith("leap15")
 
   - name: network boot grub.cfg ({{ distro }})
     template:

@@ -8,6 +8,7 @@
       line: "{{ item }}"
     with_items:
       - user_agent="curl"
+    when: (distro.startswith("rocky")) or (distro == "almalinux9.2")
 
   - name: install obs repository configuration
     template:
@@ -40,7 +41,7 @@
       mode: 0644
     with_items:
       - OpenHPC-obs-factory.repo
-    when: distro == "leap15.5"
+    when: distro.startswith("leap15")
 
   - name: install packages
     package:
@@ -55,10 +56,24 @@
       state: present
       name:
       - java-17-openjdk-headless
+    when: distro != "leap15.3"
+
+  - name: install packages
+    package:
+      state: present
+      name:
+      - java-11-openjdk-headless
+    when: distro == "leap15.3"
+
+  - name: install packages
+    package:
+      state: present
+      name:
       - git
       - ipmitool
       - rsync
       - chrony
+    when: distro != "leap15.3"
 
   - import_tasks: test-lenovo-common.yml
 

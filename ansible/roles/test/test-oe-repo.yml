@@ -132,8 +132,8 @@
 
   - name: "{{ distro }}-autoyast"
     template:
-      src: "{{ distro }}-autoyast"
-      dest: /var/www/html
+      src: "{{ distro }}-autoyast.huawei"
+      dest: "/var/www/html/{{ distro }}-autoyast"
     when: distro == "leap15.5"
 
   - name: network boot grub.cfg ({{ distro }})
