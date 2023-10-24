@@ -371,7 +371,7 @@ post_install_cmds() {
 	fi
 	# needed for the test-suite as long as openEuler
 	# does not have the RPM.
-	cpan -fi XML::Generator >>/root/cpan.log 2>&1
+	cpan -Tfi XML::Generator >>/root/cpan.log 2>&1
 }
 
 gen_localized_inputs() {
