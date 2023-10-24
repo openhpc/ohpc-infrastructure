@@ -51,6 +51,7 @@ autopart
 timezone Asia/Shanghai --utc
 
 url --url http://192.168.1.223/openEuler-22.03-LTS-everything-aarch64-dvd/
+repo --cost=1 --install --name="DVD" --baseurl="http://192.168.1.223/openEuler-22.03-LTS-everything-aarch64-dvd/"
 
 skipx
 services --enabled="chronyd"
@@ -73,4 +74,5 @@ sed '/Banner/d;/AllowTcpForwarding/d;/AllowAgentForwarding/d;/GatewayPorts/d;/Pe
 sed 's,/usr/libexec/openssh/openssh/sftp-server,/usr/libexec/openssh/sftp-server,g;' -i /etc/ssh/sshd_config
 mkdir -p /root/.cpan/CPAN/
 curl --output-dir /root/.cpan/CPAN/ --remote-name http://192.168.1.223/MyConfig.pm
+echo "gpgcheck=0" >> /etc/yum.repos.d/DVD.repo
 %end
