@@ -54,8 +54,8 @@
 	</storage>
 	<proxy>
 		<enabled config:type="boolean">true</enabled>
-		<https_proxy>http://192.168.1.218:3712</https_proxy>
-		<http_proxy>http://192.168.1.218:3712</http_proxy>
+		<https_proxy>http://192.168.1.223:3128</https_proxy>
+		<http_proxy>http://192.168.1.223:3128</http_proxy>
 		<no_proxy>openhpc-oe-jenkins-repo 192.168.1.223</no_proxy>
 	</proxy>
 	<software>

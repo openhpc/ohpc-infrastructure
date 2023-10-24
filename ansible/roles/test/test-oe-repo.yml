@@ -8,14 +8,15 @@
     copy:
       dest: /etc/profile.d/proxy.sh
       content: |
-        export https_proxy=http://192.168.1.218:3712
-        export http_proxy=http://192.168.1.218:3712
+        export https_proxy=http://192.168.1.223:3128
+        export http_proxy=http://192.168.1.223:3128
         export no_proxy="openhpc-oe-jenkins-repo"
   - name: install packages
     package:
       state: present
       name:
       - git
+      - squid
       - ipmitool
       - dhcp
       - tftp-server
