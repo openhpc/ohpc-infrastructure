@@ -75,4 +75,5 @@ sed 's,/usr/libexec/openssh/openssh/sftp-server,/usr/libexec/openssh/sftp-server
 mkdir -p /root/.cpan/CPAN/
 curl --output-dir /root/.cpan/CPAN/ --remote-name http://192.168.1.223/MyConfig.pm
 echo "gpgcheck=0" >> /etc/yum.repos.d/DVD.repo
+sed -i "s,metalink,#metalink,g" -i /etc/yum.repos.d/openEuler.repo
 %end
