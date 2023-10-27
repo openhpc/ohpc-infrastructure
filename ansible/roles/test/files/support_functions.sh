@@ -272,7 +272,7 @@ install_openHPC_cluster() {
 		echo "CI Customization: PXE boot selection is not persistent"
 		sed -e 's,ipmitool,ipmitool -E -I lanplus -H ${c_bmc[$i]} -U ${bmc_username} -P ${bmc_password} chassis bootdev pxe options=efiboot; ipmitool,g' -i "${recipeFile}"
 		if [ "${PKG_MANAGER}" == "dnf" ]; then
-			sed -e "s,/etc/yum.repos.d$,/etc/yum.repos.d; echo user_agent=curl > /etc/dnf/dnf.conf,g" -i "${recipeFile}"
+			sed -e 's,/etc/yum.repos.d$,/etc/yum.repos.d; echo user_agent=curl > $CHROOT/etc/dnf/dnf.conf,g' -i "${recipeFile}"
 		fi
 	else
 		echo "No CI specialization"
