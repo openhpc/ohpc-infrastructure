@@ -103,10 +103,6 @@ cd ansible || exit
 ansible-playbook --extra-vars "distro=${OS} release=${RELEASE}" -i inventory/test roles/test/test-lenovo-sms.yml
 cd ..
 
-# for openEuler we need to use CPAN. This speeds up the
-# CPAN module installation.
-rsync -az --info=progress2 --zl 9 /root/.cpan-backup/ "${TARGET}":/root/.cpan/
-
 # sync time
 ssh "${TARGET}" date
 ssh "${TARGET}" "chronyc -m 'burst 3/3' 'makestep 0.1 3'"
