@@ -364,14 +364,21 @@ post_install_cmds() {
 	if [ "${RMS}" == "slurm" ]; then
 		install_package slurm-sview-ohpc
 	fi
-	if [[ "${BaseOS}" == "leap"* ]]; then
-		install_package perl-App-cpanminus
+	if [[ "${os_repo}" == "EL_"* ]]; then
+		# Available from EPEL 8 and 9
+		install_package perl-XML-Generator
 	else
-		install_package perl-CPAN
+		local CPAN
+		if [[ "${BaseOS}" == "leap"* ]]; then
+			CPAN="perl-App-cpanminus"
+		else
+			CPAN="perl-CPAN"
+		fi
+		install_package "${CPAN}"
+		# needed for the test-suite as long as openEuler and Leap
+		# do not have the RPM.
+		cpan -Tfi XML::Generator >>/root/cpan.log 2>&1
 	fi
-	# needed for the test-suite as long as openEuler
-	# does not have the RPM.
-	cpan -Tfi XML::Generator >>/root/cpan.log 2>&1
 }
 
 gen_localized_inputs() {
@@ -512,7 +519,7 @@ enable_repo() {
 		rm -vf /etc/yum.repos.d/OpenHPC-obs-factory.repo /etc/zypp/repos.d/OpenHPC-obs-factory.repo
 	fi
 
-	if [[ "${VERSION_MINOR}" == "0" ]] && [ -n "${VERSION_MICRO}" ]; then
+	if [[ "${VERSION_MINOR}" != "0" ]] || [ -n "${VERSION_MICRO}" ]; then
 		# If not testing the intial release we always want to install
 		# the release RPM.
 		RELEASE_RPM="${RELEASE_REPO}/${os_repo}/${Architecture}/ohpc-release-${VERSION_MAJOR}-1${os_dist}.${Architecture}.rpm"
