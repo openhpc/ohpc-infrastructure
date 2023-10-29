@@ -11,6 +11,12 @@
         export https_proxy=http://192.168.1.223:3128
         export http_proxy=http://192.168.1.223:3128
         export no_proxy="openhpc-oe-jenkins-repo"
+
+  - name: create directories
+    file: dest="{{item}}" state=directory
+    with_items:
+    - /var/www/html/openSUSE-Leap-15.3-3-DVD-aarch64-Media
+
   - name: install packages
     package:
       state: present
@@ -76,6 +82,14 @@
       state: mounted
       fstype: iso9660
 
+  - name: mount leap dvd as installation source
+    ansible.posix.mount:
+      path: /var/www/html/openSUSE-Leap-15.3-3-DVD-aarch64-Media
+      src: /mnt/images/openSUSE-Leap-15.3-3-DVD-aarch64-Media.iso
+      opts: defaults,ro
+      state: mounted
+      fstype: iso9660
+
   - name: setup tftp booting
     ansible.builtin.copy:
       remote_src: yes
@@ -104,6 +118,16 @@
       - /home/rocky/9/BaseOS/aarch64/os/images/pxeboot/vmlinuz
     when: distro == "rocky9.2"
 
+  - name: setup tftp booting for rocky8
+    ansible.builtin.copy:
+      remote_src: yes
+      src: "{{ item }}"
+      dest: /var/lib/tftpboot/
+    with_items:
+      - /home/rocky/8/BaseOS/aarch64/os/images/pxeboot/initrd.img
+      - /home/rocky/8/BaseOS/aarch64/os/images/pxeboot/vmlinuz
+    when: distro == "rocky8.8"
+
   - name: setup tftp booting for almalinux9
     ansible.builtin.copy:
       remote_src: yes
@@ -124,17 +148,27 @@
       - /var/www/html/openSUSE-Leap-15.5-DVD-aarch64-Current/boot/aarch64/linux
     when: distro == "leap15.5"
 
+  - name: setup tftp booting for leap15.3
+    ansible.builtin.copy:
+      remote_src: yes
+      src: "{{ item }}"
+      dest: /var/lib/tftpboot/
+    with_items:
+      - /var/www/html/openSUSE-Leap-15.3-DVD-aarch64-Media/boot/aarch64/initrd
+      - /var/www/html/openSUSE-Leap-15.3-DVD-aarch64-Media/boot/aarch64/linux
+    when: distro == "leap15.3"
+
   - name: "{{ distro }}-kickstart"
     template:
       src: "{{ distro }}-kickstart.huawei"
       dest: "/var/www/html/{{ distro }}-kickstart"
-    when: (distro == "openEuler_22.03") or (distro == "rocky9.2") or (distro == "almalinux9.2")
+    when: (distro == "openEuler_22.03") or (distro.startswith("rocky")) or (distro == "almalinux9.2")
 
   - name: "{{ distro }}-autoyast"
     template:
       src: "{{ distro }}-autoyast.huawei"
       dest: "/var/www/html/{{ distro }}-autoyast"
-    when: distro == "leap15.5"
+    when: distro.startswith("leap15")
 
   - name: network boot grub.cfg ({{ distro }})
     template:

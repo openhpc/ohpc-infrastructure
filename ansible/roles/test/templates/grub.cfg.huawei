@@ -2,7 +2,11 @@ set default=0
 set timeout=1
 
 menuentry 'Install' {
-{% if distro.startswith('leap') %}
+{% if distro.startswith('leap15.3') %}
+  linux linux ro autoyast=http://192.168.1.223/leap15.3-autoyast install=http://192.168.1.223/openSUSE-Leap-15.3-DVD-aarch64-Media ifcfg=enp189s0f0=dhcp textmode=1 display=1 proxy=192.168.1.223:3128 vnc=1 VNCPassword=12345678
+  initrd initrd
+{% endif %}
+{% if distro.startswith('leap15.5') %}
   linux linux ro autoyast=http://192.168.1.223/leap15.5-autoyast install=http://192.168.1.223/openSUSE-Leap-15.5-DVD-aarch64-Current ifcfg=enp189s0f0=dhcp textmode=1 display=1 proxy=192.168.1.223:3128 vnc=1 VNCPassword=12345678
   initrd initrd
 {% else %}
