@@ -14,6 +14,7 @@
       - tftp-server
       - httpd
       - rsync
+      - squid
 
   - import_tasks: test-lenovo-common.yml
 
@@ -22,11 +23,31 @@
     with_items:
     - /var/www/html/openSUSE-Leap-15.3-DVD-x86_64-Current
 
+  - name: create directories
+    file: dest="{{item}}" state=directory
+      owner: squid
+      group: squid
+    with_items:
+    - /home/cache
+
+  - name: install squid.conf
+    template:
+      src: squid.conf
+      dest: /etc/squid/squid.conf
+    register: squid_changed
+
+  - name: restart squid
+    service:
+      name: squid
+      state: restarted
+    when: squid_changed.changed
+
   - name: enable needed services
     service: name="{{ item }}" enabled=yes state=started
     with_items:
     - httpd
     - tftp
+    - squid
 
   - name: serve {{ item }} via httpd
     ansible.builtin.copy:
