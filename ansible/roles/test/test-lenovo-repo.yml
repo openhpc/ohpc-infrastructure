@@ -24,7 +24,9 @@
     - /var/www/html/openSUSE-Leap-15.3-DVD-x86_64-Current
 
   - name: create directories
-    file: dest="{{item}}" state=directory
+    file:
+      dest: "{{item}}"
+      state: directory
       owner: squid
       group: squid
     with_items:

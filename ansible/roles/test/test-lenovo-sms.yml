@@ -2,6 +2,13 @@
   hosts: openhpc_lenovo_jenkins_sms
   gather_facts: True
   tasks:
+  - name: configure proxy
+    copy:
+      dest: /etc/profile.d/proxy.sh
+      content: |
+        export https_proxy=http://10.241.58.130:3128
+        export http_proxy=http://10.241.58.130:3128
+
   - name: fix dnf.conf
     ansible.builtin.lineinfile:
       path: /etc/dnf/dnf.conf
