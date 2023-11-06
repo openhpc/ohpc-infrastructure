@@ -402,6 +402,10 @@ gen_localized_inputs() {
 		sed -i -e "s/enable_arm1_packages:-0/enable_arm1_packages:-1/" "${inputFile}"
 	fi
 
+	if [ "${EnablePXSE}" == "true" ]; then
+		sed -i -e "s/enable_intel_packages:-0/enable_intel_packages:-1/" "${inputFile}"
+	fi
+
 	echo
 	echo "[Running SMS tests]"
 	# needed for sms_installed.py
