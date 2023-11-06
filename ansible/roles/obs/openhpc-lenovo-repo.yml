@@ -3,9 +3,10 @@
   user: root
   gather_facts: True
   vars:
-    obs_worker_instances: 2
+    obs_worker_instances: 4
     obs_worker_jobs: 6
     container_tag: amd64
+    obs_repository_server: 10.255.255.0
   tasks:
   - name: create OBS directories
     file: dest="{{item}}" mode=0755 state=directory

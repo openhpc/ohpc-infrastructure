@@ -64,7 +64,7 @@ OBS_API_AUTOSETUP="no"
 # An empty setting will point to localhost:5352 by default
 #
 OBS_SRC_SERVER=""
-OBS_SRC_SERVER="obs.openhpc.community:5352"
+OBS_SRC_SERVER="{{ obs_repository_server }}:5352"
 
 ## Path:        Applications/OBS
 ## Description: define repository server host to be used
@@ -75,7 +75,7 @@ OBS_SRC_SERVER="obs.openhpc.community:5352"
 # An empty setting will point to localhost:5252 by default
 #
 #OBS_REPO_SERVERS=""
-OBS_REPO_SERVERS="obs.openhpc.community:5252"
+OBS_REPO_SERVERS="{{ obs_repository_server }}:5252"
 
 ## Path:        Applications/OBS
 ## Description: define number of build instances
@@ -148,7 +148,7 @@ OBS_WORKER_TEST_MODE=""
 # A label can be used to build specific packages only on dedicated hosts.
 # For example for benchmarking.
 #
-OBS_WORKER_HOSTLABELS=""
+OBS_WORKER_HOSTLABELS="{{ inventory_hostname_short }}"
 
 ## Path:        Applications/OBS
 ## Description: can be used to define a security level of the worker

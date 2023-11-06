@@ -6,6 +6,8 @@
     swapfile: /swapfile
     obs_worker_instances: 2
     obs_worker_jobs: 6
+    container_tag: latest
+    obs_repository_server: obs.openhpc.community
   tasks:
   - name: create OBS directories
     file: dest="{{item}}" mode=0755 state=directory
