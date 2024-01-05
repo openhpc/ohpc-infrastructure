@@ -112,7 +112,7 @@
 			<routes config:type="list">
 				<route>
 					<destination>default</destination>
-					<device>ens2f0</device>
+					<device>eth0</device>
 					<gateway>10.241.58.129</gateway>
 				</route>
 			</routes>
