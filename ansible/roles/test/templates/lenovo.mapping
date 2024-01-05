@@ -33,7 +33,7 @@ eth_provision=ens2f0
 eth_provision=eth2
 {% endif %}
 {% if distro.startswith('leap') %}
-eth_provision=eth0
+eth_provision=eth2
 {% endif %}
 
 openhpc-lenovo-jenkins-sms_ip=10.241.58.134
