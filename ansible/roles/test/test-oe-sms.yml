@@ -8,7 +8,7 @@
       content: |
         export https_proxy=http://192.168.1.223:3128
         export http_proxy=http://192.168.1.223:3128
-        export no_proxy="openhpc-oe-jenkins-repo,test.openhpc.community"
+        export no_proxy="openhpc-oe-jenkins-repo,test.openhpc.community,pypi.org"
 
   - name: install obs repository configuration
     template:
@@ -50,6 +50,7 @@
       name:
       - epel-release
       - tzdata-java
+      - bind-utils
     when: (distro.startswith("rocky")) or (distro == "almalinux9.2")
 
   - name: install packages
@@ -57,6 +58,7 @@
       state: present
       name:
       - java-17-openjdk-headless
+      - bind-utils
     when: distro != "leap15.3"
 
   - name: install packages
@@ -64,6 +66,7 @@
       state: present
       name:
       - java-11-openjdk-headless
+      - bind-utils
     when: distro == "leap15.3"
 
   - name: install packages
@@ -124,6 +127,20 @@
 
   - name: add route to jenkins
     ansible.builtin.command: ip route add 129.114.60.186 via 172.31.31.32
+    ignore_errors: true
+
+  - name: add route to 1.1.1.1
+    ansible.builtin.command: ip route add 1.1.1.1 via 172.31.31.32
+    ignore_errors: true
+
+  - name: enable nameserver
+    ansible.builtin.lineinfile:
+      path: /etc/resolv.conf
+      state: present
+      line: 'nameserver 1.1.1.1'
+
+  - name: add route to pypi.org
+    ansible.builtin.command: for i in $(host -t a pypi.org | cut -d\  -f4); do  ip route add $i via 172.31.31.32; done
     ignore_errors: true
 
   - name: sync time from jumper via vpn
