@@ -1,0 +1,25 @@
+export InstallCluster=true
+export COMPUTE_HOSTS="openhpc-lenovo-jenkins-c1, openhpc-lenovo-jenkins-c2"
+export RMS=slurm
+export EnableLongTests=false
+export Upgrade=false
+export CI_CLUSTER=lenovo
+export enable_ipoib=0
+export Interactive=false
+export EnableOneAPI=false
+export enable_ib=0
+export provision_wait=100
+export UserLevelTests=true
+export LocalRepoFromDist=false
+export USER_TEST_OPTIONS='--with-fabric=none --disable-likwid --disable-papi --with-mpi-families="mpich openmpi4" --disable-geopm'
+export ohpc_tree=2.x
+export EnablePXSE=false
+export UseExternalRepo=true
+export RootLevelTests=true
+export EnableArmCompiler=false
+export CI=true
+export DisableDefaultRepo=false
+export DefaultRepoConfig=false
+export Provisioner=warewulf
+export RunLimit=150
+export Repo=Release

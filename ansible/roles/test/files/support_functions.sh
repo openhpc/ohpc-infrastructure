@@ -145,6 +145,9 @@ run_root_level_tests() {
 		echo "ipmitool test already fixed in the git repository"
 		sed -e "/TESTS  += nagios/d" -i admin/Makefile.am
 		sed -e "/TESTS += ipmitool/d" -i oob/Makefile.am
+		if [[ "${BaseOS}" == "leap15.3" ]]; then
+			sed -e "s,-Sg,-Sng,g" -i /home/ohpc-test/tests/admin/clustershell
+		fi
 	fi
 
 	if [ "x${USER_TEST_OPTIONS}" != "x" ]; then

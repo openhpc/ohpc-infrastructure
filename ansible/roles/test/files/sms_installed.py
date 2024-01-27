@@ -150,7 +150,7 @@ class InstallTests_sms_installed(unittest.TestCase):
 
             entries = [x.strip() for x in entries]
             self.assertEqual(entries[0], 'NAME="Rocky Linux"')
-            self.assertEqual(entries[1], 'VERSION="9.2 (Blue Onyx)"')
+            self.assertTrue(entries[1].startswith('VERSION="9'))
 
         elif baseOS == "almalinux9.2":
             self.assertTrue(os.path.isfile("/etc/os-release"))

@@ -15,7 +15,7 @@
       line: "{{ item }}"
     with_items:
       - user_agent="curl"
-    when: (distro.startswith("rocky")) or (distro == "almalinux9.2")
+    when: (distro.startswith("rocky")) or (distro == "almalinux9.2") or (distro.startswith("openEuler"))
 
   - name: install obs repository configuration
     template:

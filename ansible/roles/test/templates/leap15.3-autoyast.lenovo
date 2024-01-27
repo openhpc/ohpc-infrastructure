@@ -23,6 +23,7 @@
 		</signature-handling>
 		<mode>
 			<confirm config:type="boolean">false</confirm>
+			<final_reboot config:type="boolean">true</final_reboot>
 		</mode>
 	</general>
 	<partitioning config:type="list">
@@ -97,7 +98,7 @@
 				<bootproto>static</bootproto>
 				<ipaddr>10.241.58.134</ipaddr>
 				<mtu>0</mtu>
-				<name>ens2f0</name>
+				<name>eth0</name>
 				<prefixlen>28</prefixlen>
 				<startmode>hotplug</startmode>
 			</interface>
@@ -109,7 +110,7 @@
 			<routes config:type="list">
 				<route>
 					<destination>default</destination>
-					<device>ens2f0</device>
+					<device>eth0</device>
 					<gateway>10.241.58.129</gateway>
 				</route>
 			</routes>
@@ -122,6 +123,7 @@
 			<script>
 				<source>
 					<![CDATA[
+systemctl stop sshd
 zypper -n update
 mv /etc/login.defs.d/* /root/
 systemctl disable --now firewalld
@@ -136,12 +138,18 @@ cat /root/.ssh/cluster.pub >> /root/.ssh/authorized_keys
 ipmitool chassis bootdev disk
 mkdir -p /root/.cpan/CPAN/
 curl --output /root/.cpan/CPAN/MyConfig.pm --remote-name http://10.241.58.130/MyConfig.pm
-# Enable and start as late as possible.
-# The host up detection looks for SSH available.
-systemctl enable --now sshd
                       ]]>
 				</source>
 			</script>
 		</post-scripts>
+		<init-scripts config:type="list">
+			<script>
+				<source>
+					<![CDATA[
+systemctl enable sshd
+                      ]]>
+				</source>
+			</script>
+		</init-scripts>
 	</scripts>
 </profile>

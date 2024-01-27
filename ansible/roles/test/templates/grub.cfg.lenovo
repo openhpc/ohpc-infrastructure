@@ -2,6 +2,7 @@ set default=0
 set timeout=1
 
 menuentry 'Install' {
+{% if distro.startswith('leap') %}
 {% if distro.startswith('leap15.3') %}
   linux linux ro autoyast=http://10.241.58.130/{{ distro }}-autoyast install=http://10.241.58.130/openSUSE-Leap-15.3-DVD-x86_64-Current ifcfg=eth0=dhcp textmode=1 display=1 proxy=10.241.58.130:3128 vnc=1 VNCPassword=12345678
   initrd initrd
@@ -9,9 +10,10 @@ menuentry 'Install' {
 {% if distro.startswith('leap15.5') %}
   linux linux ro autoyast=http://10.241.58.130/{{ distro }}-autoyast install=http://10.241.58.130/openSUSE-Leap-15.5-DVD-x86_64-Current ifcfg=eth0=dhcp textmode=1 display=1 proxy=10.241.58.130:3128 vnc=1 VNCPassword=12345678
   initrd initrd
+{% endif %}
 {% else %}
 {% if distro.startswith('openEuler') %}
-  linux vmlinuz ro ip=ens2f0:dhcp inst.ks=http://10.241.58.130/{{ distro }}-kickstart net.ifnames=0
+  linux vmlinuz ro ip=eth0:dhcp inst.ks=http://10.241.58.130/{{ distro }}-kickstart net.ifnames=0
 {% else %}
   linux vmlinuz ro ip=ens2f0:dhcp inst.ks=http://10.241.58.130/{{ distro }}-kickstart
 {% endif %}
