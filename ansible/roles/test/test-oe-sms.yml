@@ -136,11 +136,12 @@
   - name: enable nameserver
     ansible.builtin.lineinfile:
       path: /etc/resolv.conf
+      create: true
       state: present
       line: 'nameserver 1.1.1.1'
 
   - name: add route to pypi.org
-    ansible.builtin.command: for i in $(host -t a pypi.org | cut -d\  -f4); do  ip route add $i via 172.31.31.32; done
+    ansible.builtin.command: bash -c 'for i in $(host -t a pypi.org | cut -d\  -f4); do  ip route add $i via 172.31.31.32; done'
     ignore_errors: true
 
   - name: sync time from jumper via vpn

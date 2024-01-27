@@ -89,11 +89,11 @@ ssh "${BOOT_SERVER}" "ssh-keygen -R ${TARGET}"
 ssh "${BOOT_SERVER}" "ssh -o StrictHostKeyChecking=accept-new ${TARGET} hostname"
 
 # swarm client jar
-rsync -az --info=progress2 --zl 9 /var/cache/jenkins-agent "${TARGET}":/var/cache/
+rsync -az --stats --zl 9 /var/cache/jenkins-agent "${TARGET}":/var/cache/
 
 # jar cache is especially important as it reduces
 # the swarm client startup by up to 30 minutes
-ssh "${BOOT_SERVER}" "bash -c \"rsync -az --info=progress2 --zl 9 /root/.cache/jenkins-agent/jar-cache ${TARGET}:/var/cache/jenkins-agent/\""
+ssh "${BOOT_SERVER}" "bash -c \"rsync --stats -az --zl 9 /root/.cache/jenkins-agent/jar-cache ${TARGET}:/var/cache/jenkins-agent/\""
 
 # shellcheck disable=SC2029
 ssh "${TARGET}" "echo SWARM_USER=$SWARM_USER > /etc/sysconfig/swarm-agent"

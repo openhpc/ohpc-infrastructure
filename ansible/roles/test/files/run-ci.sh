@@ -24,7 +24,7 @@ LOG=$(mktemp)
 OUT=$(mktemp -d)
 RESULT=FAIL
 RESULTS="/results"
-VERSION=${2}
+VERSION="${2}"
 DISTRIBUTION="${1}"
 VERSION_MAJOR=$(echo "${VERSION}" | awk -F. '{print $1}')
 if [[ "${SMS}" == "openhpc-oe-jenkins-sms" ]]; then
@@ -69,7 +69,7 @@ cleanup() {
 	ln -sfn "${DEST_NAME}" "0-LATEST-OHPC-${VERSION}-${DISTRIBUTION}-${TEST_ARCH}"
 	cd - > /dev/null
 	rsync -a /results ohpc@repos.ohpc.io:/stats/
-	ssh ohpc@repos.ohpc.io /home/ohpc/bin/update_results.sh 2 2.7.1
+	ssh ohpc@repos.ohpc.io /home/ohpc/bin/update_results.sh "${VERSION_MAJOR}" "${VERSION}"
 	if [ "${RESULT}" == "PASS" ]; then
 		exit 0
 	else

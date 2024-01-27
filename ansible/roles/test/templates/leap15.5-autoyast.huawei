@@ -26,6 +26,7 @@
 		</signature-handling>
 		<mode>
 			<confirm config:type="boolean">false</confirm>
+			<final_reboot config:type="boolean">true</final_reboot>
 		</mode>
 	</general>
 	<partitioning config:type="list">
@@ -123,6 +124,7 @@
 			<script>
 				<source>
 					<![CDATA[
+systemctl stop sshd
 zypper -n update
 mv /etc/login.defs.d/* /root/
 systemctl disable --now firewalld
@@ -137,12 +139,18 @@ cat /root/.ssh/cluster.pub >> /root/.ssh/authorized_keys
 ipmitool chassis bootdev disk
 mkdir -p /root/.cpan/CPAN/
 curl --output-dir /root/.cpan/CPAN/ --remote-name http://192.168.1.223/MyConfig.pm
-# Enable and start as late as possible.
-# The host up detection looks for SSH available.
-systemctl enable --now sshd
                       ]]>
 				</source>
 			</script>
 		</post-scripts>
+		<init-scripts config:type="list">
+			<script>
+				<source>
+					<![CDATA[
+systemctl enable sshd
+			]]>
+				</source>
+			</script>
+		</init-scripts>
 	</scripts>
 </profile>
