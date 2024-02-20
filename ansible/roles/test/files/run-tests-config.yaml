@@ -3,7 +3,7 @@ supported_releases:
   - 3.0.1
   - 3.0.2
 supported_os:
-  - almalinux
+  - almalinux9.2
   - rocky
   - leap
   - openeuler
