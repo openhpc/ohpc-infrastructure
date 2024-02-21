@@ -26,6 +26,7 @@ RESULT=FAIL
 RESULTS="/results"
 VERSION="${2}"
 DISTRIBUTION="${1}"
+REPO="${3}"
 VERSION_MAJOR=$(echo "${VERSION}" | awk -F. '{print $1}')
 if [[ "${SMS}" == "openhpc-oe-jenkins-sms" ]]; then
 	TEST_ARCH="aarch64"
@@ -99,8 +100,7 @@ echo "export Architecture=${TEST_ARCH}" >> "${VARS}"
 echo "export SMS=${SMS}" >> "${VARS}"
 echo "export NODE_NAME=${SMS}" >> "${VARS}"
 echo "export IPMI_PASSWORD=${SMS_IPMI_PASSWORD}" >> "${VARS}"
-
-set -x
+echo "export Repo=${REPO}" >> "${VARS}"
 
 if [[ "${BaseOS}" == "almalinux"* ]] && [[ "${SMS}" == "openhpc-oe-jenkins-sms" ]]; then
         echo "YUM_MIRROR_BASE=http://mirrors.nju.edu.cn/almalinux/" >> "${VARS}"
@@ -108,7 +108,7 @@ fi
 
 scp "${VARS}" "${SMS}":/root/vars
 
-if timeout --signal=9 100m ssh "${SMS}" 'bash -c "source /root/vars; /var/cache/jenkins-agent/install.sh"' | tee -a "${LOG}"; then
+if timeout --signal=9 100m ssh "${SMS}" 'bash -c "source /root/vars; /var/cache/jenkins-agent/install.sh"' | sed -e "s,${SMS_IPMI_PASSWORD//\$/\\$},****,g" | tee -a "${LOG}"; then
 	RESULT=PASS
 else
         echo "Running tests on ${SMS} failed!" | tee -a "${LOG}"

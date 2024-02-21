@@ -15,7 +15,6 @@ for env in InstallCluster \
 	SMS \
 	Upgrade \
 	BUILD_CAUSE_UPSTREAMTRIGGER \
-	IPMI_PASSWORD \
 	BUILD_NUMBER \
 	CI_CLUSTER \
 	enable_ipoib \
@@ -34,7 +33,6 @@ for env in InstallCluster \
 	YUM_MIRROR_BASE \
 	LocalRepoFromDist \
 	USER_TEST_OPTIONS \
-	ohpc_tree \
 	EXECUTOR_NUMBER \
 	EnablePXSE \
 	UseExternalRepo \

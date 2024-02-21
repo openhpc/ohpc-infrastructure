@@ -12,7 +12,6 @@ export provision_wait=100
 export UserLevelTests=true
 export LocalRepoFromDist=false
 export USER_TEST_OPTIONS='--with-fabric=none --disable-likwid --disable-papi --with-mpi-families="mpich openmpi4" --disable-geopm'
-export ohpc_tree=2.x
 export EnablePXSE=false
 export UseExternalRepo=true
 export RootLevelTests=true
@@ -22,4 +21,3 @@ export DisableDefaultRepo=false
 export DefaultRepoConfig=false
 export Provisioner=warewulf
 export RunLimit=150
-export Repo=Release

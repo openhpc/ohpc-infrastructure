@@ -13,3 +13,7 @@ supported_arches:
     - openhpc-lenovo-repo
   aarch64:
     - openhpc-oe-jenkins-jumper
+supported_repositories:
+  - factory
+  - staging
+  - release
