@@ -14,6 +14,6 @@ supported_arches:
   aarch64:
     - openhpc-oe-jenkins-jumper
 supported_repositories:
-  - factory
-  - staging
-  - release
+  - Factory
+  - Staging
+  - Release
