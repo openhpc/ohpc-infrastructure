@@ -108,7 +108,7 @@ fi
 
 scp "${VARS}" "${SMS}":/root/vars
 
-if timeout --signal=9 100m ssh "${SMS}" 'bash -c "source /root/vars; /var/cache/jenkins-agent/install.sh"' | sed -e "s,${SMS_IPMI_PASSWORD//\$/\\$},****,g" | tee -a "${LOG}"; then
+if timeout --signal=9 100m ssh "${SMS}" 'bash -c "source /root/vars; /var/cache/jenkins-agent/install.sh"' 2>&1 | sed -e "s,${SMS_IPMI_PASSWORD//\$/\\$},****,g" | tee -a "${LOG}"; then
 	RESULT=PASS
 else
         echo "Running tests on ${SMS} failed!" | tee -a "${LOG}"
