@@ -8,5 +8,7 @@ supported_os:
   - leap
   - openeuler
 supported_arches:
-  - x86_64
-  - aarch64
+  x86_64:
+    - openhpc-lenovo-repo
+  aarch64:
+    - openhpc-oe-jenkins-jumper
