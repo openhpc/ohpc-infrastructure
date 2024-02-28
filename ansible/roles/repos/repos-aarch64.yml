@@ -1,0 +1,108 @@
+- name: repos.openhpc.community
+  hosts: repos_aarch64
+  become: yes
+  gather_facts: True
+  tasks:
+  - name: install packages
+    package:
+      state: present
+      name:
+      - httpd
+      - fail2ban
+      - goaccess
+
+  - name: Add the user 'ohpc'
+    ansible.builtin.user:
+      name: ohpc
+
+  - name: create directories
+    file: dest="{{item}}" mode=0755 state=directory owner=ohpc group=ohpc
+    with_items:
+    - /data
+    - /rhel
+    - /repos
+    - /weblogs
+    - /stats
+
+  - name: mount /data partition
+    ansible.posix.mount:
+      path: /data
+      src: /dev/nvme1n1
+      opts: defaults,noatime
+      state: mounted
+      fstype: xfs
+
+  - name: create directories
+    file: dest="/data{{item}}" mode=0755 state=directory owner=ohpc group=ohpc
+    with_items:
+    - /rhel
+    - /rhel/repositories
+    - /repos
+    - /weblogs
+    - /stats
+
+  - name: "bind mount {{item}}"
+    ansible.posix.mount:
+      path: "/{{item}}"
+      src: "/data{{item}}"
+      opts: bind
+      state: mounted
+      fstype: none
+    with_items:
+    - /rhel
+    - /repos
+    - /weblogs
+    - /stats
+
+  - name: install apache httpd config
+    copy:
+      src: "{{item}}"
+      dest: "/etc/httpd/conf.d/{{item}}"
+      owner: root
+      group: root
+      mode: 0644
+    with_items:
+      - rhel.conf
+      - repos.conf
+      - stats.conf
+      - welcome.conf
+
+  - name: Allow apache to modify files in /stats
+    community.general.sefcontext:
+      target: '/stats(/.*)?'
+      setype: httpd_sys_content_t
+      state: present
+
+  - name: Allow apache to modify files in /stats
+    community.general.sefcontext:
+      target: '/repos(/.*)?'
+      setype: httpd_sys_content_t
+      state: present
+
+  - name: Allow apache to modify files in /stats
+    community.general.sefcontext:
+      target: '/rhel/repositories(/.*)?'
+      setype: httpd_sys_content_t
+      state: present
+
+  - name: Apply new SELinux file context to filesystem
+    ansible.builtin.command: restorecon -irv /stats /repos /rhel/repositories
+
+  - name: Allow Apache to listen on tcp port 82
+    community.general.seport:
+      ports: 82
+      proto: tcp
+      setype: http_port_t
+      state: present
+
+  - name: enable httpd service
+    service: name=httpd enabled=yes state=started
+
+  - name: install /repos HEADER.html
+    copy:
+      src: HEADER.html.repos
+      dest: /repos/HEADER.html
+      owner: root
+      group: root
+      mode: 0644
+

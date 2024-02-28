@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html><head>
+	<title>OpenHPC Package Repository </title>
+</head>
+<div id="header">
+	<a href="/"><img src="/HEADER.images/ohpc_logo.png" width="350" alt="OpenHPC" border="0"></a>
+</div>
+<hr>
+<table bgcolor="#A6A79F" text="#000000" cellSpacing=0 cellPadding=0 width="100%" border=0 align="center">
+	<tbody><tr><td vAlign=top>
+		<table width="100%" border="0" cellspacing="0" cellpadding="0" height="25"><tr>
+			<td valign=center>&nbsp;<font size=3 face="Verdana, Arial, Helvetica, sans-serif" color=#00000>
+				<a href="https://openhpc.community/"><font color="#0f0f0f">openhpc.community</font></a> |
+				<a href="https://github.com/openhpc/ohpc"><font color="#0f0f0f">GitHub</font></a> |
+				<a href="https://groups.io/g/openhpc-users"><font color="#0f0f0f">Mailing List</font></a> |
+				<a href="https://github.com/openhpc/ohpc/wiki/System-Registry"><font color="#0f0f0f">System Registry</font></a></font>
+			</td>
+		</tr></table>
+	</td></tbody>
+</table>
+<hr>
