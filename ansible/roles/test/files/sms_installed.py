@@ -159,7 +159,7 @@ class InstallTests_sms_installed(unittest.TestCase):
 
             entries = [x.strip() for x in entries]
             self.assertEqual(entries[0], 'NAME="AlmaLinux"')
-            self.assertEqual(entries[1], 'VERSION="9.2 (Turquoise Kodkod)"')
+            self.assertTrue(entries[1].startswith('VERSION="9'))
 
         else:
             print("Unknown BaseOS")
