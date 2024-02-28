@@ -80,25 +80,11 @@ if [ "${IGOT}" -ne 0 ];then
 fi
 
 echo
-echo "Host ${TARGET} is up. Launching Jenkins Swarm client" | logger -s
-
 # Handling new SSH host keys
 ssh-keygen -R "${TARGET}"
 ssh -o StrictHostKeyChecking=accept-new "${TARGET}" hostname
 ssh "${BOOT_SERVER}" "ssh-keygen -R ${TARGET}"
 ssh "${BOOT_SERVER}" "ssh -o StrictHostKeyChecking=accept-new ${TARGET} hostname"
-
-# swarm client jar
-rsync -az --stats --zl 9 /var/cache/jenkins-agent "${TARGET}":/var/cache/
-
-# jar cache is especially important as it reduces
-# the swarm client startup by up to 30 minutes
-ssh "${BOOT_SERVER}" "bash -c \"rsync --stats -az --zl 9 /root/.cache/jenkins-agent/jar-cache ${TARGET}:/var/cache/jenkins-agent/\""
-
-# shellcheck disable=SC2029
-ssh "${TARGET}" "echo SWARM_USER=$SWARM_USER > /etc/sysconfig/swarm-agent"
-# shellcheck disable=SC2029
-ssh "${TARGET}" "echo SWARM_PASSWORD=$SWARM_PASSWORD >> /etc/sysconfig/swarm-agent"
 
 # The boot server only has dhcpd enabled during SMS installation
 ssh "${BOOT_SERVER}" systemctl stop dhcpd

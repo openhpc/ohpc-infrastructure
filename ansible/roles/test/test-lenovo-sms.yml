@@ -62,20 +62,6 @@
     package:
       state: present
       name:
-      - java-17-openjdk-headless
-    when: distro != "leap15.3"
-
-  - name: install packages
-    package:
-      state: present
-      name:
-      - java-11-openjdk-headless
-    when: distro == "leap15.3"
-
-  - name: install packages
-    package:
-      state: present
-      name:
       - git
       - ipmitool
       - rsync
@@ -84,10 +70,15 @@
 
   - import_tasks: test-lenovo-common.yml
 
+  - name: create directories
+    file: dest="{{item}}" state=directory
+    with_items:
+    - /root/ci
+
   - name: copy helper scripts
     copy:
       src: "{{ item }}"
-      dest: /var/cache/jenkins-agent/
+      dest: /root/ci/
       owner: root
       group: root
     with_items:
@@ -97,10 +88,10 @@
       - sms_installed.py
       - gen_inputs.pl
 
-  - name: install installation templates
+  - name: copy helper scripts
     template:
       src: "{{ item }}"
-      dest: /var/cache/jenkins-agent/
+      dest: /root/ci/
       owner: root
       group: root
     with_items:
@@ -108,22 +99,5 @@
 
   - name: make install script executable
     ansible.builtin.file:
-      path: /var/cache/jenkins-agent/install.sh
+      path: /root/ci/install.sh
       mode: '0755'
-
-  - name: install jenkins systemd unit files
-    template:
-      src: jenkins-swarm-agent.service
-      dest: /etc/systemd/system/jenkins-swarm-agent.service
-      owner: root
-      group: root
-      mode: 0644
-    register: swarm_agent_service
-
-  - name: systemd daemon-reload
-    ansible.builtin.systemd:
-      daemon_reload: true
-    when: swarm_agent_service.changed
-
-  - name: start jenkins agent service
-    service: name=jenkins-swarm-agent state=started

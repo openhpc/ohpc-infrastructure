@@ -86,16 +86,6 @@ echo "Host ${TARGET} is up. Launching Jenkins Swarm client" | logger -s
 ssh-keygen -R "${TARGET}"
 ssh -o StrictHostKeyChecking=accept-new "${TARGET}" hostname
 
-# swarm client jar and jar cache
-# jar cache is especially important as it reduces
-# the swarm client startup by up to 30 minutes
-rsync -az --info=progress2 --zl 9 /var/cache/jenkins-agent "${TARGET}":/var/cache/
-
-# shellcheck disable=SC2029
-ssh "${TARGET}" "echo SWARM_USER=$SWARM_USER > /etc/sysconfig/swarm-agent"
-# shellcheck disable=SC2029
-ssh "${TARGET}" "echo SWARM_PASSWORD=$SWARM_PASSWORD >> /etc/sysconfig/swarm-agent"
-
 # The boot server only has dhcpd enabled during SMS installation
 ssh "${BOOT_SERVER}" systemctl stop dhcpd
 

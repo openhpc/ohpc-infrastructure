@@ -125,10 +125,6 @@
     service: name=openvpn@tun1 enabled=yes state=started
     when: distro == "leap15.5"
 
-  - name: add route to jenkins
-    ansible.builtin.command: ip route add 129.114.60.186 via 172.31.31.32
-    ignore_errors: true
-
   - name: add route to 1.1.1.1
     ansible.builtin.command: ip route add 1.1.1.1 via 172.31.31.32
     ignore_errors: true
@@ -164,10 +160,15 @@
       state: restarted
     when: chrony_changed.changed
 
+  - name: create directories
+    file: dest="{{item}}" state=directory
+    with_items:
+    - /root/ci
+
   - name: copy helper scripts
     copy:
       src: "{{ item }}"
-      dest: /var/cache/jenkins-agent/
+      dest: /root/ci/
       owner: root
       group: root
     with_items:
@@ -180,7 +181,7 @@
   - name: install installation templates
     template:
       src: "{{ item }}"
-      dest: /var/cache/jenkins-agent/
+      dest: /root/ci/
       owner: root
       group: root
     with_items:
@@ -188,22 +189,4 @@
 
   - name: make install script executable
     ansible.builtin.file:
-      path: /var/cache/jenkins-agent/install.sh
-      mode: '0755'
-
-  - name: install jenkins systemd unit files
-    template:
-      src: jenkins-swarm-agent.service
-      dest: /etc/systemd/system/jenkins-swarm-agent.service
-      owner: root
-      group: root
-      mode: 0644
-    register: swarm_agent_service
-
-  - name: systemd daemon-reload
-    ansible.builtin.systemd:
-      daemon_reload: true
-    when: swarm_agent_service.changed
-
-  - name: start jenkins agent service
-    service: name=jenkins-swarm-agent state=started
+      path: /root/ci/install.sh

@@ -71,6 +71,10 @@ cleanup() {
 	cd - > /dev/null
 	rsync -a /results ohpc@repos.ohpc.io:/stats/
 	ssh ohpc@repos.ohpc.io /home/ohpc/bin/update_results.sh "${VERSION_MAJOR}" "${VERSION}"
+	# save CPAN cache
+	if [[ "${SMS}" == "openhpc-oe-jenkins-sms" ]]; then
+        	ssh "${BOOT_SERVER}" "bash -c \"rsync -az --info=progress2 --zl 9 --exclude=CPAN/MyConfig.pm ${TARGET}:/root/.cpan/ /root/.cache/cpan-backup/\""
+	fi
 	if [ "${RESULT}" == "PASS" ]; then
 		exit 0
 	else
@@ -108,7 +112,7 @@ fi
 
 scp "${VARS}" "${SMS}":/root/vars
 
-if timeout --signal=9 100m ssh "${SMS}" 'bash -c "source /root/vars; /var/cache/jenkins-agent/install.sh"' 2>&1 | sed -e "s,${SMS_IPMI_PASSWORD//\$/\\$},****,g" | tee -a "${LOG}"; then
+if timeout --signal=9 100m ssh "${SMS}" 'bash -c "source /root/vars; /root/ci/install.sh"' 2>&1 | sed -e "s,${SMS_IPMI_PASSWORD//\$/\\$},****,g" | tee -a "${LOG}"; then
 	RESULT=PASS
 else
         echo "Running tests on ${SMS} failed!" | tee -a "${LOG}"

@@ -4,53 +4,17 @@
   gather_facts: True
   vars:
     distro: rocky9.2
-    jenkins_name: huawei
   tasks:
   - name: install packages
     package:
       state: present
       name:
-      - java-17-openjdk-headless
       - openvpn
       - git
       - ipmitool
       - netcat
       - rsync
       - ansible
-
-  - name: create directories
-    file: dest="{{item}}" state=directory
-    with_items:
-    - /var/cache/jenkins-agent
-
-  - name: install jenkins systemd unit files
-    copy:
-      src: "{{item}}"
-      dest: /etc/systemd/system/{{item}}
-      owner: root
-      group: root
-      mode: 0644
-    register: jenkins_agent_service_1
-    with_items:
-    - swarm-prepare.service
-    - jenkins-prepare.service
-
-  - name: install jenkins systemd unit files
-    template:
-      src: jenkins-agent.service
-      dest: /etc/systemd/system/jenkins-agent.service
-      owner: root
-      group: root
-      mode: 0644
-    register: jenkins_agent_service_2
-
-  - name: systemd daemon-reload
-    ansible.builtin.systemd:
-      daemon_reload: true
-    when: jenkins_agent_service_1.changed or jenkins_agent_service_2.changed
-
-  - name: enable jenkins agent service
-    service: name=jenkins-agent enabled=yes state=started
 
   # This requires that the following command already ran:
   # 'openvpn3 config-import -p -n Huawei -c /root/HuaweiVPN/Huawei.ovpn'

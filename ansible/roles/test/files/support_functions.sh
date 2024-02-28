@@ -71,7 +71,7 @@ loop_command() {
 }
 
 show_pwd() {
-	echo "Launching jenkins test from $(pwd)"
+	echo "Launching CI run test from directory $(pwd)"
 	echo "--> OpenHPC revision       = $Version"
 }
 
@@ -305,7 +305,7 @@ install_openHPC_cluster() {
 	# needed for computes_installed.py
 	loop_command pip3 install xmlrunner
 
-	cp /var/cache/jenkins-agent/computes_installed.py .
+	cp "${CWD}/computes_installed.py" .
 	if ! python3 computes_installed.py; then
 		status=1
 	fi
@@ -390,11 +390,11 @@ post_install_cmds() {
 gen_localized_inputs() {
 	local MAPFILE
 	local GEN_INPUTS
-	MAPFILE="/var/cache/jenkins-agent/$CI_CLUSTER.mapping"
+	MAPFILE="${CWD}/${CI_CLUSTER}.mapping"
 
 	echo "bmc_password=${IPMI_PASSWORD}" >>"${MAPFILE}"
 
-	GEN_INPUTS="perl /var/cache/jenkins-agent/gen_inputs.pl \
+	GEN_INPUTS="perl ${CWD}/gen_inputs.pl \
 		-i $inputTemplate \
 		-o $inputFile \
 		${MAPFILE}"
@@ -413,7 +413,7 @@ gen_localized_inputs() {
 	echo "[Running SMS tests]"
 	# needed for sms_installed.py
 	loop_command pip3 install xmlrunner
-	cp /var/cache/jenkins-agent/sms_installed.py .
+	cp "${CWD}/sms_installed.py" .
 	if ! python3 sms_installed.py; then
 		# shellcheck disable=SC2034
 		status=1

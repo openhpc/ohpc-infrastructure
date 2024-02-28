@@ -106,14 +106,18 @@ fi
 
 echo "Using \"${PKG_MANAGER} ${YES}\" as package manager"
 
+CWD=$(dirname $0)
+
+echo "Running in directory ${CWD}"
+
 # load support functions
-if [ ! -e /var/cache/jenkins-agent/support_functions.sh ]; then
+if [ ! -e "${CWD}/support_functions.sh" ]; then
 	echo "ERROR: Support file support_functions.sh is missing"
 	exit 1
 fi
 
 # shellcheck disable=SC1091
-. /var/cache/jenkins-agent/support_functions.sh
+. "${CWD}/support_functions.sh"
 
 if [ -e /etc/profile.d/proxy.sh ]; then
 	# shellcheck disable=SC1091

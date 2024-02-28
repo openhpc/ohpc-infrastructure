@@ -1,7 +1,7 @@
 export InstallCluster=true
 export COMPUTE_HOSTS="openhpc-lenovo-jenkins-c1, openhpc-lenovo-jenkins-c2"
 export RMS=slurm
-export EnableLongTests=false
+export EnableLongTests=true
 export Upgrade=false
 export CI_CLUSTER=lenovo
 export enable_ipoib=0
@@ -11,7 +11,7 @@ export enable_ib=0
 export provision_wait=100
 export UserLevelTests=true
 export LocalRepoFromDist=false
-export USER_TEST_OPTIONS='--with-fabric=none --disable-likwid --disable-papi --with-mpi-families="mpich openmpi4" --disable-geopm'
+export USER_TEST_OPTIONS='--with-fabric=none --disable-likwid --disable-papi --with-mpi-families="mpich openmpi5" --disable-geopm --disable-tau'
 export EnablePXSE=false
 export UseExternalRepo=true
 export RootLevelTests=true
