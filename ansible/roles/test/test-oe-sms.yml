@@ -190,3 +190,4 @@
   - name: make install script executable
     ansible.builtin.file:
       path: /root/ci/install.sh
+      mode: '0755'

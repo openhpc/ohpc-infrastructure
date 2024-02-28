@@ -1,9 +1,7 @@
 export InstallCluster=true
-export COMPUTE_HOSTS="openhpc-lenovo-jenkins-c1, openhpc-lenovo-jenkins-c2"
 export RMS=slurm
 export EnableLongTests=true
 export Upgrade=false
-export CI_CLUSTER=lenovo
 export enable_ipoib=0
 export Interactive=false
 export EnableOneAPI=false

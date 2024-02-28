@@ -30,8 +30,12 @@ REPO="${3}"
 VERSION_MAJOR=$(echo "${VERSION}" | awk -F. '{print $1}')
 if [[ "${SMS}" == "openhpc-oe-jenkins-sms" ]]; then
 	TEST_ARCH="aarch64"
+	CI_CLUSTER=huawei
+	COMPUTE_HOSTS="openhpc-oe-jenkins-c1, openhpc-oe-jenkins-c2"
 else
 	TEST_ARCH=$(uname -m)
+	CI_CLUSTER=lenovo
+	COMPUTE_HOSTS="openhpc-lenovo-jenkins-c1, openhpc-lenovo-jenkins-c2"
 fi
 
 if [ ! -d "${RESULTS}" ]; then
@@ -73,7 +77,7 @@ cleanup() {
 	ssh ohpc@repos.ohpc.io /home/ohpc/bin/update_results.sh "${VERSION_MAJOR}" "${VERSION}"
 	# save CPAN cache
 	if [[ "${SMS}" == "openhpc-oe-jenkins-sms" ]]; then
-        	ssh "${BOOT_SERVER}" "bash -c \"rsync -az --info=progress2 --zl 9 --exclude=CPAN/MyConfig.pm ${TARGET}:/root/.cpan/ /root/.cache/cpan-backup/\""
+		ssh "${BOOT_SERVER}" "bash -c \"rsync -az --info=progress2 --zl 9 --exclude=CPAN/MyConfig.pm ${TARGET}:/root/.cpan/ /root/.cache/cpan-backup/\""
 	fi
 	if [ "${RESULT}" == "PASS" ]; then
 		exit 0
@@ -105,6 +109,8 @@ echo "export SMS=${SMS}" >> "${VARS}"
 echo "export NODE_NAME=${SMS}" >> "${VARS}"
 echo "export IPMI_PASSWORD=${SMS_IPMI_PASSWORD}" >> "${VARS}"
 echo "export Repo=${REPO}" >> "${VARS}"
+echo "export CI_CLUSTER=${CI_CLUSTER}" >> "${VARS}"
+echo "export COMPUTE_HOSTS=\"${COMPUTE_HOSTS}\"" >> "${VARS}"
 
 if [[ "${BaseOS}" == "almalinux"* ]] && [[ "${SMS}" == "openhpc-oe-jenkins-sms" ]]; then
         echo "YUM_MIRROR_BASE=http://mirrors.nju.edu.cn/almalinux/" >> "${VARS}"
