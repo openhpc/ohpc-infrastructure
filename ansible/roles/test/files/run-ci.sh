@@ -77,7 +77,7 @@ cleanup() {
 	ssh ohpc@repos.ohpc.io /home/ohpc/bin/update_results.sh "${VERSION_MAJOR}" "${VERSION}"
 	# save CPAN cache
 	if [[ "${SMS}" == "openhpc-oe-jenkins-sms" ]]; then
-		ssh "${BOOT_SERVER}" "bash -c \"rsync -az --info=progress2 --zl 9 --exclude=CPAN/MyConfig.pm ${TARGET}:/root/.cpan/ /root/.cache/cpan-backup/\""
+		ssh "${BOOT_SERVER}" "bash -c \"rsync -az --info=progress2 --zl 9 --exclude=CPAN/MyConfig.pm ${SMS}:/root/.cpan/ /root/.cache/cpan-backup/\""
 	fi
 	if [ "${RESULT}" == "PASS" ]; then
 		exit 0
