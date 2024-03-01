@@ -9,7 +9,7 @@ export enable_ib=0
 export provision_wait=100
 export UserLevelTests=true
 export LocalRepoFromDist=false
-export USER_TEST_OPTIONS='--with-fabric=none --disable-likwid --disable-papi --with-mpi-families="mpich openmpi5" --disable-geopm --disable-tau'
+export USER_TEST_OPTIONS='--with-fabric=none --disable-likwid --disable-papi --with-mpi-families="mpich openmpi5" --disable-geopm --disable-tau --disable-extrae'
 export EnablePXSE=false
 export UseExternalRepo=true
 export RootLevelTests=true

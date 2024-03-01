@@ -132,7 +132,7 @@ class InstallTests_sms_installed(unittest.TestCase):
 
             entries = [x.strip() for x in entries]
             self.assertEqual(entries[0], 'NAME="openEuler"')
-            self.assertEqual(entries[1], 'VERSION="22.03 LTS"')
+            self.assertTrue(entries[1].startswith('VERSION="22.03'))
 
         elif baseOS == "rocky8.8":
             self.assertTrue(os.path.isfile("/etc/os-release"))

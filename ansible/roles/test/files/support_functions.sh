@@ -204,6 +204,12 @@ run_user_level_tests() {
 		config_opts="${USER_TEST_OPTIONS} $config_opts"
 	fi
 
+	if [[ ${CI_CLUSTER} == "huawei" ]]; then
+		# Reduce the number of tests requiring internet access.
+		# The network is very unreliable here.
+		config_opts="$config_opts --disable-singularity --disable-charliecloud"
+	fi
+
 	# Build test-script for execution
 
 	cat <<EOF >/tmp/user_integration_tests

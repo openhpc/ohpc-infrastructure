@@ -50,8 +50,8 @@ clearpart --all --initlabel --drives=sda,sdb
 autopart
 timezone Asia/Shanghai --utc
 
-url --url http://192.168.1.223/openEuler-22.03-LTS-everything-aarch64-dvd/
-repo --cost=1 --install --name="DVD" --baseurl="http://192.168.1.223/openEuler-22.03-LTS-everything-aarch64-dvd/"
+url --url http://192.168.1.223/openEuler-22.03-LTS-SP3-everything-aarch64-dvd/
+repo --cost=1 --install --name="DVD" --baseurl="http://192.168.1.223/openEuler-22.03-LTS-SP3-everything-aarch64-dvd/"
 
 skipx
 services --enabled="chronyd"

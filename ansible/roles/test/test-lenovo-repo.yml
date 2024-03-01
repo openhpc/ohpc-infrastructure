@@ -22,6 +22,8 @@
     file: dest="{{item}}" state=directory
     with_items:
     - /var/www/html/openSUSE-Leap-15.3-DVD-x86_64-Current
+    - /var/www/html/openEuler-22.03-LTS-x86_64-dvd
+    - /var/www/html/openEuler-22.03-LTS-SP3-x86_64-dvd
 
   - name: create directories
     file:
@@ -74,6 +76,14 @@
       state: mounted
       fstype: iso9660
 
+  - name: mount openeuler dvd as installation source
+    ansible.posix.mount:
+      path: /var/www/html/openEuler-22.03-LTS-SP3-x86_64-dvd
+      src: /mnt/images/openEuler-22.03-LTS-SP3-x86_64-dvd.iso
+      opts: defaults,ro
+      state: mounted
+      fstype: iso9660
+
   - name: mount leap 15.5 dvd as installation source
     ansible.posix.mount:
       path: /var/www/html/openSUSE-Leap-15.5-DVD-x86_64-Current
@@ -104,8 +114,8 @@
       src: "{{ item }}"
       dest: /var/lib/tftpboot/
     with_items:
-      - /var/www/html/openEuler-22.03-LTS-x86_64-dvd/images/pxeboot/initrd.img
-      - /var/www/html/openEuler-22.03-LTS-x86_64-dvd/images/pxeboot/vmlinuz
+      - /var/www/html/openEuler-22.03-LTS-SP3-x86_64-dvd/images/pxeboot/initrd.img
+      - /var/www/html/openEuler-22.03-LTS-SP3-x86_64-dvd/images/pxeboot/vmlinuz
     when: distro == "openEuler_22.03"
 
   - name: setup tftp booting for rocky9
