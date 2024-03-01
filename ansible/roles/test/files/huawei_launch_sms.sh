@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 if [ ! -e /etc/sysconfig/openhpc-test.config ]; then
 	echo "Local configuration file missing"
 	echo "Please create /etc/sysconfig/openhpc-test.config"

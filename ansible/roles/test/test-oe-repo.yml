@@ -78,7 +78,7 @@
   - name: mount openeuler dvd as installation source
     ansible.posix.mount:
       path: /var/www/html/openEuler-22.03-LTS-SP3-everything-aarch64-dvd
-      src: /mnt/images/openEuler-22.03-LTS-SP3-everything-aarch64-dvd.iso
+      src: /home/openEuler-22.03-LTS-SP3-everything-aarch64-dvd.iso
       opts: defaults,ro
       state: mounted
       fstype: iso9660
