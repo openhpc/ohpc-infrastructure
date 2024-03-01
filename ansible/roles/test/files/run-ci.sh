@@ -101,23 +101,31 @@ set -e
 VARS=$(mktemp)
 
 cat vars > "${VARS}"
+echo "export IPMI_PASSWORD=${SMS_IPMI_PASSWORD}" >> "${VARS}"
+
+set -x
 
 echo "export BaseOS=${DISTRIBUTION}" >> "${VARS}"
 echo "export Version=${VERSION}" >> "${VARS}"
 echo "export Architecture=${TEST_ARCH}" >> "${VARS}"
 echo "export SMS=${SMS}" >> "${VARS}"
 echo "export NODE_NAME=${SMS}" >> "${VARS}"
-echo "export IPMI_PASSWORD=${SMS_IPMI_PASSWORD}" >> "${VARS}"
 echo "export Repo=${REPO}" >> "${VARS}"
 echo "export CI_CLUSTER=${CI_CLUSTER}" >> "${VARS}"
 echo "export COMPUTE_HOSTS=\"${COMPUTE_HOSTS}\"" >> "${VARS}"
 
-if [[ "${BaseOS}" == "almalinux"* ]] && [[ "${SMS}" == "openhpc-oe-jenkins-sms" ]]; then
-        echo "YUM_MIRROR_BASE=http://mirrors.nju.edu.cn/almalinux/" >> "${VARS}"
+if [[ "${DISTRIBUTION}" == "almalinux"* ]] && [[ "${SMS}" == "openhpc-oe-jenkins-sms" ]]; then
+        echo "export YUM_MIRROR_BASE=http://mirrors.nju.edu.cn/almalinux/" >> "${VARS}"
+fi
+if [[ "${DISTRIBUTION}" == "openEuler"* ]] && [[ "${SMS}" == "openhpc-lenovo-jenkins-sms" ]]; then
+        echo "export YUM_MIRROR_BASE=http://repo.huaweicloud.com/openeuler/" >> "${VARS}"
 fi
 
 scp "${VARS}" "${SMS}":/root/vars
 
+set +x
+
+echo "Running install.sh on ${SMS}"
 if timeout --signal=9 100m ssh "${SMS}" 'bash -c "source /root/vars; /root/ci/install.sh"' 2>&1 | sed -e "s,${SMS_IPMI_PASSWORD//\$/\\$},****,g" | tee -a "${LOG}"; then
 	RESULT=PASS
 else

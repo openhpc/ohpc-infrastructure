@@ -17,6 +17,13 @@
       - user_agent="curl"
     when: (distro.startswith("rocky")) or (distro == "almalinux9.2") or (distro.startswith("openEuler"))
 
+  - name: Replace mirror URL for openeuler
+    ansible.builtin.replace:
+      path: /etc/yum.repos.d/openEuler.repo
+      regexp: 'repo.openeuler.org'
+      replace: 'repo.huaweicloud.com/openeuler'
+    when: distro == "openEuler_22.03"
+
   - name: install obs repository configuration
     template:
       src: "{{ item }}"
