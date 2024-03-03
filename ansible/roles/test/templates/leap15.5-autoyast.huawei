@@ -93,6 +93,9 @@
 			<dhcp_hostname t="boolean">false</dhcp_hostname>
 			<hostname>openhpc-oe-jenkins-sms</hostname>
 			<resolv_conf_policy>auto</resolv_conf_policy>
+			<nameservers config:type="list">
+				<nameserver>1.1.1.1</nameserver>
+			</nameservers>
 		</dns>
 		<interfaces t="list">
 			<interface t="map">

@@ -429,7 +429,7 @@ gen_localized_inputs() {
 
 pre_install_cmds() {
 	if [[ "${BaseOS}" == "leap"* ]] && [[ ${CI_CLUSTER} == "huawei" ]]; then
-		sed -e "s,download.opensuse.org/,mirror.lzu.edu.cn/opensuse/,g" -i /etc/zypp/repos.d/*repo
+		sed -e "s,download.opensuse.org/,mirrors.nju.edu.cn/opensuse/,g" -i /etc/zypp/repos.d/*repo
 	fi
 	"${PKG_MANAGER}" "${YES}" update
 
