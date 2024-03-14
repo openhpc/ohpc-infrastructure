@@ -51,21 +51,21 @@ show_booted_os() {
 }
 
 loop_command() {
-        local retry_counter=0
-        local max_retries=5
+	local retry_counter=0
+	local max_retries=5
 
-        while true; do
-                (( retry_counter+=1 ))
-                if [ "${retry_counter}" -gt "${max_retries}" ]; then
-                        ERROR "Failed to run: $*"
-                fi
-                # shellcheck disable=SC2068
-                $@ && break
+	while true; do
+		((retry_counter += 1))
+		if [ "${retry_counter}" -gt "${max_retries}" ]; then
+			ERROR "Failed to run: $*"
+		fi
+		# shellcheck disable=SC2068
+		$@ && break
 
-                # In case it is a network error let's wait a bit.
-                echo "Retrying attempt ${retry_counter}"
-                sleep "${retry_counter}"
-        done
+		# In case it is a network error let's wait a bit.
+		echo "Retrying attempt ${retry_counter}"
+		sleep "${retry_counter}"
+	done
 }
 
 show_pwd() {
@@ -134,7 +134,7 @@ run_root_level_tests() {
 	fi
 
 	if [ "$CI_CLUSTER" == "moontower" ]; then
-		if echo "${BaseOS}" | grep -q centos ; then
+		if echo "${BaseOS}" | grep -q centos; then
 			localOptions="--enable-lustre"
 		fi
 	fi
@@ -488,8 +488,8 @@ wait_for_computes() {
 			not_ready=0
 			break
 		fi
-                (( retry_counter+=1 ))
-                if [ "${retry_counter}" -gt "${retry_counter_max}" ]; then
+		((retry_counter += 1))
+		if [ "${retry_counter}" -gt "${retry_counter_max}" ]; then
 			retry_counter=0
 			if [[ $CI_CLUSTER == "lenovo" ]]; then
 				for j in $(seq "${num_computes}" 1); do

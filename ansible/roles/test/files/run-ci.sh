@@ -58,10 +58,10 @@ cleanup() {
 		/usr/local/junit2html/bin/junit2html results --summary-matrix | tee -a "${LOG}"
 		/usr/local/junit2html/bin/junit2html results --report-matrix junit.html
 		rm -rf tests
-		cd - > /dev/null
+		cd - >/dev/null
 		set -e
 	fi
-	echo "Finished at $(date -u +"%Y-%m-%d-%H-%M-%S")" >> "${LOG}"
+	echo "Finished at $(date -u +"%Y-%m-%d-%H-%M-%S")" >>"${LOG}"
 	mv "${LOG}" "${OUT}"/console.out
 	chmod 644 "${OUT}"/console.out
 	sed -e "s,${SMS_IPMI_PASSWORD//\$/\\$},****,g" -i "${OUT}"/console.out
@@ -72,7 +72,7 @@ cleanup() {
 	chmod 755 "${DEST_DIR}/${DEST_NAME}"
 	cd "${DEST_DIR}"
 	ln -sfn "${DEST_NAME}" "0-LATEST-OHPC-${VERSION}-${DISTRIBUTION}-${TEST_ARCH}"
-	cd - > /dev/null
+	cd - >/dev/null
 	rsync -a /results ohpc@repos.ohpc.io:/stats/
 	ssh ohpc@repos.ohpc.io /home/ohpc/bin/update_results.sh "${VERSION_MAJOR}" "${VERSION}"
 	# save CPAN cache
@@ -86,39 +86,39 @@ cleanup() {
 	fi
 }
 
-echo "Started at $(date -u +"%Y-%m-%d-%H-%M-%S")" > "${LOG}"
+echo "Started at $(date -u +"%Y-%m-%d-%H-%M-%S")" >"${LOG}"
 
 if ! "ansible/roles/test/files/${LAUNCHER}" "${SMS}" ${DISTRIBUTION} ${VERSION} "${ROOT_PASSWORD}" | tee -a "${LOG}"; then
-	cd - > /dev/null
-        echo "Provisiong ${SMS} failed. Exiting" | tee -a "${LOG}"
+	cd - >/dev/null
+	echo "Provisiong ${SMS} failed. Exiting" | tee -a "${LOG}"
 	cleanup
 fi
 
-cd - > /dev/null
+cd - >/dev/null
 
 set -e
 
 VARS=$(mktemp)
 
-cat vars > "${VARS}"
-echo "export IPMI_PASSWORD=${SMS_IPMI_PASSWORD}" >> "${VARS}"
+cat vars >"${VARS}"
+echo "export IPMI_PASSWORD=${SMS_IPMI_PASSWORD}" >>"${VARS}"
 
 set -x
 
-echo "export BaseOS=${DISTRIBUTION}" >> "${VARS}"
-echo "export Version=${VERSION}" >> "${VARS}"
-echo "export Architecture=${TEST_ARCH}" >> "${VARS}"
-echo "export SMS=${SMS}" >> "${VARS}"
-echo "export NODE_NAME=${SMS}" >> "${VARS}"
-echo "export Repo=${REPO}" >> "${VARS}"
-echo "export CI_CLUSTER=${CI_CLUSTER}" >> "${VARS}"
-echo "export COMPUTE_HOSTS=\"${COMPUTE_HOSTS}\"" >> "${VARS}"
+echo "export BaseOS=${DISTRIBUTION}" >>"${VARS}"
+echo "export Version=${VERSION}" >>"${VARS}"
+echo "export Architecture=${TEST_ARCH}" >>"${VARS}"
+echo "export SMS=${SMS}" >>"${VARS}"
+echo "export NODE_NAME=${SMS}" >>"${VARS}"
+echo "export Repo=${REPO}" >>"${VARS}"
+echo "export CI_CLUSTER=${CI_CLUSTER}" >>"${VARS}"
+echo "export COMPUTE_HOSTS=\"${COMPUTE_HOSTS}\"" >>"${VARS}"
 
 if [[ "${DISTRIBUTION}" == "almalinux"* ]] && [[ "${SMS}" == "openhpc-oe-jenkins-sms" ]]; then
-        echo "export YUM_MIRROR_BASE=http://mirrors.nju.edu.cn/almalinux/" >> "${VARS}"
+	echo "export YUM_MIRROR_BASE=http://mirrors.nju.edu.cn/almalinux/" >>"${VARS}"
 fi
 if [[ "${DISTRIBUTION}" == "openEuler"* ]] && [[ "${SMS}" == "openhpc-lenovo-jenkins-sms" ]]; then
-        echo "export YUM_MIRROR_BASE=http://repo.huaweicloud.com/openeuler/" >> "${VARS}"
+	echo "export YUM_MIRROR_BASE=http://repo.huaweicloud.com/openeuler/" >>"${VARS}"
 fi
 
 scp "${VARS}" "${SMS}":/root/vars
@@ -129,12 +129,12 @@ echo "Running install.sh on ${SMS}"
 if timeout --signal=9 100m ssh "${SMS}" 'bash -c "source /root/vars; /root/ci/install.sh"' 2>&1 | sed -e "s,${SMS_IPMI_PASSWORD//\$/\\$},****,g" | tee -a "${LOG}"; then
 	RESULT=PASS
 else
-        echo "Running tests on ${SMS} failed!" | tee -a "${LOG}"
+	echo "Running tests on ${SMS} failed!" | tee -a "${LOG}"
 fi
 
 rm -f "${VARS}"
 
-ssh "${SMS}" "mkdir -p /home/ohpc-test/tests; cp *log.xml /home/ohpc-test/tests; cd /home/ohpc-test; find . -name '*log.xml' -print0 | tar -cf - --null -T -" > "${OUT}"/test-results.tar
+ssh "${SMS}" "mkdir -p /home/ohpc-test/tests; cp *log.xml /home/ohpc-test/tests; cd /home/ohpc-test; find . -name '*log.xml' -print0 | tar -cf - --null -T -" >"${OUT}"/test-results.tar
 cleanup
 
 exit 1
