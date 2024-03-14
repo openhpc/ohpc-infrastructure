@@ -106,7 +106,7 @@ fi
 
 echo "Using \"${PKG_MANAGER} ${YES}\" as package manager"
 
-CWD=$(dirname $0)
+CWD=$(dirname "${0}")
 
 echo "Running in directory ${CWD}"
 

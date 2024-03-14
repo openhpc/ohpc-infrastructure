@@ -15,8 +15,6 @@ show_CI_hosts() {
 	NUM_EXPECTED=$(echo "${COMPUTE_HOSTS}" | awk 'END{print NF}')
 	echo "--> Num compute hosts      = ${NUM_EXPECTED}"
 	echo "--> Assigned hosts         = ${COMPUTE_HOSTS}"
-
-	SMS_HOST=$(echo "${COMPUTE_HOSTS}" | awk -F , '{print $1}' | sed s/node/sms/)
 }
 
 show_git_versions() {
@@ -36,12 +34,12 @@ show_booted_os() {
 	if [ -e /etc/centos-release ]; then
 		osLocal=$(cat /etc/centos-release)
 	elif [ -e /etc/SuSE-release ]; then
-		osLocal=$(cat /etc/os-release | grep VERSION= | awk -F = '{print $2}' | tr -d '"')
+		osLocal=$(grep "VERSION=" /etc/os-release | awk -F = '{print $2}' | tr -d '"')
 		osLocal="SLES $osLocal"
 	elif [ -e /etc/redhat-release ]; then
 		osLocal=$(cat /etc/redhat-release)
 	elif [ -e /usr/share/licenses/openSUSE-release ]; then
-		osLocal=$(cat /etc/os-release | grep PRETTY_NAME= | awk -F = '{print $2}' | tr -d '"')
+		osLocal=$(grep "PRETTY_NAME=" /etc/os-release | awk -F = '{print $2}' | tr -d '"')
 	elif [ -e /etc/openEuler-release ]; then
 		osLocal=$(cat /etc/openEuler-release)
 	else
@@ -90,7 +88,7 @@ show_runtime_config() {
 
 	test -z "${Interactive}" && ERROR "Variable Interactive not defined"
 
-	if [ "${Interactive}" != "true" -a "${Interactive}" != "false" ]; then
+	if [ "${Interactive}" != "true" ] && [ "${Interactive}" != "false" ]; then
 		ERROR "Variable Interactive must be set to either true or false"
 	fi
 
@@ -101,7 +99,7 @@ show_runtime_config() {
 	echo "--> User level tests       = ${UserLevelTests}"
 	export num_computes=${NUM_EXPECTED}
 
-	if [ "${InstallCluster}" != "true" -a "${InstallCluster}" != "false" ]; then
+	if [ "${InstallCluster}" != "true" ] && [ "${InstallCluster}" != "false" ]; then
 		ERROR "Variable InstallCluster must be set to either true or false"
 	fi
 
@@ -116,7 +114,7 @@ run_root_level_tests() {
 	echo
 	export PATH=/opt/ohpc/pub/utils/autotools/bin:$PATH
 
-	cd ${TESTDIR} || ERROR "Unable to access top level CMT test dir"
+	cd "${TESTDIR}" || ERROR "Unable to access top level CMT test dir"
 
 	export BATS_JUNIT_FORMAT=1
 	export BATS_ENABLE_TIMING=1
@@ -124,8 +122,9 @@ run_root_level_tests() {
 	export AUTOMAKE_JUNIT_FILE=1
 
 	# expose input vars to test env
-	if [ -s ${inputFile} ]; then
-		. ${inputFile}
+	if [ -s "${inputFile}" ]; then
+		# shellcheck disable=SC1090
+		. "${inputFile}"
 	fi
 
 	localOptions=""
@@ -135,8 +134,7 @@ run_root_level_tests() {
 	fi
 
 	if [ "$CI_CLUSTER" == "moontower" ]; then
-		echo $BaseOS | grep -q centos
-		if [ $? -eq 0 ]; then
+		if echo "${BaseOS}" | grep -q centos ; then
 			localOptions="--enable-lustre"
 		fi
 	fi
@@ -158,13 +156,13 @@ run_root_level_tests() {
 	fi
 
 	# using set here to be careful for argument quoting
-	eval set -- $localOptions
+	eval set -- "${localOptions}":
 	./configure "$@" || ERROR "Unable to configure root-level tests"
 
 	make -k check
 	ROOT_STATUS=$?
 
-	cd - >&/dev/null
+	cd - >&/dev/null || ERROR "changing directory failed"
 	return $ROOT_STATUS
 }
 
@@ -173,11 +171,10 @@ run_user_level_tests() {
 	echo "Running User-Level CMT tests"
 	echo " "
 
-	TOPDIR=$(pwd)
 	export TEST_USER="ohpc-test"
 
 	chown -R $TEST_USER: /home/${TEST_USER}/tests || ERROR "Unable to update perms for $TEST_USER"
-	cd $TESTDIR || ERROR "Unable to access top level test dir ($TESTDIR)"
+	cd "${TESTDIR}" || ERROR "Unable to access top level test dir ($TESTDIR)"
 
 	local config_opts=""
 
@@ -227,11 +224,13 @@ export FI_PROVIDER=sockets
 EOF
 
 	if [[ ${CI_CLUSTER} == "linaro" ]]; then
-		echo "export FI_PROVIDER=\"tcp;ofi_rxm\"" >>/tmp/user_integration_tests
-		echo "export UCX_TLS=\"tcp\"" >>/tmp/user_integration_tests
-		#    echo "export UCX_NET_DEVICES=eth0,eth3" >> /tmp/user_integration_tests
-		# update network setting after linaro data center re-location
-		echo "export UCX_NET_DEVICES=eth3" >>/tmp/user_integration_tests
+		{
+			echo "export FI_PROVIDER=\"tcp;ofi_rxm\""
+			echo "export UCX_TLS=\"tcp\""
+			#    echo "export UCX_NET_DEVICES=eth0,eth3" >> /tmp/user_integration_tests
+			# update network setting after linaro data center re-location
+			echo "export UCX_NET_DEVICES=eth3"
+		} >>/tmp/user_integration_tests
 	fi
 	if [[ ${CI_CLUSTER} == "huawei" ]] && [[ "${BaseOS}" == "openEuler_22.03" ]]; then
 		echo "export UCX_NET_DEVICES=eth0,eth2" >>/tmp/user_integration_tests
@@ -250,7 +249,7 @@ EOF
 	sudo -u $TEST_USER -i /tmp/user_integration_tests
 
 	USER_STATUS=$?
-	cd - >&/dev/null
+	cd - >&/dev/null || ERROR "changing directory failed"
 	return $USER_STATUS
 }
 
@@ -281,6 +280,7 @@ install_openHPC_cluster() {
 		echo "CI Customization: PXE boot selection is not persistent"
 		sed -e 's,ipmitool,ipmitool -E -I lanplus -H ${c_bmc[$i]} -U ${bmc_username} -P ${bmc_password} chassis bootdev pxe options=efiboot; ipmitool,g' -i "${recipeFile}"
 		if [ "${PKG_MANAGER}" == "dnf" ]; then
+			# shellcheck disable=SC2016
 			sed -e 's,/etc/yum.repos.d$,/etc/yum.repos.d; echo -e "[main]\nuser_agent=curl" > $CHROOT/etc/dnf/dnf.conf,g' -i "${recipeFile}"
 		fi
 	else
@@ -474,15 +474,37 @@ wait_for_computes() {
 	# waittime specified in the recipe.
 	CHECK_COMMAND=(koomie_cf -x "${compute_prefix}\\d+" cat /proc/uptime)
 	waittime=20
+	local not_ready
+	not_ready=1
+	local retry_counter
+	local retry_counter_max
+	retry_counter=0
+	retry_counter_max=30
 
 	for i in $(seq 90 -1 1); do
 		echo "Waiting for compute nodes to get ready ($i)"
 		if ! "${CHECK_COMMAND[@]}" | grep -E '(down|refused|booting|route|closed)'; then
 			echo "All compute nodes are ready"
+			not_ready=0
 			break
+		fi
+                (( retry_counter+=1 ))
+                if [ "${retry_counter}" -gt "${retry_counter_max}" ]; then
+			retry_counter=0
+			if [[ $CI_CLUSTER == "lenovo" ]]; then
+				for j in $(seq "${num_computes}" 1); do
+					echo "Telling BMC ${c_bmc[$j]} to try another reboot"
+					ipmitool -E -I lanplus -H "${c_bmc[$j]}" -U "${bmc_username}" -P "${bmc_password}" chassis bootdev pxe options=efiboot
+					ipmitool -E -I lanplus -H "${c_bmc[$j]}" -U "${bmc_username}" -P "${bmc_password}" power reset
+				done
+			fi
 		fi
 		local_sleep "${waittime}"
 	done
+
+	if [ "${not_ready}" -eq 1 ]; then
+		ERROR "Not all compute nodes ready"
+	fi
 
 	if [ "${RMS}" == "slurm" ]; then
 		pdsh -w "${compute_prefix}"[1-"${num_computes}"] systemctl start munge
