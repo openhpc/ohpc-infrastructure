@@ -182,10 +182,6 @@ run_user_level_tests() {
 		config_opts="--enable-long"
 	fi
 
-	if [ "${EnablePXSE}" == "true" ]; then
-		config_opts="--enable-psxe $config_opts"
-	fi
-
 	if [ "${EnableOneAPI}" == "true" ]; then
 		config_opts="--enable-psxe $config_opts"
 	fi
@@ -411,7 +407,7 @@ gen_localized_inputs() {
 		sed -i -e "s/enable_arm1_packages:-0/enable_arm1_packages:-1/" "${inputFile}"
 	fi
 
-	if [ "${EnablePXSE}" == "true" ]; then
+	if [ "${EnableOneAPI}" == "true" ]; then
 		sed -i -e "s/enable_intel_packages:-0/enable_intel_packages:-1/" "${inputFile}"
 	fi
 

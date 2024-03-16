@@ -34,7 +34,6 @@ for env in InstallCluster \
 	LocalRepoFromDist \
 	USER_TEST_OPTIONS \
 	EXECUTOR_NUMBER \
-	EnablePXSE \
 	UseExternalRepo \
 	RootLevelTests \
 	NODE_LABELS \

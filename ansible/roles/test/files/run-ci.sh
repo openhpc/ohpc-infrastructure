@@ -2,11 +2,60 @@
 
 set -o pipefail
 
+show_usage() {
+	echo "Usage"
+	echo "  $0 [<options>]"
+	echo
+	echo "Options:"
+	echo "  -d <DISTRIBUTION>     Run the CI test on the specified distribution"
+	echo "  -v <VERSION>          Run the CI test on the specified version of OpenHPC"
+	echo "  -r <REPOSITORY>       Run the CI test using the specified repository"
+	echo "                        (Factory, Staging, Release)"
+	echo "  -i                    Install and run tests using package built with the"
+	echo "                        Intel compiler"
+	echo "  -h                    Show this help"
+}
+
+TIMEOUT="100m"
+
+while getopts "d:v:r:ih" OPTION; do
+	case $OPTION in
+	d)
+		DISTRIBUTION=$OPTARG
+		;;
+	v)
+		VERSION=$OPTARG
+		;;
+	r)
+		REPO=$OPTARG
+		;;
+	i)
+		WITH_INTEL="true"
+		TIMEOUT="150m"
+		;;
+	h)
+		show_usage
+		exit 0
+		;;
+	*)
+		echo "Incorrect options provided"
+		show_usage
+		exit 1
+		;;
+	esac
+done
+
+if [ -z "${DISTRIBUTION}" ] || [ -z "${VERSION}" ] || [ -z "${REPO}" ]; then
+	show_usage
+	exit 0
+fi
+
 if [ ! -e /etc/sysconfig/openhpc-test.config ]; then
 	echo "Input file /etc/sysconfig/openhpc-test.config missing"
 	exit 1
 fi
 
+# shellcheck disable=SC1091
 . /etc/sysconfig/openhpc-test.config
 
 if [[ "${SMS}" == "openhpc-lenovo-jenkins-sms" ]]; then
@@ -24,9 +73,7 @@ LOG=$(mktemp)
 OUT=$(mktemp -d)
 RESULT=FAIL
 RESULTS="/results"
-VERSION="${2}"
-DISTRIBUTION="${1}"
-REPO="${3}"
+
 VERSION_MAJOR=$(echo "${VERSION}" | awk -F. '{print $1}')
 if [[ "${SMS}" == "openhpc-oe-jenkins-sms" ]]; then
 	TEST_ARCH="aarch64"
@@ -74,9 +121,11 @@ cleanup() {
 	ln -sfn "${DEST_NAME}" "0-LATEST-OHPC-${VERSION}-${DISTRIBUTION}-${TEST_ARCH}"
 	cd - >/dev/null
 	rsync -a /results ohpc@repos.ohpc.io:/stats/
+	# shellcheck disable=SC2029
 	ssh ohpc@repos.ohpc.io /home/ohpc/bin/update_results.sh "${VERSION_MAJOR}" "${VERSION}"
 	# save CPAN cache
 	if [[ "${SMS}" == "openhpc-oe-jenkins-sms" ]]; then
+		# shellcheck disable=SC2029
 		ssh "${BOOT_SERVER}" "bash -c \"rsync -az --info=progress2 --zl 9 --exclude=CPAN/MyConfig.pm ${SMS}:/root/.cpan/ /root/.cache/cpan-backup/\""
 	fi
 	if [ "${RESULT}" == "PASS" ]; then
@@ -88,7 +137,7 @@ cleanup() {
 
 echo "Started at $(date -u +"%Y-%m-%d-%H-%M-%S")" >"${LOG}"
 
-if ! "ansible/roles/test/files/${LAUNCHER}" "${SMS}" ${DISTRIBUTION} ${VERSION} "${ROOT_PASSWORD}" | tee -a "${LOG}"; then
+if ! "ansible/roles/test/files/${LAUNCHER}" "${SMS}" "${DISTRIBUTION}" "${VERSION}" "${ROOT_PASSWORD}" | tee -a "${LOG}"; then
 	cd - >/dev/null
 	echo "Provisiong ${SMS} failed. Exiting" | tee -a "${LOG}"
 	cleanup
@@ -105,14 +154,17 @@ echo "export IPMI_PASSWORD=${SMS_IPMI_PASSWORD}" >>"${VARS}"
 
 set -x
 
-echo "export BaseOS=${DISTRIBUTION}" >>"${VARS}"
-echo "export Version=${VERSION}" >>"${VARS}"
-echo "export Architecture=${TEST_ARCH}" >>"${VARS}"
-echo "export SMS=${SMS}" >>"${VARS}"
-echo "export NODE_NAME=${SMS}" >>"${VARS}"
-echo "export Repo=${REPO}" >>"${VARS}"
-echo "export CI_CLUSTER=${CI_CLUSTER}" >>"${VARS}"
-echo "export COMPUTE_HOSTS=\"${COMPUTE_HOSTS}\"" >>"${VARS}"
+{
+	echo "export BaseOS=${DISTRIBUTION}"
+	echo "export Version=${VERSION}"
+	echo "export Architecture=${TEST_ARCH}"
+	echo "export SMS=${SMS}"
+	echo "export NODE_NAME=${SMS}"
+	echo "export Repo=${REPO}"
+	echo "export CI_CLUSTER=${CI_CLUSTER}"
+	echo "export COMPUTE_HOSTS=\"${COMPUTE_HOSTS}\""
+	echo "export EnableOneAPI=${WITH_INTEL:-false}"
+} >>"${VARS}"
 
 if [[ "${DISTRIBUTION}" == "almalinux"* ]] && [[ "${SMS}" == "openhpc-oe-jenkins-sms" ]]; then
 	echo "export YUM_MIRROR_BASE=http://mirrors.nju.edu.cn/almalinux/" >>"${VARS}"
@@ -126,7 +178,7 @@ scp "${VARS}" "${SMS}":/root/vars
 set +x
 
 echo "Running install.sh on ${SMS}"
-if timeout --signal=9 100m ssh "${SMS}" 'bash -c "source /root/vars; /root/ci/install.sh"' 2>&1 | sed -e "s,${SMS_IPMI_PASSWORD//\$/\\$},****,g" | tee -a "${LOG}"; then
+if timeout --signal=9 "${TIMEOUT}" ssh "${SMS}" 'bash -c "source /root/vars; /root/ci/install.sh"' 2>&1 | sed -e "s,${SMS_IPMI_PASSWORD//\$/\\$},****,g" | tee -a "${LOG}"; then
 	RESULT=PASS
 else
 	echo "Running tests on ${SMS} failed!" | tee -a "${LOG}"
@@ -136,5 +188,3 @@ rm -f "${VARS}"
 
 ssh "${SMS}" "mkdir -p /home/ohpc-test/tests; cp *log.xml /home/ohpc-test/tests; cd /home/ohpc-test; find . -name '*log.xml' -print0 | tar -cf - --null -T -" >"${OUT}"/test-results.tar
 cleanup
-
-exit 1
