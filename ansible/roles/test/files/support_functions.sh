@@ -156,7 +156,7 @@ run_root_level_tests() {
 	fi
 
 	# using set here to be careful for argument quoting
-	eval set -- "${localOptions}":
+	eval set -- "${localOptions}"
 	./configure "$@" || ERROR "Unable to configure root-level tests"
 
 	make -k check
