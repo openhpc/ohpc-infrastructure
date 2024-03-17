@@ -136,6 +136,17 @@ cleanup() {
 }
 
 echo "Started at $(date -u +"%Y-%m-%d-%H-%M-%S")" >"${LOG}"
+echo
+echo "--> distribution:      ${DISTRIBUTION}"
+echo "--> version:           ${VERSION}"
+echo "--> repository:        ${REPO}"
+echo "--> CI cluster:        ${CI_CLUSTER}"
+echo "--> SMS:               ${SMS}"
+echo "--> test architecture: ${TEST_ARCH}"
+echo "--> enable intel:      ${WITH_INTEL:-false}"
+echo "--> node names:        ${COMPUTE_HOSTS}"
+echo "--> launcher:          ${LAUNCHER}"
+echo "--> test timeout:      ${TIMEOUT}"
 
 if ! "ansible/roles/test/files/${LAUNCHER}" "${SMS}" "${DISTRIBUTION}" "${VERSION}" "${ROOT_PASSWORD}" | tee -a "${LOG}"; then
 	cd - >/dev/null
