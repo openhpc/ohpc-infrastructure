@@ -413,10 +413,8 @@ gen_localized_inputs() {
 
 	echo
 	echo "[Running SMS tests]"
-	# needed for sms_installed.py
-	loop_command pip3 install xmlrunner
-	cp "${CWD}/sms_installed.py" .
-	if ! python3 sms_installed.py; then
+	cp "${CWD}/sms_installed.bats" .
+	if ! BATS_REPORT_FILENAME=sms_installed.log.xml ./sms_installed.bats; then
 		# shellcheck disable=SC2034
 		status=1
 	fi
