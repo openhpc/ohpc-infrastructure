@@ -92,7 +92,7 @@
       - install.sh
       - support_functions.sh
       - computes_installed.py
-      - sms_installed.py
+      - sms_installed.bats
       - gen_inputs.pl
 
   - name: copy helper scripts
