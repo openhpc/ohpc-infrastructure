@@ -106,5 +106,8 @@
 
   - name: make install script executable
     ansible.builtin.file:
-      path: /root/ci/install.sh
+      path: "/root/ci/{{ item }}"
       mode: '0755'
+    with_items:
+      - install.sh
+      - sms_installed.bats
