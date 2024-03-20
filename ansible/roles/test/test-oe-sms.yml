@@ -22,6 +22,17 @@
     when: distro == "openEuler_22.03"
 
   - name: install obs repository configuration
+    copy:
+      src: "{{ item }}"
+      dest: /etc/yum.repos.d/
+      owner: root
+      group: root
+      mode: 0644
+    with_items:
+      - mgrigorov-OpenHPC-openeuler-22.03_LTS_SP3.repo
+    when: distro == "openEuler_22.03"
+
+  - name: install obs repository configuration
     template:
       src: "{{ item }}"
       dest: /etc/yum.repos.d/
@@ -78,6 +89,7 @@
       - ipmitool
       - rsync
       - chrony
+      - bats
 
   - import_tasks: test-oe-common.yml
 

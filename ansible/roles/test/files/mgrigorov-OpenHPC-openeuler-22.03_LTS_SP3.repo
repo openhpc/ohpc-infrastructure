@@ -1,0 +1,10 @@
+[copr:eur.openeuler.openatom.cn:mgrigorov:OpenHPC]
+name=Copr repo for OpenHPC owned by mgrigorov
+baseurl=https://eur.openeuler.openatom.cn/results/mgrigorov/OpenHPC/openeuler-22.03_LTS_SP3-$basearch/
+type=rpm-md
+skip_if_unavailable=True
+gpgcheck=1
+gpgkey=https://eur.openeuler.openatom.cn/results/mgrigorov/OpenHPC/pubkey.gpg
+repo_gpgcheck=0
+enabled=1
+enabled_metadata=1
