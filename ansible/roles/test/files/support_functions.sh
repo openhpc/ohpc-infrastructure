@@ -304,9 +304,6 @@ install_openHPC_cluster() {
 	export BATS_JUNIT_FORMAT=1
 	export BATS_JUNIT_GROUP="RootLevelTests"
 
-	# needed for computes_installed.py
-	loop_command pip3 install xmlrunner
-
 	cp "${CWD}/computes_installed.py" .
 	if ! python3 computes_installed.py; then
 		status=1
@@ -439,6 +436,9 @@ pre_install_cmds() {
 	if command -v setenforce &>/dev/null; then
 		setenforce 0
 	fi
+
+	# needed for computes_installed.py test runner
+	loop_command pip3 install xmlrunner
 }
 
 install_doc_rpm() {
