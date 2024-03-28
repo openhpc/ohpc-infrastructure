@@ -158,7 +158,6 @@ cleanup() {
 		ssh "${BOOT_SERVER}" "bash -c \"rsync -az --info=progress2 --zl 9 --exclude=CPAN/MyConfig.pm ${SMS}:/root/.cpan/ /root/.cache/cpan-backup/\""
 	fi
 	print_overview
-	echo "--> resource manager:  ${RMS}"
 	echo -n "--> CI run result:     "
 	if [ "${RESULT}" == "PASS" ]; then
 		echo "PASS"
