@@ -140,7 +140,7 @@ cleanup() {
 	touch "${OUT}/${RESULT}"
 	DEST_DIR="${RESULTS}/${VERSION_MAJOR}/${VERSION}"
 	NAME="OHPC-${VERSION}-${DISTRIBUTION}-${TEST_ARCH}-${RMS}"
-	if [ -z "${WITH_INTEL}" ]; then
+	if [ -n "${WITH_INTEL}" ]; then
 		NAME="${NAME}-INTEL"
 	fi
 	DEST_NAME="$(date -u +"%Y-%m-%d-%H-%M-%S")-${RESULT}-${NAME}-${RANDOM}"
