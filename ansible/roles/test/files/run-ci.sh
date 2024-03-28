@@ -11,6 +11,8 @@ show_usage() {
 	echo "  -v <VERSION>          Run the CI test on the specified version of OpenHPC"
 	echo "  -r <REPOSITORY>       Run the CI test using the specified repository"
 	echo "                        (Factory, Staging, Release)"
+	echo "  -m <RMS>              Run the CI test using the specified resource manager"
+	echo "                        (openpbs, slurm (default))"
 	echo "  -i                    Install and run tests using package built with the"
 	echo "                        Intel compiler"
 	echo "  -h                    Show this help"
@@ -18,7 +20,7 @@ show_usage() {
 
 TIMEOUT="100m"
 
-while getopts "d:v:r:ih" OPTION; do
+while getopts "d:v:r:m:ih" OPTION; do
 	case $OPTION in
 	d)
 		DISTRIBUTION=$OPTARG
@@ -28,6 +30,9 @@ while getopts "d:v:r:ih" OPTION; do
 		;;
 	r)
 		REPO=$OPTARG
+		;;
+	m)
+		RMS=$OPTARG
 		;;
 	i)
 		WITH_INTEL="true"
@@ -44,6 +49,10 @@ while getopts "d:v:r:ih" OPTION; do
 		;;
 	esac
 done
+
+if [ -z "${RMS}" ]; then
+	RMS=slurm
+fi
 
 if [ -z "${DISTRIBUTION}" ] || [ -z "${VERSION}" ] || [ -z "${REPO}" ]; then
 	show_usage
@@ -79,6 +88,7 @@ if [[ "${SMS}" == "openhpc-oe-jenkins-sms" ]]; then
 	TEST_ARCH="aarch64"
 	CI_CLUSTER=huawei
 	COMPUTE_HOSTS="openhpc-oe-jenkins-c1, openhpc-oe-jenkins-c2"
+	((TIMEOUT += 100))
 else
 	TEST_ARCH=$(uname -m)
 	CI_CLUSTER=lenovo
@@ -89,6 +99,21 @@ if [ ! -d "${RESULTS}" ]; then
 	echo "Results directory (${RESULTS}) missing. Exiting"
 	exit 1
 fi
+
+print_overview() {
+	echo
+	echo "--> distribution:      ${DISTRIBUTION}"
+	echo "--> version:           ${VERSION}"
+	echo "--> repository:        ${REPO}"
+	echo "--> CI cluster:        ${CI_CLUSTER}"
+	echo "--> SMS:               ${SMS}"
+	echo "--> test architecture: ${TEST_ARCH}"
+	echo "--> enable intel:      ${WITH_INTEL:-false}"
+	echo "--> node names:        ${COMPUTE_HOSTS}"
+	echo "--> launcher:          ${LAUNCHER}"
+	echo "--> test timeout:      ${TIMEOUT}"
+	echo "--> resource manager:  ${RMS}"
+}
 
 cleanup() {
 	if [ ! -d "${RESULTS}/${VERSION_MAJOR}" ]; then
@@ -114,11 +139,15 @@ cleanup() {
 	sed -e "s,${SMS_IPMI_PASSWORD//\$/\\$},****,g" -i "${OUT}"/console.out
 	touch "${OUT}/${RESULT}"
 	DEST_DIR="${RESULTS}/${VERSION_MAJOR}/${VERSION}"
-	DEST_NAME="$(date -u +"%Y-%m-%d-%H-%M-%S")-${RESULT}-OHPC-${VERSION}-${DISTRIBUTION}-${TEST_ARCH}-${RANDOM}"
+	NAME="OHPC-${VERSION}-${DISTRIBUTION}-${TEST_ARCH}-${RMS}"
+	if [ -z "${WITH_INTEL}" ]; then
+		NAME="${NAME}-INTEL"
+	fi
+	DEST_NAME="$(date -u +"%Y-%m-%d-%H-%M-%S")-${RESULT}-${NAME}-${RANDOM}"
 	mv "${OUT}" "${DEST_DIR}/${DEST_NAME}"
 	chmod 755 "${DEST_DIR}/${DEST_NAME}"
 	cd "${DEST_DIR}"
-	ln -sfn "${DEST_NAME}" "0-LATEST-OHPC-${VERSION}-${DISTRIBUTION}-${TEST_ARCH}"
+	ln -sfn "${DEST_NAME}" "0-LATEST-${NAME}"
 	cd - >/dev/null
 	rsync -a /results ohpc@repos.ohpc.io:/stats/
 	# shellcheck disable=SC2029
@@ -128,25 +157,21 @@ cleanup() {
 		# shellcheck disable=SC2029
 		ssh "${BOOT_SERVER}" "bash -c \"rsync -az --info=progress2 --zl 9 --exclude=CPAN/MyConfig.pm ${SMS}:/root/.cpan/ /root/.cache/cpan-backup/\""
 	fi
+	print_overview
+	echo "--> resource manager:  ${RMS}"
+	echo -n "--> CI run result:     "
 	if [ "${RESULT}" == "PASS" ]; then
+		echo "PASS"
 		exit 0
 	else
+		echo "FAIL"
 		exit 1
 	fi
 }
 
 echo "Started at $(date -u +"%Y-%m-%d-%H-%M-%S")" >"${LOG}"
-echo
-echo "--> distribution:      ${DISTRIBUTION}"
-echo "--> version:           ${VERSION}"
-echo "--> repository:        ${REPO}"
-echo "--> CI cluster:        ${CI_CLUSTER}"
-echo "--> SMS:               ${SMS}"
-echo "--> test architecture: ${TEST_ARCH}"
-echo "--> enable intel:      ${WITH_INTEL:-false}"
-echo "--> node names:        ${COMPUTE_HOSTS}"
-echo "--> launcher:          ${LAUNCHER}"
-echo "--> test timeout:      ${TIMEOUT}"
+
+print_overview
 
 if ! "ansible/roles/test/files/${LAUNCHER}" "${SMS}" "${DISTRIBUTION}" "${VERSION}" "${ROOT_PASSWORD}" | tee -a "${LOG}"; then
 	cd - >/dev/null
@@ -171,6 +196,7 @@ set -x
 	echo "export Architecture=${TEST_ARCH}"
 	echo "export SMS=${SMS}"
 	echo "export NODE_NAME=${SMS}"
+	echo "export RMS=${RMS}"
 	echo "export Repo=${REPO}"
 	echo "export CI_CLUSTER=${CI_CLUSTER}"
 	echo "export COMPUTE_HOSTS=\"${COMPUTE_HOSTS}\""

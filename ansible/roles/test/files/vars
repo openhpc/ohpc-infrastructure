@@ -1,5 +1,4 @@
 export InstallCluster=true
-export RMS=slurm
 export EnableLongTests=true
 export Upgrade=false
 export enable_ipoib=0
