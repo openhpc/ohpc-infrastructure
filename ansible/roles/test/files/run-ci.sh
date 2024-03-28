@@ -18,7 +18,7 @@ show_usage() {
 	echo "  -h                    Show this help"
 }
 
-TIMEOUT="100m"
+TIMEOUT="100"
 
 while getopts "d:v:r:m:ih" OPTION; do
 	case $OPTION in
@@ -36,7 +36,7 @@ while getopts "d:v:r:m:ih" OPTION; do
 		;;
 	i)
 		WITH_INTEL="true"
-		TIMEOUT="150m"
+		TIMEOUT="150"
 		;;
 	h)
 		show_usage
@@ -111,7 +111,7 @@ print_overview() {
 	echo "--> enable intel:      ${WITH_INTEL:-false}"
 	echo "--> node names:        ${COMPUTE_HOSTS}"
 	echo "--> launcher:          ${LAUNCHER}"
-	echo "--> test timeout:      ${TIMEOUT}"
+	echo "--> test timeout:      ${TIMEOUT}m"
 	echo "--> resource manager:  ${RMS}"
 }
 
@@ -214,7 +214,7 @@ scp "${VARS}" "${SMS}":/root/vars
 set +x
 
 echo "Running install.sh on ${SMS}"
-if timeout --signal=9 "${TIMEOUT}" ssh "${SMS}" 'bash -c "source /root/vars; /root/ci/install.sh"' 2>&1 | sed -e "s,${SMS_IPMI_PASSWORD//\$/\\$},****,g" | tee -a "${LOG}"; then
+if timeout --signal=9 "${TIMEOUT}m" ssh "${SMS}" 'bash -c "source /root/vars; /root/ci/install.sh"' 2>&1 | sed -e "s,${SMS_IPMI_PASSWORD//\$/\\$},****,g" | tee -a "${LOG}"; then
 	RESULT=PASS
 else
 	echo "Running tests on ${SMS} failed!" | tee -a "${LOG}"
