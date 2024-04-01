@@ -139,10 +139,11 @@ cleanup() {
 	sed -e "s,${SMS_IPMI_PASSWORD//\$/\\$},****,g" -i "${OUT}"/console.out
 	touch "${OUT}/${RESULT}"
 	DEST_DIR="${RESULTS}/${VERSION_MAJOR}/${VERSION}"
-	NAME="OHPC-${VERSION}-${DISTRIBUTION}-${TEST_ARCH}-${RMS}"
+	NAME="OHPC-${VERSION}-${DISTRIBUTION}"
 	if [ -n "${WITH_INTEL}" ]; then
 		NAME="${NAME}-INTEL"
 	fi
+	NAME="${NAME}-${TEST_ARCH}-${RMS}"
 	DEST_NAME="$(date -u +"%Y-%m-%d-%H-%M-%S")-${RESULT}-${NAME}-${RANDOM}"
 	mv "${OUT}" "${DEST_DIR}/${DEST_NAME}"
 	chmod 755 "${DEST_DIR}/${DEST_NAME}"
@@ -213,7 +214,7 @@ scp "${VARS}" "${SMS}":/root/vars
 
 set +x
 
-echo "Running install.sh on ${SMS}"
+echo "Running install.sh on ${SMS} with timeout ${TIMEOUT}m"
 if timeout --signal=9 "${TIMEOUT}m" ssh "${SMS}" 'bash -c "source /root/vars; /root/ci/install.sh"' 2>&1 | sed -e "s,${SMS_IPMI_PASSWORD//\$/\\$},****,g" | tee -a "${LOG}"; then
 	RESULT=PASS
 else
