@@ -150,7 +150,7 @@ cleanup() {
 	cd "${DEST_DIR}"
 	ln -sfn "${DEST_NAME}" "0-LATEST-${NAME}"
 	cd - >/dev/null
-	rsync -a /results ohpc@repos.ohpc.io:/stats/
+	rsync -a /results ohpc@repos.ohpc.io:/results
 	# shellcheck disable=SC2029
 	ssh ohpc@repos.ohpc.io /home/ohpc/bin/update_results.sh "${VERSION_MAJOR}" "${VERSION}"
 	# save CPAN cache
