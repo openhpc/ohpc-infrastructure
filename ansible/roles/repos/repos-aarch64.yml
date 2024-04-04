@@ -21,7 +21,6 @@
     - /data
     - /rhel
     - /repos
-    - /weblogs
     - /stats
     - /results
 
@@ -40,13 +39,17 @@
     - /rhel/repositories
     - /repos
     - /repos/.files
-    - /weblogs
     - /stats
     - /results
 
+  - name: create directories
+    file: dest="/data{{item}}" mode=0755 state=directory owner=root group=root
+    with_items:
+    - /weblogs
+
   - name: "bind mount {{item}}"
     ansible.posix.mount:
-      path: "/{{item}}"
+      path: "{{item}}"
       src: "/data{{item}}"
       opts: bind
       state: mounted
@@ -54,9 +57,16 @@
     with_items:
     - /rhel
     - /repos
-    - /weblogs
     - /stats
     - /results
+
+  - name: "bind mount /var/log/httpd"
+    ansible.posix.mount:
+      path: /var/log/httpd
+      src: /data/weblogs
+      opts: bind
+      state: mounted
+      fstype: none
 
   - name: install apache httpd config
     copy:
@@ -97,7 +107,7 @@
       state: present
 
   - name: Apply new SELinux file context to filesystem
-    ansible.builtin.command: restorecon -irv /stats /repos /rhel/repositories /results
+    ansible.builtin.command: restorecon -irv /stats /repos /rhel/repositories /results /var/log/httpd
 
   - name: enable httpd service
     service: name=httpd enabled=yes state=started
