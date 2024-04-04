@@ -2,6 +2,8 @@
 
 set -o pipefail
 
+START=$(date +%s)
+
 show_usage() {
 	echo "Usage"
 	echo "  $0 [<options>]"
@@ -138,6 +140,9 @@ cleanup() {
 	chmod 644 "${OUT}"/console.out
 	sed -e "s,${SMS_IPMI_PASSWORD//\$/\\$},****,g" -i "${OUT}"/console.out
 	touch "${OUT}/${RESULT}"
+	END=$(date +%s)
+	((DURATION = END - START))
+	echo "DURATION=${DURATION}" >>"$OUT/INFO"
 	DEST_DIR="${RESULTS}/${VERSION_MAJOR}/${VERSION}"
 	NAME="OHPC-${VERSION}-${DISTRIBUTION}"
 	if [ -n "${WITH_INTEL}" ]; then
@@ -159,6 +164,8 @@ cleanup() {
 		ssh "${BOOT_SERVER}" "bash -c \"rsync -az --info=progress2 --zl 9 --exclude=CPAN/MyConfig.pm ${SMS}:/root/.cpan/ /root/.cache/cpan-backup/\""
 	fi
 	print_overview
+	echo -n "--> CI run time:      "
+	date -d@${DURATION} -u +%H:%M:%S
 	echo -n "--> CI run result:     "
 	if [ "${RESULT}" == "PASS" ]; then
 		echo "PASS"

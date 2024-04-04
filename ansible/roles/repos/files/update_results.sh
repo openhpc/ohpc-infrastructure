@@ -23,6 +23,11 @@ PASS=0
 TOTAL=0
 
 sed '1,/<!-- END HEADER MARKER -->/!d' -i HEADER.html
+
+TOTAL=$(echo 0-LATEST* | wc -w)
+
+echo "<ul><li>Total number of test permutations: ${TOTAL}</li></ul>" >>HEADER.html
+
 echo "<table><tr><th>Test</th><th>Total</th><th>PASS</th><th>FAIL</th><th>Overall</th><tr>" >>HEADER.html
 
 for i in $(ls 0-LATEST* -d | sort | cut -d- -f5 | uniq); do
@@ -50,6 +55,7 @@ for i in $(ls 0-LATEST* -d | sort | cut -d- -f5 | uniq); do
 done
 
 echo "</table>" >>HEADER.html
+
 
 cd /results/$1
 
