@@ -40,7 +40,7 @@ for i in $(ls 0-LATEST* -d | sort | cut -d- -f5 | uniq); do
 	elif [ "$PASS" -eq 0 ]; then
 		echo "<img src=\"/.files/test_error.png\"/>" >>HEADER.html
 	else
-		echo "<img src=\"/.files/test_warn.png\"/>" >>HEADER.html
+		echo "<img src=\"/.files/test_warning.png\"/>" >>HEADER.html
 	fi
 	echo "</td></tr>" >>HEADER.html
 
