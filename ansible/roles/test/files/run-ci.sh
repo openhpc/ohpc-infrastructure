@@ -155,7 +155,7 @@ cleanup() {
 	cd "${DEST_DIR}"
 	ln -sfn "${DEST_NAME}" "0-LATEST-${NAME}"
 	cd - >/dev/null
-	rsync -a /results ohpc@repos.ohpc.io:/results
+	rsync -a /results/ ohpc@repos.ohpc.io:/results
 	# shellcheck disable=SC2029
 	ssh ohpc@repos.ohpc.io /home/ohpc/bin/update_results.sh "${VERSION_MAJOR}" "${VERSION}"
 	# save CPAN cache
@@ -164,7 +164,7 @@ cleanup() {
 		ssh "${BOOT_SERVER}" "bash -c \"rsync -az --info=progress2 --zl 9 --exclude=CPAN/MyConfig.pm ${SMS}:/root/.cpan/ /root/.cache/cpan-backup/\""
 	fi
 	print_overview
-	echo -n "--> CI run time:      "
+	echo -n "--> CI run time:       "
 	date -d@${DURATION} -u +%H:%M:%S
 	echo -n "--> CI run result:     "
 	if [ "${RESULT}" == "PASS" ]; then

@@ -18,10 +18,6 @@ for i in *OHPC*; do
 done
 mv .htaccess.new .htaccess
 
-FAIL=0
-PASS=0
-TOTAL=0
-
 sed '1,/<!-- END HEADER MARKER -->/!d' -i HEADER.html
 
 TOTAL=$(echo 0-LATEST* | wc -w)
@@ -29,6 +25,10 @@ TOTAL=$(echo 0-LATEST* | wc -w)
 echo "<ul><li>Total number of test permutations: ${TOTAL}</li></ul>" >>HEADER.html
 
 echo "<table><tr><th>Test</th><th>Total</th><th>PASS</th><th>FAIL</th><th>Overall</th><tr>" >>HEADER.html
+
+FAIL=0
+PASS=0
+TOTAL=0
 
 for i in $(ls 0-LATEST* -d | sort | cut -d- -f5 | uniq); do
 	for l in 0*-$i-*; do
