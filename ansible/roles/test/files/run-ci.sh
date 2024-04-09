@@ -115,6 +115,7 @@ print_overview() {
 	echo "--> launcher:          ${LAUNCHER}"
 	echo "--> test timeout:      ${TIMEOUT}m"
 	echo "--> resource manager:  ${RMS}"
+	echo "--> test options:      ${USER_TEST_OPTIONS}"
 }
 
 cleanup() {
@@ -178,6 +179,19 @@ cleanup() {
 
 echo "Started at $(date -u +"%Y-%m-%d-%H-%M-%S")" >"${LOG}"
 
+USER_TEST_OPTIONS="--with-fabric=none"
+USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-likwid"
+USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-papi"
+USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-geopm"
+USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-tau"
+USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-extrae"
+
+if [[ "${VERSION}" == "3."* ]]; then
+	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --with-mpi-families=\"mpich openmpi5\""
+else
+	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --with-mpi-families=\"mpich openmpi4\""
+fi
+
 print_overview
 
 if ! "ansible/roles/test/files/${LAUNCHER}" "${SMS}" "${DISTRIBUTION}" "${VERSION}" "${ROOT_PASSWORD}" | tee -a "${LOG}"; then
@@ -208,6 +222,7 @@ set -x
 	echo "export CI_CLUSTER=${CI_CLUSTER}"
 	echo "export COMPUTE_HOSTS=\"${COMPUTE_HOSTS}\""
 	echo "export EnableOneAPI=${WITH_INTEL:-false}"
+	echo "export USER_TEST_OPTIONS=\"${USER_TEST_OPTIONS}\""
 } >>"${VARS}"
 
 if [[ "${DISTRIBUTION}" == "almalinux"* ]] && [[ "${SMS}" == "openhpc-oe-jenkins-sms" ]]; then
