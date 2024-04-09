@@ -486,7 +486,8 @@ wait_for_computes() {
 		if [ "${retry_counter}" -gt "${retry_counter_max}" ]; then
 			retry_counter=0
 			if [[ $CI_CLUSTER == "lenovo" ]]; then
-				for j in $(seq "${num_computes}" -1 1); do
+				((n_c = num_computes - 1))
+				for j in $(seq "${n_c}" -1 1); do
 					echo "Telling BMC ${c_bmc[$j]} to try another reboot"
 					ipmitool -E -I lanplus -H "${c_bmc[$j]}" -U "${bmc_username}" -P "${bmc_password}" chassis bootdev pxe options=efiboot
 					ipmitool -E -I lanplus -H "${c_bmc[$j]}" -U "${bmc_username}" -P "${bmc_password}" power reset
