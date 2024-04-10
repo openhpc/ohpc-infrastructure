@@ -165,6 +165,7 @@ cleanup() {
 		ssh "${BOOT_SERVER}" "bash -c \"rsync -az --info=progress2 --zl 9 --exclude=CPAN/MyConfig.pm ${SMS}:/root/.cpan/ /root/.cache/cpan-backup/\""
 	fi
 	print_overview
+	echo "--> Last job ID:       ${LAST_JOB}"
 	echo -n "--> CI run time:       "
 	date -d@${DURATION} -u +%H:%M:%S
 	echo -n "--> CI run result:     "
@@ -187,9 +188,9 @@ USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-tau"
 USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-extrae"
 
 if [[ "${VERSION}" == "3."* ]]; then
-	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --with-mpi-families=\"mpich openmpi5\""
+	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --with-mpi-families='mpich openmpi5'"
 else
-	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --with-mpi-families=\"mpich openmpi4\""
+	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --with-mpi-families='mpich openmpi4'"
 fi
 
 print_overview
@@ -246,4 +247,16 @@ fi
 rm -f "${VARS}"
 
 ssh "${SMS}" "mkdir -p /home/ohpc-test/tests; cp *log.xml /home/ohpc-test/tests; cd /home/ohpc-test; find . -name '*log.xml' -print0 | tar -cf - --null -T -" >"${OUT}"/test-results.tar
+
+if [[ "${RMS}" == "slurm" ]]; then
+	CMD="scontrol show job | grep JobId"
+else
+	CMD="qstat -x"
+fi
+
+# shellcheck disable=SC2029
+LAST_JOB=$(ssh "${SMS}" "${CMD}" | tail -1 | cut -d\  -f1)
+
+echo "Last job ID: ${LAST_JOB}" | tee -a "${LOG}"
+
 cleanup
