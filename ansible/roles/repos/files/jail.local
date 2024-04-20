@@ -1,0 +1,6 @@
+[sshd]
+enabled = true
+[DEFAULT]
+bantime  = 43211
+findtime  = 6123
+action = %(action_)s

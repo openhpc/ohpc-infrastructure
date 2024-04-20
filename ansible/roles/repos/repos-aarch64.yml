@@ -8,8 +8,12 @@
       state: present
       name:
       - httpd
-      - fail2ban
+      - fail2ban-server
+      - fail2ban-sendmail
       - goaccess
+      - certbot
+      - mod_ssl
+      - rsync-daemon
 
   - name: Add the user 'ohpc'
     ansible.builtin.user:
@@ -81,6 +85,8 @@
       - stats.conf
       - results.conf
       - welcome.conf
+      - ssl.conf
+    register: httpd_conf
 
   - name: Allow apache to modify files in /stats
     community.general.sefcontext:
@@ -97,7 +103,7 @@
   - name: Allow apache to modify files in /stats
     community.general.sefcontext:
       target: '/repos(/.*)?'
-      setype: httpd_sys_content_t
+      setype: public_content_t
       state: present
 
   - name: Allow apache to modify files in /stats
@@ -112,6 +118,12 @@
   - name: enable httpd service
     service: name=httpd enabled=yes state=started
 
+  - name: Reload service httpd
+    ansible.builtin.systemd_service:
+      name: httpd.service
+      state: reloaded
+    when: httpd_conf.changed
+
   - name: install /repos HEADER.html
     copy:
       src: HEADER.html.repos
@@ -119,6 +131,30 @@
       owner: root
       group: root
       mode: 0644
+
+  - name: install certbot timer
+    copy:
+      src: "{{item}}"
+      dest: /etc/systemd/system
+      owner: root
+      group: root
+      mode: 0644
+    with_items:
+      - certbot-renewal.service
+      - certbot-renewal.timer
+    register: certbot_timer
+
+  - name: systemd daemon-reload
+    ansible.builtin.systemd:
+      daemon_reload: true
+    when: certbot_timer.changed
+
+  - name: Enable certbot timer
+    ansible.builtin.systemd_service:
+      name: certbot-renewal.timer
+      state: started
+      enabled: true
+    when: certbot_timer.changed
 
   - name: install http support files
     copy:
@@ -140,6 +176,40 @@
       owner: root
       group: root
       mode: 0644
+
+  - name: install rsyncd.conf
+    copy:
+      src: rsyncd.conf
+      dest: /etc/rsyncd.conf
+      owner: root
+      group: root
+      mode: 0644
+    register: rsyncd_conf
+
+  - name: Enable rsyncd
+    ansible.builtin.systemd_service:
+      name: rsyncd
+      state: started
+      enabled: true
+    when: rsyncd_conf.changed
+
+  - name: install jail.local
+    copy:
+      src: jail.local
+      dest: /etc/fail2ban/jail.local
+      owner: root
+      group: root
+      mode: 0644
+    register: jail_local
+
+  - name: enable fail2ban service
+    service: name=fail2ban enabled=yes state=started
+
+  - name: Restart fail2ban
+    ansible.builtin.systemd_service:
+      state: restarted
+      name: fail2ban
+    when: jail_local.changed
 
   - name: install update_results.sh
     copy:
