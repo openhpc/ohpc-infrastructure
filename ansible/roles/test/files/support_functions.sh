@@ -408,6 +408,12 @@ gen_localized_inputs() {
 		sed -i -e "s/enable_intel_packages:-0/enable_intel_packages:-1/" "${inputFile}"
 	fi
 
+
+	if [[ "${BaseOS}" == "leap15.3" ]]; then
+		# bats on leap 15.3 is too old. Just skip this.
+		return
+	fi
+
 	echo
 	echo "[Running SMS tests]"
 	cp "${CWD}/sms_installed.bats" .
