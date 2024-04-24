@@ -14,6 +14,14 @@
       - certbot
       - mod_ssl
       - rsync-daemon
+      - lsof
+      - strace
+      - git
+      - cargo
+      - clippy
+      - wget
+      - ShellCheck
+      - openssl-devel
 
   - name: Add the user 'ohpc'
     ansible.builtin.user:
@@ -37,6 +45,11 @@
       fstype: xfs
 
   - name: create directories
+    file: dest="/data{{item}}" mode=0755 state=directory owner=root group=root
+    with_items:
+    - /weblogs
+
+  - name: create directories
     file: dest="/data{{item}}" mode=0755 state=directory owner=ohpc group=ohpc
     with_items:
     - /rhel
@@ -44,12 +57,8 @@
     - /repos
     - /repos/.files
     - /stats
+    - /stats/old
     - /results
-
-  - name: create directories
-    file: dest="/data{{item}}" mode=0755 state=directory owner=root group=root
-    with_items:
-    - /weblogs
 
   - name: "bind mount {{item}}"
     ansible.posix.mount:
@@ -213,8 +222,11 @@
 
   - name: install update_results.sh
     copy:
-      src: update_results.sh
-      dest: /home/ohpc/bin/update_results.sh
+      src: "{{item}}"
+      dest: /home/ohpc/bin/
       owner: root
       group: root
       mode: 0755
+    with_items:
+      - update_results.sh
+      - reposync.sh
