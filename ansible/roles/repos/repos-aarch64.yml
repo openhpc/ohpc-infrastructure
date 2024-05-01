@@ -1,9 +1,9 @@
-- name: repos.openhpc.community
+- name: Configure repos.openhpc.community (aarch64)
   hosts: repos_aarch64
   become: yes
   gather_facts: True
   tasks:
-  - name: install packages
+  - name: Install packages
     package:
       state: present
       name:
@@ -27,16 +27,16 @@
     ansible.builtin.user:
       name: ohpc
 
-  - name: create directories
-    file: dest="{{item}}" mode=0755 state=directory owner=ohpc group=ohpc
+  - name: Create directories
+    file: dest="{{ item }}" mode="0755" state=directory owner=ohpc group=ohpc
     with_items:
-    - /data
-    - /rhel
-    - /repos
-    - /stats
-    - /results
+      - /data
+      - /rhel
+      - /repos
+      - /stats
+      - /results
 
-  - name: mount /data partition
+  - name: Mount /data partition
     ansible.posix.mount:
       path: /data
       src: /dev/nvme1n1
@@ -44,36 +44,36 @@
       state: mounted
       fstype: xfs
 
-  - name: create directories
-    file: dest="/data{{item}}" mode=0755 state=directory owner=root group=root
+  - name: Create directories
+    file: dest="/data{{ item }}" mode="0755" state=directory owner=root group=root
     with_items:
     - /weblogs
 
-  - name: create directories
-    file: dest="/data{{item}}" mode=0755 state=directory owner=ohpc group=ohpc
+  - name: Create directories
+    file: dest="/data{{ item }}" mode="0755" state=directory owner=ohpc group=ohpc
     with_items:
-    - /rhel
-    - /rhel/repositories
-    - /repos
-    - /repos/.files
-    - /stats
-    - /stats/old
-    - /results
+      - /rhel
+      - /rhel/repositories
+      - /repos
+      - /repos/.files
+      - /stats
+      - /stats/old
+      - /results
 
-  - name: "bind mount {{item}}"
+  - name: Bind mount {{ item }}
     ansible.posix.mount:
-      path: "{{item}}"
-      src: "/data{{item}}"
+      path: "{{ item }}"
+      src: "/data{{ item }}"
       opts: bind
       state: mounted
       fstype: none
     with_items:
-    - /rhel
-    - /repos
-    - /stats
-    - /results
+      - /rhel
+      - /repos
+      - /stats
+      - /results
 
-  - name: "bind mount /var/log/httpd"
+  - name: Bind mount /var/log/httpd
     ansible.posix.mount:
       path: /var/log/httpd
       src: /data/weblogs
@@ -81,13 +81,13 @@
       state: mounted
       fstype: none
 
-  - name: install apache httpd config
-    copy:
-      src: "{{item}}"
-      dest: "/etc/httpd/conf.d/{{item}}"
+  - name: Install apache httpd config
+    ansible.builtin.copy:
+      src: "{{ item }}"
+      dest: "/etc/httpd/conf.d/{{ item }}"
       owner: root
       group: root
-      mode: 0644
+      mode: "0644"
     with_items:
       - rhel.conf
       - repos.conf
@@ -124,8 +124,8 @@
   - name: Apply new SELinux file context to filesystem
     ansible.builtin.command: restorecon -irv /stats /repos /rhel/repositories /results /var/log/httpd
 
-  - name: enable httpd service
-    service: name=httpd enabled=yes state=started
+  - name: Enable httpd service
+    ansible.builtin.systemd_service: name=httpd enabled=yes state=started
 
   - name: Reload service httpd
     ansible.builtin.systemd_service:
@@ -133,27 +133,27 @@
       state: reloaded
     when: httpd_conf.changed
 
-  - name: install /repos HEADER.html
-    copy:
+  - name: Install /repos HEADER.html
+    ansible.builtin.copy:
       src: HEADER.html.repos
       dest: /repos/HEADER.html
       owner: root
       group: root
-      mode: 0644
+      mode: "0644"
 
-  - name: install certbot timer
-    copy:
-      src: "{{item}}"
+  - name: Install certbot timer
+    ansible.builtin.copy:
+      src: "{{ item }}"
       dest: /etc/systemd/system
       owner: root
       group: root
-      mode: 0644
+      mode: "0644"
     with_items:
       - certbot-renewal.service
       - certbot-renewal.timer
     register: certbot_timer
 
-  - name: systemd daemon-reload
+  - name: Systemd daemon-reload
     ansible.builtin.systemd:
       daemon_reload: true
     when: certbot_timer.changed
@@ -165,34 +165,34 @@
       enabled: true
     when: certbot_timer.changed
 
-  - name: install http support files
-    copy:
-      src: "{{item}}"
+  - name: Install http support files
+    ansible.builtin.copy:
+      src: "{{ item }}"
       dest: /repos/.files/
       owner: root
       group: root
-      mode: 0644
+      mode: "0644"
     with_items:
       - styles.css
       - test_error.png
       - test_ok.png
       - test_warning.png
 
-  - name: install /results HEADER.tmpl
-    copy:
+  - name: Install /results HEADER.tmpl
+    ansible.builtin.copy:
       src: HEADER.tmpl
       dest: /home/ohpc/HEADER.tmpl
       owner: root
       group: root
-      mode: 0644
+      mode: "0644"
 
-  - name: install rsyncd.conf
-    copy:
+  - name: Install rsyncd.conf
+    ansible.builtin.copy:
       src: rsyncd.conf
       dest: /etc/rsyncd.conf
       owner: root
       group: root
-      mode: 0644
+      mode: "0644"
     register: rsyncd_conf
 
   - name: Enable rsyncd
@@ -202,17 +202,17 @@
       enabled: true
     when: rsyncd_conf.changed
 
-  - name: install jail.local
-    copy:
+  - name: Install jail.local
+    ansible.builtin.copy:
       src: jail.local
       dest: /etc/fail2ban/jail.local
       owner: root
       group: root
-      mode: 0644
+      mode: "0644"
     register: jail_local
 
-  - name: enable fail2ban service
-    service: name=fail2ban enabled=yes state=started
+  - name: Enable fail2ban service
+    ansible.builtin.systemd_service: name=fail2ban enabled=yes state=started
 
   - name: Restart fail2ban
     ansible.builtin.systemd_service:
@@ -220,13 +220,19 @@
       name: fail2ban
     when: jail_local.changed
 
-  - name: install update_results.sh
-    copy:
-      src: "{{item}}"
+  - name: Install update_results.sh
+    ansible.builtin.copy:
+      src: "{{ item }}"
       dest: /home/ohpc/bin/
       owner: root
       group: root
-      mode: 0755
+      mode: "0755"
     with_items:
       - update_results.sh
       - reposync.sh
+
+  - name: Open /var/log/httpd to be accessible for user ohpc for log analysis
+    ansible.builtin.cron:
+      name: "chmod var/log/httpd"
+      minute: "0"
+      job: "chmod 755 /var/log/httpd > /dev/null"
