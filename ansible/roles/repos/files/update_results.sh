@@ -2,7 +2,7 @@
 
 set -ex
 
-cd /results/$1/$2
+cd "/results/$1/$2"
 
 if [ ! -e HEADER.html ]; then
 	cp /home/ohpc/HEADER.tmpl HEADER.html
@@ -10,7 +10,7 @@ if [ ! -e HEADER.html ]; then
 fi
 
 for i in *OHPC*; do
-	if [ -e $i/FAIL ]; then
+	if [ -e "$i/FAIL" ]; then
 		echo "AddDescription \"<img src=\\\"/.files/test_error.png\\\"/>\" $i" >>.htaccess.new
 	else
 		echo "AddDescription \"<img src=\\\"/.files/test_ok.png\\\"/>\" $i" >>.htaccess.new
@@ -30,10 +30,10 @@ FAIL=0
 PASS=0
 TOTAL=0
 
-for i in $(ls 0-LATEST* -d | sort | cut -d- -f5 | uniq); do
-	for l in 0*-$i-*; do
+for i in $(find . -name "0-LATEST*" | sort | cut -d- -f5 | uniq); do
+	for l in 0*-"$i"-*; do
 		((TOTAL += 1))
-		if [ -e $l/FAIL ]; then
+		if [ -e "$l/FAIL" ]; then
 			((FAIL += 1))
 		else
 			((PASS += 1))
@@ -56,8 +56,7 @@ done
 
 echo "</table>" >>HEADER.html
 
-
-cd /results/$1
+cd "/results/$1"
 
 FAIL=0
 PASS=0
@@ -67,12 +66,12 @@ if [ ! -e HEADER.html ]; then
 	sed -e "s,@@VERSION@@,$1,g" -i HEADER.html
 fi
 
-for i in ${1}*; do
-	if [ ! -d $i ]; then
+for i in "${1}"*; do
+	if [ ! -d "$i" ]; then
 		continue
 	fi
-	for l in $i/*LATEST*; do
-		if [ -e $l/FAIL ]; then
+	for l in "$i"/*LATEST*; do
+		if [ -e "$l/FAIL" ]; then
 			((FAIL += 1))
 		else
 			((PASS += 1))
@@ -98,11 +97,11 @@ if [ ! -e HEADER.html ]; then
 fi
 
 for i in *; do
-	if [ ! -d $i ]; then
+	if [ ! -d "$i" ]; then
 		continue
 	fi
-	ERRORS=$(grep -c test_error $i/.htaccess || true)
-	WARNINGS=$(grep -c test_warning $i/.htaccess || true)
+	ERRORS=$(grep -c test_error "$i/.htaccess" || true)
+	WARNINGS=$(grep -c test_warning "$i/.htaccess" || true)
 	if [ "$ERRORS" -gt 0 ] && [ "$WARNINGS" -eq 0 ]; then
 		echo "AddDescription \"<img src=\\\"/.files/test_error.png\\\"/>\" $i" >>.htaccess.new
 	elif [ "$WARNINGS" -gt 0 ] && [ "$ERRORS" -eq 0 ]; then

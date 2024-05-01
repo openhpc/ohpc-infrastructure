@@ -48,7 +48,7 @@ OBS_BASE_DIR=""
 ## Default:     "no"
 ## Config:      OBS
 #
-# This is usally only enabled on the OBS Appliance
+# This is usually only enabled on the OBS Appliance
 #
 OBS_API_AUTOSETUP="no"
 #
@@ -179,7 +179,7 @@ OBS_USE_SLP="no"
 #
 # Enable caching requires a given directory here. Be warned, content will be
 # removed there !
-# 
+#
 #OBS_CACHE_DIR=""
 OBS_CACHE_DIR="/workers/cache"
 
@@ -199,7 +199,7 @@ OBS_CACHE_SIZE="25000"
 ## Type:        integer
 ## Default:     18
 ## Config:      OBS
-# 
+#
 # Nicenesses range from -20 (most favorable  scheduling) to 19 (least
 # favorable).
 # Default to 18 as some testsuites depend on being able to switch to
@@ -242,7 +242,7 @@ OBS_VM_KERNEL="none"
 #
 # for z/VM, the build script will create a initrd at the given location if
 # it does not yet exist.
-# 
+#
 OBS_VM_INITRD="none"
 
 ## Path:        Applications/OBS

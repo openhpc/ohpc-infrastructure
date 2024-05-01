@@ -163,7 +163,7 @@ run_root_level_tests() {
 	ROOT_STATUS=$?
 
 	cd - >&/dev/null || ERROR "changing directory failed"
-	return $ROOT_STATUS
+	return "${ROOT_STATUS}"
 }
 
 run_user_level_tests() {
@@ -173,7 +173,7 @@ run_user_level_tests() {
 
 	export TEST_USER="ohpc-test"
 
-	chown -R $TEST_USER: /home/${TEST_USER}/tests || ERROR "Unable to update perms for $TEST_USER"
+	chown -R "$TEST_USER:" "/home/${TEST_USER}/tests" || ERROR "Unable to update perms for $TEST_USER"
 	cd "${TESTDIR}" || ERROR "Unable to access top level test dir ($TESTDIR)"
 
 	local config_opts=""
@@ -242,11 +242,11 @@ time make -k VERBOSE=1 check
 EOF
 
 	chmod 755 /tmp/user_integration_tests
-	sudo -u $TEST_USER -i /tmp/user_integration_tests
+	sudo -u "${TEST_USER}" -i /tmp/user_integration_tests
 
 	USER_STATUS=$?
 	cd - >&/dev/null || ERROR "changing directory failed"
-	return $USER_STATUS
+	return "${USER_STATUS}"
 }
 
 install_openHPC_cluster() {
@@ -258,7 +258,7 @@ install_openHPC_cluster() {
 
 	# Special CI modifications
 
-	# SLES does not accept alias interfaces for dhcp (e.g. eth2:0). Ammend
+	# SLES does not accept alias interfaces for dhcp (e.g. eth2:0). Amend
 	# recipe to use underlying physical interface(s).
 
 	if [[ $CI_CLUSTER == "hera" ]]; then
@@ -346,7 +346,7 @@ post_install_cmds() {
 		# shellcheck disable=SC2181
 		if [ $? -eq 0 ]; then
 			echo "----> sleeping for ${waittime} secs"
-			local_sleep ${waittime}
+			local_sleep "${waittime}"
 			if [ "${Provisioner}" == "warewulf" ]; then
 				koomie_cf -x "$compute_prefix\d+" /warewulf/bin/wwgetfiles
 			elif [ "${Provisioner}" == "xcat" ]; then
@@ -407,7 +407,6 @@ gen_localized_inputs() {
 	if [ "${EnableOneAPI}" == "true" ]; then
 		sed -i -e "s/enable_intel_packages:-0/enable_intel_packages:-1/" "${inputFile}"
 	fi
-
 
 	if [[ "${BaseOS}" == "leap15.3" ]]; then
 		# bats on leap 15.3 is too old. Just skip this.
@@ -559,7 +558,7 @@ enable_repo() {
 	fi
 
 	if [[ "${VERSION_MINOR}" != "0" ]] || [ -n "${VERSION_MICRO}" ]; then
-		# If not testing the intial release we always want to install
+		# If not testing the initial release we always want to install
 		# the release RPM.
 		RELEASE_RPM="${RELEASE_REPO}/${os_repo}/${Architecture}/ohpc-release-${VERSION_MAJOR}-1${os_dist}.${Architecture}.rpm"
 	fi

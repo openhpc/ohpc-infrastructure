@@ -9,12 +9,12 @@
     package:
       state: present
       name:
-      - openvpn
-      - git
-      - ipmitool
-      - netcat
-      - rsync
-      - ansible
+        - openvpn
+        - git
+        - ipmitool
+        - netcat
+        - rsync
+        - ansible
 
   # This requires that the following command already ran:
   # 'openvpn3 config-import -p -n Huawei -c /root/HuaweiVPN/Huawei.ovpn'
@@ -57,6 +57,8 @@
       permanent: true
       zone: public
       immediate: true
+    tags:
+      - skip_ansible_lint
 
   - name: allow ntp access
     ansible.posix.firewalld:
@@ -65,6 +67,8 @@
       permanent: true
       state: enabled
       immediate: true
+    tags:
+      - skip_ansible_lint
 
   - name: add tun1 to public zone
     ansible.posix.firewalld:
@@ -72,3 +76,5 @@
       interface: tun1
       permanent: true
       immediate: true
+    tags:
+      - skip_ansible_lint
