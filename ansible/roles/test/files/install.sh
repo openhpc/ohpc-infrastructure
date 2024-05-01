@@ -45,7 +45,7 @@ for env in InstallCluster \
 	RunLimit \
 	BUILD_ID \
 	Repo; do
-	echo '--> ' ${env}=${!env}
+	echo '--> ' "${env}"="${!env}"
 
 done
 
@@ -87,7 +87,7 @@ leap15.3)
 	repo_dir=/etc/zypp/repos.d
 	;;
 *)
-	echo "Unkown BaseOS ${BaseOS}. Exiting!"
+	echo "Unknown BaseOS ${BaseOS}. Exiting!"
 	exit 1
 	;;
 esac

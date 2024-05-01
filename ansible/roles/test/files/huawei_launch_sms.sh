@@ -41,7 +41,7 @@ HOLD="${SMS_REBOOT_WAIT:-5}"
 echo "--> Sleeping for ${HOLD} seconds..."
 for i in $(seq "${HOLD}" -1 1); do
 	echo "----> ${i}"
-	sleep 1;
+	sleep 1
 done
 
 echo "--> Installing ${OS} on ${TARGET}"
@@ -63,10 +63,10 @@ echo "--> Waiting for ${TARGET} to finish installation"
 # This can take up to 30 minutes
 for i in $(seq 90 -1 1); do
 	echo "----> ${i}"
-	nc -v -w 1 "${TARGET}" 22 < /dev/null >& /dev/null
+	nc -v -w 1 "${TARGET}" 22 </dev/null >&/dev/null
 	IGOT=$?
 
-	if [ "${IGOT}" -eq 0 ];then
+	if [ "${IGOT}" -eq 0 ]; then
 		echo "----> ${TARGET} is up"
 		break
 	fi
@@ -74,7 +74,7 @@ for i in $(seq 90 -1 1); do
 done
 
 # abort on timeout
-if [ "${IGOT}" -ne 0 ];then
+if [ "${IGOT}" -ne 0 ]; then
 	echo "Reboot of ${TARGET} failed"
 	exit 1
 fi
@@ -83,7 +83,9 @@ echo
 # Handling new SSH host keys
 ssh-keygen -R "${TARGET}"
 ssh -o StrictHostKeyChecking=accept-new "${TARGET}" hostname
+# shellcheck disable=SC2029
 ssh "${BOOT_SERVER}" "ssh-keygen -R ${TARGET}"
+# shellcheck disable=SC2029
 ssh "${BOOT_SERVER}" "ssh -o StrictHostKeyChecking=accept-new ${TARGET} hostname"
 
 # The boot server only has dhcpd enabled during SMS installation
@@ -95,6 +97,7 @@ cd ..
 
 # for openEuler we need to use CPAN. This speeds up the
 # CPAN module installation.
+# shellcheck disable=SC2029
 ssh "${BOOT_SERVER}" "bash -c \"rsync -az --info=progress2 --zl 9 --exclude=CPAN/MyConfig.pm /root/.cache/cpan-backup/ ${TARGET}:/root/.cpan/\""
 
 # sync time

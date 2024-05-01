@@ -1,8 +1,8 @@
 #!/usr/bin/env perl
-# 
+#
 # Simple utility to derive cluster-specific inputs for use with OpenHPC
 # installation recipe. Typically used within CI environment.
-# 
+#
 # karl.w.schulz@intel.com
 #------------------------------------------------------------------------
 

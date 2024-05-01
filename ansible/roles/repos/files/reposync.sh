@@ -73,7 +73,7 @@ do_cmd() {
 	fi
 
 	echo "return status = $mystatus"
-	return $mystatus
+	return "${mystatus}"
 }
 
 FACTORY='Factory/'
@@ -161,6 +161,9 @@ else
 
 			echo "------> ln /repos/OpenHPC/$MAJOR_VERSION/update.${PREVIOUS_VERSION}/$dir/*.rpm ."
 			for oldrpm in /repos/OpenHPC/"${MAJOR_VERSION}"/update."${PREVIOUS_VERSION}"/"${dir}"/*.rpm; do
+				if [[ "${oldrpm}" == *"*.rpm" ]]; then
+					continue
+				fi
 				pkg=$(basename "${oldrpm}")
 				if [ ! -e "${pkg}" ]; then
 					ln "${oldrpm}" .
@@ -186,7 +189,7 @@ else
 					fi
 				done
 				if [[ $found -eq 0 ]]; then
-					echo "------> warning: did not detect previous vesion for $rpm."
+					echo "------> warning: did not detect previous version for $rpm."
 					echo "                 please verify this is a new package (or included in original .0 release)"
 					echo "                 $dir"
 				fi
@@ -202,7 +205,7 @@ else
 
 fi
 
-if [ $change -eq 1 ]; then
+if [ "${change}" -eq 1 ]; then
 	echo "--> change detected. Generating RPM repodata"
 
 	pushd "${DESTINATION}" >/dev/null
@@ -214,7 +217,7 @@ if [ $change -eq 1 ]; then
 
 		# First, remove repodata from OBS but retain gpg keys
 		# find repodata/ -mindepth 1 ! -iname repomd.xml.key -delete
-		# Ceate repository metadata
+		# Create repository metadata
 		# createrepo_c -v -c repocache --no-database --outputdir $dir --update $dir
 		createrepo_c --version
 		createrepo_c -v --outputdir "${dir}" --update "${dir}" --workers 6
@@ -238,4 +241,4 @@ END=$(date +%s)
 ((DURATION = END - START))
 
 echo -n "--> $0 finished after "
-date -d@${DURATION} -u +%H:%M:%S
+date -d@"${DURATION}" -u +%H:%M:%S

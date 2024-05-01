@@ -167,7 +167,7 @@ cleanup() {
 	print_overview
 	echo "--> Last job ID:       ${LAST_JOB}"
 	echo -n "--> CI run time:       "
-	date -d@${DURATION} -u +%H:%M:%S
+	date -d@"${DURATION}" -u +%H:%M:%S
 	echo -n "--> CI run result:     "
 	if [ "${RESULT}" == "PASS" ]; then
 		echo "PASS"
@@ -197,7 +197,7 @@ print_overview
 
 if ! "ansible/roles/test/files/${LAUNCHER}" "${SMS}" "${DISTRIBUTION}" "${VERSION}" "${ROOT_PASSWORD}" | tee -a "${LOG}"; then
 	cd - >/dev/null
-	echo "Provisiong ${SMS} failed. Exiting" | tee -a "${LOG}"
+	echo "Provisioning ${SMS} failed. Exiting" | tee -a "${LOG}"
 	cleanup
 fi
 

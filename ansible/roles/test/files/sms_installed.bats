@@ -32,7 +32,7 @@
 		[[ "$VERSION" == "9."* ]]
 		;;
 	*)
-		echo "Unkown BaseOS ${BaseOS}. Error!"
+		echo "Unknown BaseOS ${BaseOS}. Error!"
 		false
 		;;
 	esac
