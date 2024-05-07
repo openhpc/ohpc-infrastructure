@@ -1,238 +1,310 @@
 - name: Configure repos.openhpc.community (aarch64)
   hosts: repos_aarch64
-  become: yes
-  gather_facts: True
+  become: true
+  gather_facts: true
   tasks:
-  - name: Install packages
-    package:
-      state: present
-      name:
-      - httpd
-      - fail2ban-server
-      - fail2ban-sendmail
-      - goaccess
-      - certbot
-      - mod_ssl
-      - rsync-daemon
-      - lsof
-      - strace
-      - git
-      - cargo
-      - clippy
-      - wget
-      - ShellCheck
-      - openssl-devel
+    - name: Install packages
+      ansible.builtin.package:
+        state: present
+        name:
+          - httpd
+          - fail2ban-server
+          - fail2ban-sendmail
+          - goaccess
+          - certbot
+          - mod_ssl
+          - rsync-daemon
+          - lsof
+          - strace
+          - git
+          - cargo
+          - clippy
+          - wget
+          - ShellCheck
+          - openssl-devel
 
-  - name: Add the user 'ohpc'
-    ansible.builtin.user:
-      name: ohpc
+    - name: Add the user 'ohpc'
+      ansible.builtin.user:
+        name: ohpc
 
-  - name: Create directories
-    file: dest="{{ item }}" mode="0755" state=directory owner=ohpc group=ohpc
-    with_items:
-      - /data
-      - /rhel
-      - /repos
-      - /stats
-      - /results
+    - name: Create directories
+      ansible.builtin.file:
+        dest: "{{ item }}"
+        mode: "0755"
+        state: directory
+        owner: ohpc
+        group: ohpc
+      with_items:
+        - /data
+        - /rhel
+        - /repos
+        - /stats
+        - /results
 
-  - name: Mount /data partition
-    ansible.posix.mount:
-      path: /data
-      src: /dev/nvme1n1
-      opts: defaults,noatime
-      state: mounted
-      fstype: xfs
+    - name: Mount /data partition
+      ansible.posix.mount:
+        path: /data
+        src: /dev/nvme1n1
+        opts: defaults,noatime
+        state: mounted
+        fstype: xfs
 
-  - name: Create directories
-    file: dest="/data{{ item }}" mode="0755" state=directory owner=root group=root
-    with_items:
-    - /weblogs
+    - name: Create directories
+      ansible.builtin.file:
+        dest: "/data{{ item }}"
+        mode: "0755"
+        state: directory
+        owner: root
+        group: root
+      with_items:
+        - /weblogs
 
-  - name: Create directories
-    file: dest="/data{{ item }}" mode="0755" state=directory owner=ohpc group=ohpc
-    with_items:
-      - /rhel
-      - /rhel/repositories
-      - /repos
-      - /repos/.files
-      - /stats
-      - /stats/old
-      - /results
+    - name: Create directories
+      ansible.builtin.file:
+        dest: "/data{{ item }}"
+        mode: "0755"
+        state: directory
+        owner: ohpc
+        group: ohpc
+      with_items:
+        - /rhel
+        - /rhel/repositories
+        - /repos
+        - /repos/.files
+        - /stats
+        - /stats/old
+        - /results
 
-  - name: Bind mount {{ item }}
-    ansible.posix.mount:
-      path: "{{ item }}"
-      src: "/data{{ item }}"
-      opts: bind
-      state: mounted
-      fstype: none
-    with_items:
-      - /rhel
-      - /repos
-      - /stats
-      - /results
+    - name: Bind mount {{ item }}
+      ansible.posix.mount:
+        path: "{{ item }}"
+        src: "/data{{ item }}"
+        opts: bind
+        state: mounted
+        fstype: none
+      with_items:
+        - /rhel
+        - /repos
+        - /stats
+        - /results
 
-  - name: Bind mount /var/log/httpd
-    ansible.posix.mount:
-      path: /var/log/httpd
-      src: /data/weblogs
-      opts: bind
-      state: mounted
-      fstype: none
+    - name: Bind mount /var/log/httpd
+      ansible.posix.mount:
+        path: /var/log/httpd
+        src: /data/weblogs
+        opts: bind
+        state: mounted
+        fstype: none
 
-  - name: Install apache httpd config
-    ansible.builtin.copy:
-      src: "{{ item }}"
-      dest: "/etc/httpd/conf.d/{{ item }}"
-      owner: root
-      group: root
-      mode: "0644"
-    with_items:
-      - rhel.conf
-      - repos.conf
-      - stats.conf
-      - results.conf
-      - welcome.conf
-      - ssl.conf
-    register: httpd_conf
+    - name: Install apache httpd config
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "/etc/httpd/conf.d/{{ item }}"
+        owner: root
+        group: root
+        mode: "0644"
+      with_items:
+        - rhel.conf
+        - repos.conf
+        - stats.conf
+        - results.conf
+        - welcome.conf
+        - ssl.conf
+      register: httpd_conf
 
-  - name: Allow apache to modify files in /stats
-    community.general.sefcontext:
-      target: '/stats(/.*)?'
-      setype: httpd_sys_content_t
-      state: present
+    - name: Allow apache to modify files in /stats
+      community.general.sefcontext:
+        target: '/stats(/.*)?'
+        setype: httpd_sys_content_t
+        state: present
 
-  - name: Allow apache to modify files in /stats
-    community.general.sefcontext:
-      target: '/results(/.*)?'
-      setype: httpd_sys_content_t
-      state: present
+    - name: Allow apache to modify files in /stats
+      community.general.sefcontext:
+        target: '/results(/.*)?'
+        setype: httpd_sys_content_t
+        state: present
 
-  - name: Allow apache to modify files in /stats
-    community.general.sefcontext:
-      target: '/repos(/.*)?'
-      setype: public_content_t
-      state: present
+    - name: Allow apache to modify files in /stats
+      community.general.sefcontext:
+        target: '/repos(/.*)?'
+        setype: public_content_t
+        state: present
 
-  - name: Allow apache to modify files in /stats
-    community.general.sefcontext:
-      target: '/rhel/repositories(/.*)?'
-      setype: httpd_sys_content_t
-      state: present
+    - name: Allow apache to modify files in /stats
+      community.general.sefcontext:
+        target: '/rhel/repositories(/.*)?'
+        setype: httpd_sys_content_t
+        state: present
 
-  - name: Apply new SELinux file context to filesystem
-    ansible.builtin.command: restorecon -irv /stats /repos /rhel/repositories /results /var/log/httpd
+    - name: Apply new SELinux file context to filesystem
+      ansible.builtin.command: restorecon -irv /stats /repos /rhel/repositories /results /var/log/httpd
 
-  - name: Enable httpd service
-    ansible.builtin.systemd_service: name=httpd enabled=yes state=started
+    - name: Enable httpd service
+      ansible.builtin.systemd_service:
+        name: httpd
+        enabled: true
+        state: started
 
-  - name: Reload service httpd
-    ansible.builtin.systemd_service:
-      name: httpd.service
-      state: reloaded
-    when: httpd_conf.changed
+    - name: Reload service httpd
+      ansible.builtin.systemd_service:
+        name: httpd.service
+        state: reloaded
+      when: httpd_conf.changed
 
-  - name: Install /repos HEADER.html
-    ansible.builtin.copy:
-      src: HEADER.html.repos
-      dest: /repos/HEADER.html
-      owner: root
-      group: root
-      mode: "0644"
+    - name: Install /repos HEADER.html
+      ansible.builtin.copy:
+        src: HEADER.html.repos
+        dest: /repos/HEADER.html
+        owner: root
+        group: root
+        mode: "0644"
 
-  - name: Install certbot timer
-    ansible.builtin.copy:
-      src: "{{ item }}"
-      dest: /etc/systemd/system
-      owner: root
-      group: root
-      mode: "0644"
-    with_items:
-      - certbot-renewal.service
-      - certbot-renewal.timer
-    register: certbot_timer
+    - name: Install certbot timer
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: /etc/systemd/system
+        owner: root
+        group: root
+        mode: "0644"
+      with_items:
+        - certbot-renewal.service
+        - certbot-renewal.timer
+      register: certbot_timer
 
-  - name: Systemd daemon-reload
-    ansible.builtin.systemd:
-      daemon_reload: true
-    when: certbot_timer.changed
+    - name: Systemd daemon-reload
+      ansible.builtin.systemd:
+        daemon_reload: true
+      when: certbot_timer.changed
 
-  - name: Enable certbot timer
-    ansible.builtin.systemd_service:
-      name: certbot-renewal.timer
-      state: started
-      enabled: true
-    when: certbot_timer.changed
+    - name: Enable certbot timer
+      ansible.builtin.systemd_service:
+        name: certbot-renewal.timer
+        state: started
+        enabled: true
+      when: certbot_timer.changed
 
-  - name: Install http support files
-    ansible.builtin.copy:
-      src: "{{ item }}"
-      dest: /repos/.files/
-      owner: root
-      group: root
-      mode: "0644"
-    with_items:
-      - styles.css
-      - test_error.png
-      - test_ok.png
-      - test_warning.png
+    - name: Install http support files
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: /repos/.files/
+        owner: root
+        group: root
+        mode: "0644"
+      with_items:
+        - styles.css
+        - test_error.png
+        - test_ok.png
+        - test_warning.png
 
-  - name: Install /results HEADER.tmpl
-    ansible.builtin.copy:
-      src: HEADER.tmpl
-      dest: /home/ohpc/HEADER.tmpl
-      owner: root
-      group: root
-      mode: "0644"
+    - name: Install /results HEADER.tmpl
+      ansible.builtin.copy:
+        src: HEADER.tmpl
+        dest: /home/ohpc/HEADER.tmpl
+        owner: root
+        group: root
+        mode: "0644"
 
-  - name: Install rsyncd.conf
-    ansible.builtin.copy:
-      src: rsyncd.conf
-      dest: /etc/rsyncd.conf
-      owner: root
-      group: root
-      mode: "0644"
-    register: rsyncd_conf
+    - name: Install rsyncd.conf
+      ansible.builtin.copy:
+        src: rsyncd.conf
+        dest: /etc/rsyncd.conf
+        owner: root
+        group: root
+        mode: "0644"
+      register: rsyncd_conf
 
-  - name: Enable rsyncd
-    ansible.builtin.systemd_service:
-      name: rsyncd
-      state: started
-      enabled: true
-    when: rsyncd_conf.changed
+    - name: Enable rsyncd
+      ansible.builtin.systemd_service:
+        name: rsyncd
+        state: started
+        enabled: true
+      when: rsyncd_conf.changed
 
-  - name: Install jail.local
-    ansible.builtin.copy:
-      src: jail.local
-      dest: /etc/fail2ban/jail.local
-      owner: root
-      group: root
-      mode: "0644"
-    register: jail_local
+    - name: Install jail.local
+      ansible.builtin.copy:
+        src: jail.local
+        dest: /etc/fail2ban/jail.local
+        owner: root
+        group: root
+        mode: "0644"
+      register: jail_local
 
-  - name: Enable fail2ban service
-    ansible.builtin.systemd_service: name=fail2ban enabled=yes state=started
+    - name: Enable fail2ban service
+      ansible.builtin.systemd_service:
+        name: fail2ban
+        enabled: true
+        state: started
 
-  - name: Restart fail2ban
-    ansible.builtin.systemd_service:
-      state: restarted
-      name: fail2ban
-    when: jail_local.changed
+    - name: Restart fail2ban
+      ansible.builtin.systemd_service:
+        state: restarted
+        name: fail2ban
+      when: jail_local.changed
 
-  - name: Install update_results.sh
-    ansible.builtin.copy:
-      src: "{{ item }}"
-      dest: /home/ohpc/bin/
-      owner: root
-      group: root
-      mode: "0755"
-    with_items:
-      - update_results.sh
-      - reposync.sh
+    - name: Install update_results.sh
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: /home/ohpc/bin/
+        owner: root
+        group: root
+        mode: "0755"
+      with_items:
+        - update_results.sh
+        - reposync.sh
 
-  - name: Open /var/log/httpd to be accessible for user ohpc for log analysis
-    ansible.builtin.cron:
-      name: "chmod var/log/httpd"
-      minute: "0"
-      job: "chmod 755 /var/log/httpd > /dev/null"
+    - name: Open /var/log/httpd to be accessible for user ohpc for log analysis
+      ansible.builtin.cron:
+        name: "chmod var/log/httpd"
+        minute: "0"
+        job: "chmod 755 /var/log/httpd > /dev/null"
+
+    - name: Create /home/ohpc/ohpc-log-analyzer.git
+      ansible.builtin.file:
+        path: /home/ohpc/ohpc-log-analyzer.git
+        state: directory
+        owner: ohpc
+        group: ohpc
+        mode: "0755"
+
+    - name: Checkout ohpc-log-analyzer.git
+      ansible.builtin.git:
+        repo: https://github.com/openhpc/ohpc-log-analyzer.git
+        dest: /home/ohpc/ohpc-log-analyzer.git
+        version: 007beef87d734c30a977e3771560a7bf60cdc819
+      become: true
+      become_user: ohpc
+      register: ohpc_log_analyzer_downloaded
+
+    - name: Build ohpc-log-analyzer
+      ansible.builtin.command: "cargo build --release"
+      args:
+        chdir: /home/ohpc/ohpc-log-analyzer.git
+      become: true
+      become_user: ohpc
+      register: ohpc_log_analyzer_built
+      when: ohpc_log_analyzer_downloaded.changed
+
+    - name: Install ohpc-log-analyzer
+      ansible.builtin.copy:
+        src: /home/ohpc/ohpc-log-analyzer.git/target/release/ohpc-log-analyzer
+        dest: /usr/local/bin/ohpc-log-analyzer
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0755"
+      when: ohpc_log_analyzer_built.changed
+
+    - name: Run ohpc-log-analyzer via cron
+      ansible.builtin.cron:
+        name: "run ohpc-log-analyzer"
+        minute: "15"
+        user: ohpc
+        job: "time /usr/local/bin/ohpc-log-analyzer /var/log/httpd/*-access* /var/log/httpd/access_log* /var/log/httpd/old/access_log >> /var/log/httpd/old/log-ohpc-log-analyzer"
+
+    - name: Install ohpc-log-analyzer logrotate
+      ansible.builtin.copy:
+        src: ohpc-log-analyzer
+        dest: /etc/logrotate.d/
+        owner: root
+        group: root
+        mode: "0644"
