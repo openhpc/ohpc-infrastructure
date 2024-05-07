@@ -238,7 +238,7 @@ scp "${VARS}" "${SMS}":/root/vars
 set +x
 
 echo "Running install.sh on ${SMS} with timeout ${TIMEOUT}m"
-if timeout --signal=9 "${TIMEOUT}m" ssh "${SMS}" 'bash -c "source /root/vars; /root/ci/install.sh"' 2>&1 | sed -e "s,${SMS_IPMI_PASSWORD//\$/\\$},****,g" | tee -a "${LOG}"; then
+if timeout --signal=9 "${TIMEOUT}m" ssh -t -n "${SMS}" 'bash -c "source /root/vars; /root/ci/install.sh"' 2>&1 | sed -u -e "s,${SMS_IPMI_PASSWORD//\$/\\$},****,g" | tee -a "${LOG}"; then
 	RESULT=PASS
 else
 	echo "Running tests on ${SMS} failed!" | tee -a "${LOG}"
