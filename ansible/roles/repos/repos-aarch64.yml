@@ -22,6 +22,7 @@
           - wget
           - ShellCheck
           - openssl-devel
+          - moreutils
 
     - name: Add the user 'ohpc'
       ansible.builtin.user:
@@ -251,6 +252,7 @@
       with_items:
         - update_results.sh
         - reposync.sh
+        - build-dist-sums.sh
 
     - name: Open /var/log/httpd to be accessible for user ohpc for log analysis
       ansible.builtin.cron:

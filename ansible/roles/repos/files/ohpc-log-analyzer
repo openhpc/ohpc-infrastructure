@@ -1,0 +1,7 @@
+/var/log/httpd/old/log-ohpc-log-analyzer {
+    missingok
+    notifempty
+    nocreate
+    monthly
+    rotate 5
+}
