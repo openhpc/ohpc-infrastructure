@@ -252,7 +252,7 @@
       with_items:
         - update_results.sh
         - reposync.sh
-        - build-dist-sums.sh
+        - build_dist_sums.sh
 
     - name: Open /var/log/httpd to be accessible for user ohpc for log analysis
       ansible.builtin.cron:
@@ -272,7 +272,7 @@
       ansible.builtin.git:
         repo: https://github.com/openhpc/ohpc-log-analyzer.git
         dest: /home/ohpc/ohpc-log-analyzer.git
-        version: 007beef87d734c30a977e3771560a7bf60cdc819
+        version: ef6563c5151ff89de6054d0e137197f8c4efb22d
       become: true
       become_user: ohpc
       register: ohpc_log_analyzer_downloaded
