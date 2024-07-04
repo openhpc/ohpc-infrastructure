@@ -2,7 +2,14 @@
   hosts: repos_aarch64
   become: true
   gather_facts: true
+
+  handlers:
+    - name: Include handlers
+      ansible.builtin.import_tasks: ../common/handlers.yml
+
   tasks:
+    - name: Include history.yml
+      ansible.builtin.include_tasks: ../common/history.yml
     - name: Install packages
       ansible.builtin.package:
         state: present
@@ -24,9 +31,16 @@
           - openssl-devel
           - moreutils
 
+    - name: Include fail2ban.yml
+      ansible.builtin.include_tasks: ../common/fail2ban.yml
+
     - name: Add the user 'ohpc'
       ansible.builtin.user:
         name: ohpc
+
+    - name: Add the user 'rhel'
+      ansible.builtin.user:
+        name: rhel
 
     - name: Create directories
       ansible.builtin.file:
@@ -45,7 +59,7 @@
     - name: Mount /data partition
       ansible.posix.mount:
         path: /data
-        src: /dev/nvme1n1
+        src: UUID=92d0ec1e-73e0-47ed-8d0f-185e4e55fb0a
         opts: defaults,noatime
         state: mounted
         fstype: xfs
@@ -59,22 +73,6 @@
         group: root
       with_items:
         - /weblogs
-
-    - name: Create directories
-      ansible.builtin.file:
-        dest: "/data{{ item }}"
-        mode: "0755"
-        state: directory
-        owner: ohpc
-        group: ohpc
-      with_items:
-        - /rhel
-        - /rhel/repositories
-        - /repos
-        - /repos/.files
-        - /stats
-        - /stats/old
-        - /results
 
     - name: Bind mount {{ item }}
       ansible.posix.mount:
@@ -96,6 +94,60 @@
         opts: bind
         state: mounted
         fstype: none
+
+    - name: Create directories
+      ansible.builtin.file:
+        dest: "/data{{ item }}"
+        mode: "0755"
+        state: directory
+        owner: ohpc
+        group: ohpc
+      with_items:
+        - /repos
+        - /repos/.files
+        - /stats
+        - /stats/old
+        - /results
+
+    - name: Create RHEL sync directories
+      ansible.builtin.file:
+        dest: "{{ item }}"
+        mode: "0755"
+        state: directory
+        owner: rhel
+        group: rhel
+      with_items:
+        - /rhel/etc
+        - /rhel/bin
+        - /rhel/var
+        - /rhel/var/log
+        - /rhel/var/cache
+        - /rhel/repositories
+
+    - name: Install reposync configuration
+      ansible.builtin.template:
+        src: repo.conf.j2
+        dest: /rhel/etc/rhel-{{ item.version }}-{{ item.arch }}.conf
+        owner: rhel
+        group: rhel
+        mode: "0644"
+      with_items:
+        - { version: 9, arch: "x86_64" }
+        - { version: 9, arch: "aarch64" }
+        - { version: 8, arch: "x86_64" }
+        - { version: 8, arch: "aarch64" }
+    - name: Install reposync scripts
+      ansible.builtin.template:
+        src: sync.sh.j2
+        dest: /rhel/bin/sync-rhel-{{ item.version }}-{{ item.arch }}.sh
+        owner: rhel
+        group: rhel
+        mode: "0755"
+      with_items:
+        - { version: 9, arch: "x86_64" }
+        - { version: 9, arch: "aarch64" }
+        - { version: 8, arch: "x86_64" }
+        - { version: 8, arch: "aarch64" }
 
     - name: Install apache httpd config
       ansible.builtin.copy:
@@ -221,27 +273,6 @@
         enabled: true
       when: rsyncd_conf.changed
 
-    - name: Install jail.local
-      ansible.builtin.copy:
-        src: jail.local
-        dest: /etc/fail2ban/jail.local
-        owner: root
-        group: root
-        mode: "0644"
-      register: jail_local
-
-    - name: Enable fail2ban service
-      ansible.builtin.systemd_service:
-        name: fail2ban
-        enabled: true
-        state: started
-
-    - name: Restart fail2ban
-      ansible.builtin.systemd_service:
-        state: restarted
-        name: fail2ban
-      when: jail_local.changed
-
     - name: Install update_results.sh
       ansible.builtin.copy:
         src: "{{ item }}"
@@ -301,7 +332,11 @@
         name: "run ohpc-log-analyzer"
         minute: "15"
         user: ohpc
-        job: "time /usr/local/bin/ohpc-log-analyzer /var/log/httpd/*-access* /var/log/httpd/access_log* /var/log/httpd/old/access_log >> /var/log/httpd/old/log-ohpc-log-analyzer"
+        job: >
+          time /usr/local/bin/ohpc-log-analyzer
+          /var/log/httpd/*-access*
+          /var/log/httpd/access_log*
+          /var/log/httpd/old/access_log >> /var/log/httpd/old/log-ohpc-log-analyzer
 
     - name: Install ohpc-log-analyzer logrotate
       ansible.builtin.copy:

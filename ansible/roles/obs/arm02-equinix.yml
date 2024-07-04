@@ -1,0 +1,85 @@
+- name: OBS worker arm02-equinix
+  hosts: arm02_equinix
+  user: root
+  gather_facts: true
+  vars:
+    obs_worker_instances: 10
+    obs_worker_jobs: 12
+    container_tag: latest
+    obs_repository_server: obs.openhpc.community
+    swapfile: /swapfile
+
+  handlers:
+    - name: Include handlers
+      ansible.builtin.import_tasks: ../common/handlers.yml
+
+  tasks:
+    - name: Include history.yml
+      ansible.builtin.include_tasks: ../common/history.yml
+
+    - name: Include automatic-updates.yml
+      ansible.builtin.include_tasks: ../common/automatic-updates.yml
+
+    - name: Create OBS directories
+      ansible.builtin.file:
+        dest: "{{ item }}"
+        mode: "0755"
+        state: directory
+      with_items:
+        - /workers/
+        - /workers/cache
+
+    - name: Install packages
+      ansible.builtin.package:
+        state: present
+        name:
+          - podman
+          - subscription-manager
+          - fail2ban
+
+    - name: Include fail2ban.yml
+      ansible.builtin.include_tasks: ../common/fail2ban.yml
+
+    - name: Check for swapfile
+      ansible.builtin.stat:
+        path: "{{ swapfile }}"
+      register: swapfile_status
+
+    - name: Create swapfile
+      ansible.builtin.command: "fallocate -l 12G {{ swapfile }}"
+      when: not swapfile_status.stat.exists
+      register: fallocate_output
+      changed_when: fallocate_output.rc != 0
+
+    - name: Change swapfile permission
+      ansible.builtin.file:
+        path: "{{ swapfile }}"
+        owner: "root"
+        group: "root"
+        mode: "0600"
+      ignore_errors: "{{ ansible_check_mode }}"
+
+    - name: Format swapfile
+      ansible.builtin.command: "mkswap {{ swapfile }}"
+      when: not swapfile_status.stat.exists
+      register: mkswap_output
+      changed_when: mkswap_output.rc != 0
+
+    - name: Add swapfile to fstab
+      ansible.posix.mount:
+        name: none
+        src: "{{ swapfile }}"
+        fstype: swap
+        opts: sw
+        passno: 0
+        dump: 0
+        state: present
+
+    - name: Activate swapfile
+      ansible.builtin.command: "swapon {{ swapfile }}"
+      when: ansible_swaptotal_mb < 1
+      register: swapon_output
+      changed_when: swapon_output.rc != 0
+
+    - name: Include obs.yml
+      ansible.builtin.include_tasks: ../common/obs.yml

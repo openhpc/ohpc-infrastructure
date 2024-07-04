@@ -1,0 +1,7 @@
+---
+
+- name: Configure large history
+  ansible.builtin.copy:
+    src: "zz-safe-history.sh"
+    dest: /etc/profile.d/
+    mode: "0644"

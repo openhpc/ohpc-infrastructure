@@ -1,0 +1,12 @@
+---
+
+- name: Install automatic update utility.
+  ansible.builtin.package:
+    name: dnf-automatic
+    state: present
+
+- name: Ensure automatic update utility is running and enabled on boot.
+  ansible.builtin.service:
+    name: dnf-automatic-install.timer
+    state: started
+    enabled: true

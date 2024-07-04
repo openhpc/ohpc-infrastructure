@@ -1,0 +1,25 @@
+---
+
+- name: Install obs worker configuration
+  ansible.builtin.template:
+    src: obs-server
+    dest: /etc/sysconfig/obs-server
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Install obsworker podman service
+  ansible.builtin.template:
+    src: obsworker-podman.service
+    dest: /etc/systemd/system/obsworker-podman.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Systemd daemon-reload
+
+- name: Enable obs worker podman service
+  ansible.builtin.service:
+    name: obsworker-podman
+    enabled: true
+    state: started
+  ignore_errors: "{{ ansible_check_mode }}"
