@@ -284,6 +284,7 @@
         - update_results.sh
         - reposync.sh
         - build_dist_sums.sh
+        - move-httpd-logs.sh
 
     - name: Open /var/log/httpd to be accessible for user ohpc for log analysis
       ansible.builtin.cron:
@@ -335,8 +336,14 @@
         job: >
           time /usr/local/bin/ohpc-log-analyzer
           /var/log/httpd/*-access*
-          /var/log/httpd/access_log*
-          /var/log/httpd/old/access_log >> /var/log/httpd/old/log-ohpc-log-analyzer
+          /var/log/httpd/old/access_log* >> /var/log/httpd/old/log-ohpc-log-analyzer
+
+    - name: Run move-httpd-logs.sh via cron once a week
+      ansible.builtin.cron:
+        name: "run move-httpd-logs.sh once a week"
+        special_time: monthly
+        user: root
+        job: /home/ohpc/bin/move-httpd-logs.sh
 
     - name: Install ohpc-log-analyzer logrotate
       ansible.builtin.copy:
