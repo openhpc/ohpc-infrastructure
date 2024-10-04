@@ -1,5 +1,17 @@
 ---
 
+- name: Restart sshd
+  ansible.builtin.systemd_service:
+    state: restarted
+    name: sshd
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Restart chronyd
+  ansible.builtin.systemd_service:
+    state: restarted
+    name: chronyd
+  ignore_errors: "{{ ansible_check_mode }}"
+
 - name: Restart fail2ban
   ansible.builtin.systemd_service:
     state: restarted

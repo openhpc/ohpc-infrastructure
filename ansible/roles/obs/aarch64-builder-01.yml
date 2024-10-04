@@ -1,12 +1,13 @@
-- name: OBS worker arm02-equinix
-  hosts: arm02_equinix
+- name: OBS worker aarch64-builder-01 (AWS)
+  hosts: aarch64_builder_01
   user: root
   gather_facts: true
   vars:
-    obs_worker_instances: 10
-    obs_worker_jobs: 12
+    obs_worker_instances: 4
+    obs_worker_jobs: 6
     container_tag: latest
-    obs_repository_server: obs.openhpc.community
+    obs_repository_server: 172.31.13.66
+    obs_openhpc_community_ip: 172.31.13.66
     swapfile: /swapfile
 
   handlers:
@@ -27,6 +28,22 @@
         state: directory
       with_items:
         - /workers/
+        - /workers/cache
+
+    - name: Mount /workers partition
+      ansible.posix.mount:
+        path: /workers
+        src: UUID=64512f98-4c1a-423f-970b-f94fdce2bc5f
+        opts: defaults,noatime
+        state: mounted
+        fstype: xfs
+
+    - name: Create OBS directories
+      ansible.builtin.file:
+        dest: "{{ item }}"
+        mode: "0755"
+        state: directory
+      with_items:
         - /workers/cache
 
     - name: Install packages

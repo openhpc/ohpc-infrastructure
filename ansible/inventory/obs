@@ -13,5 +13,5 @@ ansible_python_interpreter=/usr/libexec/platform-python
 [openhpc_lenovo_repo]
 openhpc-lenovo-repo
 
-[arm02_equinix]
-arm02-equinix
+[aarch64_builder_01]
+aarch64-builder-01
