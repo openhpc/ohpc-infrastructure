@@ -8,6 +8,9 @@
       ansible.builtin.import_tasks: ../common/handlers.yml
 
   tasks:
+    - name: Include history.yml
+      ansible.builtin.include_tasks: ../common/history.yml
+
     - name: Install packages
       ansible.builtin.package:
         state: present
@@ -84,5 +87,6 @@
         interface: tun1
         permanent: true
         immediate: true
+        state: enabled
       tags:
         - skip_ansible_lint
