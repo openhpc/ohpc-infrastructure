@@ -1,78 +1,99 @@
-- name: huawei-arm64-obs obs workers
+- name: Huawei arm64-obs obs workers
   hosts: huawei_arm64_obs
   user: root
-  gather_facts: True
+  gather_facts: true
   vars:
     swapfile: /swapfile
     obs_worker_instances: 2
     obs_worker_jobs: 6
     container_tag: latest
     obs_repository_server: obs.openhpc.community
+  handlers:
+    - name: Include handlers
+      ansible.builtin.import_tasks: ../common/handlers.yml
+
   tasks:
-  - name: create OBS directories
-    file: dest="{{item}}" mode=0755 state=directory
-    with_items:
-    - /workers/
-    - /workers/cache
+    - name: Include history.yml
+      ansible.builtin.include_tasks: ../common/history.yml
 
-  - name: install packages
-    package:
-      state: present
-      name:
-      - podman
+    - name: Include automatic-updates.yml
+      ansible.builtin.include_tasks: ../common/automatic-updates.yml
 
-  - name: check for swapfile
-    stat: path={{ swapfile }}
-    register: swapfile_status
+    - name: Create OBS directories
+      ansible.builtin.file:
+        dest: "{{ item }}"
+        mode: "0755"
+        state: directory
+      with_items:
+        - /workers/
+        - /workers/cache
 
-  - name: create swapfile
-    command: "fallocate -l 12G {{ swapfile }}"
-    when: not swapfile_status.stat.exists
+    - name: Install packages
+      ansible.builtin.package:
+        state: present
+        name:
+          - podman
+          - epel-release
 
-  - name: change swapfile permission
-    file: path={{ swapfile }}
-          owner=root
-          group=root
-          mode=0600
+    - name: Install packages
+      ansible.builtin.package:
+        state: present
+        name:
+          - fail2ban
 
-  - name: format swapfile
-    command: "mkswap {{ swapfile }}"
-    when: not swapfile_status.stat.exists
+    - name: Include fail2ban.yml
+      ansible.builtin.include_tasks: ../common/fail2ban.yml
 
-  - name: add swapfile to fstab
-    mount: name=none
-           src={{ swapfile }}
-           fstype=swap
-           opts=sw
-           passno=0
-           dump=0
-           state=present
+    - name: Check for swapfile
+      ansible.builtin.stat:
+        path: "{{ swapfile }}"
+      register: swapfile_status
 
-  - name: activate swapfile
-    command: "swapon {{ swapfile }}"
-    when: ansible_swaptotal_mb < 1
+    - name: Create swapfile
+      ansible.builtin.command: "fallocate -l 12G {{ swapfile }}"
+      when: not swapfile_status.stat.exists
+      register: fallocate_output
+      changed_when: fallocate_output.rc != 0
 
-  - name: install obs worker configuration
-    template:
-      src: obs-server
-      dest: /etc/sysconfig/obs-server
-      owner: root
-      group: root
-      mode: 0644
+    - name: Change swapfile permission
+      ansible.builtin.file:
+        path: "{{ swapfile }}"
+        owner: root
+        group: root
+        mode: "0600"
+      ignore_errors: "{{ ansible_check_mode }}"
 
-  - name: install obsworker podman service
-    template:
-      src: obsworker-podman.service
-      dest: /etc/systemd/system/obsworker-podman.service
-      owner: root
-      group: root
-      mode: 0644
-    register: obsworker_podman_service
+    - name: Format swapfile
+      ansible.builtin.command: "mkswap {{ swapfile }}"
+      when: not swapfile_status.stat.exists
+      register: mkswap_output
+      changed_when: mkswap_output.rc != 0
 
-  - name: systemd daemon-reload
-    ansible.builtin.systemd:
-      daemon_reload: true
-    when: obsworker_podman_service.changed
+    - name: Add swapfile to fstab
+      ansible.posix.mount:
+        name: none
+        src: "{{ swapfile }}"
+        fstype: swap
+        opts: sw
+        passno: 0
+        dump: 0
+        state: present
 
-  - name: enable obs worker podman service
-    service: name=obsworker-podman enabled=yes state=started
+    - name: Activate swapfile
+      ansible.builtin.command: "swapon {{ swapfile }}"
+      when: ansible_swaptotal_mb < 1
+      register: swapon_output
+      changed_when: swapon_output.rc != 0
+
+    - name: Include obs.yml
+      ansible.builtin.include_tasks: ../common/obs.yml
+
+    - name: Open firewall acceess to obs.openhpc.community
+      ansible.posix.firewalld:
+        source: 44.230.128.55
+        zone: trusted
+        permanent: true
+        immediate: true
+        state: enabled
+      tags:
+        - skip_ansible_lint

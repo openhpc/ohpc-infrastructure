@@ -1,4 +1,4 @@
-- name: update /etc/hosts
+- name: Update /etc/hosts
   ansible.builtin.lineinfile:
     path: /etc/hosts
     state: present
@@ -19,15 +19,10 @@
     name: "{{ inventory_hostname_short }}"
     use: systemd
 
-- name: remove ssh banner (this breaks ansible)
+- name: Remove ssh banner (this breaks ansible)
   ansible.builtin.lineinfile:
     path: /etc/ssh/sshd_config
     state: absent
     regexp: '^Banner.*$'
-  register: banner_removed
-
-- name: restart sshd
-  service:
-    name: sshd
-    state: restarted
-  when: banner_removed.changed
+  notify:
+    - Restart chronyd

@@ -1,6 +1,11 @@
 - name: openhpc-oe-jenkins-sms
   hosts: openhpc_oe_jenkins_sms
   gather_facts: True
+
+  handlers:
+    - name: Include handlers
+      ansible.builtin.import_tasks: ../common/handlers.yml
+
   tasks:
   - name: configure proxy
     copy:

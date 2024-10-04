@@ -1,80 +1,88 @@
-- name: openhpc-oe-jenkins-jumper
+- name: OpenHPC OE jumper
   hosts: openhpc_oe_jenkins_jumper
-  become: yes
-  gather_facts: True
-  vars:
-    distro: rocky9.2
+  become: true
+  gather_facts: true
+
+  handlers:
+    - name: Include handlers
+      ansible.builtin.import_tasks: ../common/handlers.yml
+
   tasks:
-  - name: install packages
-    package:
-      state: present
-      name:
-        - openvpn
-        - git
-        - ipmitool
-        - netcat
-        - rsync
-        - ansible
+    - name: Install packages
+      ansible.builtin.package:
+        state: present
+        name:
+          - openvpn
+          - git
+          - ipmitool
+          - netcat
+          - rsync
+          - ansible
 
-  # This requires that the following command already ran:
-  # 'openvpn3 config-import -p -n Huawei -c /root/HuaweiVPN/Huawei.ovpn'
-  - name: enable openvpn3-session@Huawei service
-    service: name=openvpn3-session@Huawei enabled=yes state=started
+    # This requires that the following command already ran:
+    # 'openvpn3 config-import -p -n Huawei -c /root/HuaweiVPN/Huawei.ovpn'
+    - name: Enable openvpn3-session@Huawei service
+      ansible.builtin.service:
+        name: openvpn3-session@Huawei
+        enabled: true
+        state: started
 
-  - name: install openvpn client file
-    copy:
-      src: client-tun1.conf
-      dest: /etc/openvpn/client/tun1.conf
-      owner: root
-      group: root
-      mode: 0600
+    - name: Install openvpn client file
+      ansible.builtin.copy:
+        src: client-tun1.conf
+        dest: /etc/openvpn/client/tun1.conf
+        owner: root
+        group: root
+        mode: "0600"
 
-  - name: enable openvpn-client@tun1
-    service: name=openvpn-client@tun1 enabled=yes state=started
+    - name: Enable openvpn-client@tun1
+      ansible.builtin.service:
+        name: openvpn-client@tun1
+        enabled: true
+        state: started
 
-  - name: enable firewalld
-    service: name=firewalld enabled=yes state=started
+    - name: Enable firewalld
+      ansible.builtin.service:
+        name: firewalld
+        enabled: true
+        state: started
 
-  - name: allow sms to sync time
-    ansible.builtin.lineinfile:
-      path: /etc/chrony.conf
-      state: present
-      line: 'allow 172.31/16'
-    register: chrony_changed
+    - name: Allow sms to sync time
+      ansible.builtin.lineinfile:
+        path: /etc/chrony.conf
+        state: present
+        line: 'allow 172.31/16'
+      notify:
+        - Restart chronyd
 
-  - name: restart chronyd
-    service:
-      name: chronyd
-      state: restarted
-    when: chrony_changed.changed
+    - name: Import common OE file
+      ansible.builtin.import_tasks: test-oe-common.yml
 
-  - import_tasks: test-oe-common.yml
+    - name: Enable masquerade in public zone
+      ansible.posix.firewalld:
+        masquerade: true
+        state: enabled
+        permanent: true
+        zone: public
+        immediate: true
+      tags:
+        - skip_ansible_lint
 
-  - name: enable masquerade in public zone
-    ansible.posix.firewalld:
-      masquerade: true
-      state: enabled
-      permanent: true
-      zone: public
-      immediate: true
-    tags:
-      - skip_ansible_lint
+    - name: Allow ntp access
+      ansible.posix.firewalld:
+        zone: public
+        service: ntp
+        permanent: true
+        state: enabled
+        immediate: true
+      tags:
+        - skip_ansible_lint
 
-  - name: allow ntp access
-    ansible.posix.firewalld:
-      zone: public
-      service: ntp
-      permanent: true
-      state: enabled
-      immediate: true
-    tags:
-      - skip_ansible_lint
-
-  - name: add tun1 to public zone
-    ansible.posix.firewalld:
-      zone: public
-      interface: tun1
-      permanent: true
-      immediate: true
-    tags:
-      - skip_ansible_lint
+    - name: Add tun1 to public zone
+      ansible.posix.firewalld:
+        zone: public
+        interface: tun1
+        permanent: true
+        immediate: true
+      tags:
+        - skip_ansible_lint
