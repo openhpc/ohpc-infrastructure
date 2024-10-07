@@ -13,5 +13,4 @@ export EnableArmCompiler=false
 export CI=true
 export DisableDefaultRepo=false
 export DefaultRepoConfig=false
-export Provisioner=warewulf
 export RunLimit=150

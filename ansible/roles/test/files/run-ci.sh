@@ -15,6 +15,8 @@ show_usage() {
 	echo "                        (Factory, Staging, Release)"
 	echo "  -m <RMS>              Run the CI test using the specified resource manager"
 	echo "                        (openpbs, slurm (default))"
+	echo "  -p <PROVISIONER>      RUN the CI test using the specified provisioner"
+	echo "                        (confluent, warewulf (default))"
 	echo "  -i                    Install and run tests using package built with the"
 	echo "                        Intel compiler"
 	echo "  -h                    Show this help"
@@ -22,7 +24,7 @@ show_usage() {
 
 TIMEOUT="100"
 
-while getopts "d:v:r:m:ih" OPTION; do
+while getopts "d:v:r:m:p:ih" OPTION; do
 	case $OPTION in
 	d)
 		DISTRIBUTION=$OPTARG
@@ -35,6 +37,9 @@ while getopts "d:v:r:m:ih" OPTION; do
 		;;
 	m)
 		RMS=$OPTARG
+		;;
+	p)
+		PROVISIONER=$OPTARG
 		;;
 	i)
 		WITH_INTEL="true"
@@ -54,6 +59,10 @@ done
 
 if [ -z "${RMS}" ]; then
 	RMS=slurm
+fi
+
+if [ -z "${PROVISIONER}" ]; then
+	PROVISIONER=warewulf
 fi
 
 if [ -z "${DISTRIBUTION}" ] || [ -z "${VERSION}" ] || [ -z "${REPO}" ]; then
@@ -115,6 +124,7 @@ print_overview() {
 	echo "--> launcher:          ${LAUNCHER}"
 	echo "--> test timeout:      ${TIMEOUT}m"
 	echo "--> resource manager:  ${RMS}"
+	echo "--> provisioner:       ${PROVISIONER}"
 	echo "--> test options:      ${USER_TEST_OPTIONS}"
 }
 
@@ -145,7 +155,7 @@ cleanup() {
 	((DURATION = END - START))
 	echo "DURATION=${DURATION}" >>"$OUT/INFO"
 	DEST_DIR="${RESULTS}/${VERSION_MAJOR}/${VERSION}"
-	NAME="OHPC-${VERSION}-${DISTRIBUTION}"
+	NAME="OHPC-${VERSION}-${DISTRIBUTION}-${PROVISIONER}"
 	if [ -n "${WITH_INTEL}" ]; then
 		NAME="${NAME}-INTEL"
 	fi
@@ -219,12 +229,23 @@ set -x
 	echo "export SMS=${SMS}"
 	echo "export NODE_NAME=${SMS}"
 	echo "export RMS=${RMS}"
+	echo "export Provisioner=${PROVISIONER}"
 	echo "export Repo=${REPO}"
 	echo "export CI_CLUSTER=${CI_CLUSTER}"
 	echo "export COMPUTE_HOSTS=\"${COMPUTE_HOSTS}\""
 	echo "export EnableOneAPI=${WITH_INTEL:-false}"
 	echo "export USER_TEST_OPTIONS=\"${USER_TEST_OPTIONS}\""
 } >>"${VARS}"
+
+if [[ "${PROVISIONER}" == "confluent" ]]; then
+	{
+		echo "export initialize_options=usklpta"
+		echo "export deployment_protocols=firmware"
+		echo "export iso_path=/root/Rocky-9.4-x86_64-dvd.iso"
+		echo "export dns_domain=local"
+		echo "export dns_servers=1.1.1.1"
+	} >>"${VARS}"
+fi
 
 if [[ "${DISTRIBUTION}" == "almalinux"* ]] && [[ "${SMS}" == "openhpc-oe-jenkins-sms" ]]; then
 	echo "export YUM_MIRROR_BASE=http://mirrors.nju.edu.cn/almalinux/" >>"${VARS}"
