@@ -88,7 +88,7 @@
     - name: Include obs.yml
       ansible.builtin.include_tasks: ../common/obs.yml
 
-    - name: Open firewall acceess to obs.openhpc.community
+    - name: Open firewall access to obs.openhpc.community
       ansible.posix.firewalld:
         source: 44.230.128.55
         zone: trusted
