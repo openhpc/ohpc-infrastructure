@@ -100,10 +100,12 @@ if [[ "${SMS}" == "openhpc-oe-jenkins-sms" ]]; then
 	CI_CLUSTER=huawei
 	COMPUTE_HOSTS="openhpc-oe-jenkins-c1, openhpc-oe-jenkins-c2"
 	((TIMEOUT += 100))
+	GATEWAY="192.168.1.218"
 else
 	TEST_ARCH=$(uname -m)
 	CI_CLUSTER=lenovo
 	COMPUTE_HOSTS="openhpc-lenovo-jenkins-c1, openhpc-lenovo-jenkins-c2"
+	GATEWAY="10.241.58.129"
 fi
 
 if [ ! -d "${RESULTS}" ]; then
@@ -126,6 +128,7 @@ print_overview() {
 	echo "--> resource manager:  ${RMS}"
 	echo "--> provisioner:       ${PROVISIONER}"
 	echo "--> test options:      ${USER_TEST_OPTIONS}"
+	echo "--> gateway:           ${GATEWAY}"
 }
 
 cleanup() {
@@ -244,6 +247,7 @@ if [[ "${PROVISIONER}" == "confluent" ]]; then
 		echo "export iso_path=/root/Rocky-9.4-x86_64-dvd.iso"
 		echo "export dns_domain=local"
 		echo "export dns_servers=1.1.1.1"
+		echo "export ipv4_gateway=${GATEWAY}"
 	} >>"${VARS}"
 fi
 

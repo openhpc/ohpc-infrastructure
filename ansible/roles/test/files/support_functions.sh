@@ -279,6 +279,10 @@ install_openHPC_cluster() {
 			# shellcheck disable=SC2016
 			sed -e 's,/etc/yum.repos.d$,/etc/yum.repos.d; echo -e "[main]\nuser_agent=curl" > $CHROOT/etc/dnf/dnf.conf,g' -i "${recipeFile}"
 		fi
+		# for warewulf stateless provisioning we need a way to install opensm on one of the compute nodes
+		# sed -e 's,     dnf -y --installroot=$CHROOT groupinstall "InfiniBand Support",     dnf -y --installroot=$CHROOT groupinstall "InfiniBand Support"; \
+		#     dnf -y --installroot=$CHROOT install opensm; chroot $CHROOT systemctl enable opensm,g' -i "${recipeFile}"
+		# switch mellanox cards to InfiniBand mode: mstconfig -d 8a:00.0 set LINK_TYPE_P1=1
 	else
 		echo "No CI specialization"
 	fi
@@ -296,6 +300,11 @@ install_openHPC_cluster() {
 	export OHPC_INPUT_LOCAL="${inputFile}"
 
 	bash -x "${recipeFile}"
+
+	if [ "${Provisioner}" == "confluent" ]; then
+		# Activate latest updates and reboot
+		/opt/confluent/bin/nodepower compute boot
+	fi
 
 	wait_for_computes
 
@@ -317,6 +326,11 @@ post_install_cmds() {
 		. "${inputFile}"
 	fi
 
+	if [ "${Provisioner}" == "confluent" ]; then
+		# MANPATH is not correctly setup and breaks our tests
+		sed "/MANPATH/d" -i /etc/profile.d/confluent_env.sh
+	fi
+
 	echo "Installing test-ohpc RPM"
 	install_package test-suite-ohpc
 
@@ -327,6 +341,9 @@ post_install_cmds() {
 	elif [ "${Provisioner}" == "xcat" ]; then
 		local_sleep 1
 		/opt/xcat/bin/updatenode compute -F
+	elif [ "${Provisioner}" == "confluent" ]; then
+		local_sleep 1
+		/opt/confluent/bin/nodeapply -F compute
 	else
 		ERROR "Unknown provisioner type -> ${Provisioner}"
 	fi
@@ -351,6 +368,8 @@ post_install_cmds() {
 				koomie_cf -x "$compute_prefix\d+" /warewulf/bin/wwgetfiles
 			elif [ "${Provisioner}" == "xcat" ]; then
 				/opt/xcat/bin/updatenode compute -F
+			elif [ "${Provisioner}" == "confluent" ]; then
+				/opt/confluent/bin/nodeapply -F compute
 			fi
 		else
 			echo "--> ohpc-test account present"
@@ -424,6 +443,9 @@ gen_localized_inputs() {
 }
 
 pre_install_cmds() {
+	if [ "${Provisioner}" == "confluent" ]; then
+		wget -q http://10.241.58.130/Rocky-9.4-x86_64-dvd.iso
+	fi
 	if [[ "${BaseOS}" == "leap"* ]] && [[ ${CI_CLUSTER} == "huawei" ]]; then
 		sed -e "s,download.opensuse.org/,mirrors.nju.edu.cn/opensuse/,g" -i /etc/zypp/repos.d/*repo
 	fi
@@ -447,6 +469,11 @@ pre_install_cmds() {
 }
 
 install_doc_rpm() {
+	if [ "${Provisioner}" == "confluent" ]; then
+		# Those packages are needed but pulled in by warewulf.
+		# For confluent an extra step is needed. Works only on EL9.
+		install_package perl-File-Copy perl-Log-Log4perl
+	fi
 	install_package docs-ohpc
 }
 
@@ -506,9 +533,17 @@ wait_for_computes() {
 		ERROR "Not all compute nodes ready"
 	fi
 
+	if [[ $CI_CLUSTER == "lenovo" ]]; then
+		# This is mainly necessary for confluent statefull provisioning
+		pdsh -w "${compute_prefix}"[1-"${num_computes}"] systemctl disable --now firewalld
+		# Disable IB for now
+		pdsh -w "${compute_prefix}"[1-"${num_computes}"] rmmod mlx5_ib mlx5_core
+	fi
+
 	if [ "${RMS}" == "slurm" ]; then
-		pdsh -w "${compute_prefix}"[1-"${num_computes}"] systemctl start munge
-		pdsh -w "${compute_prefix}"[1-"${num_computes}"] systemctl start slurmd
+		pdsh -w "${compute_prefix}"[1-"${num_computes}"] systemctl restart munge
+		pdsh -w "${compute_prefix}"[1-"${num_computes}"] systemctl restart slurmd
+		scontrol update nodename="${compute_prefix}"[1-"${num_computes}"] state=idle
 	fi
 
 	if [ "${Provisioner}" == "warewulf" ]; then

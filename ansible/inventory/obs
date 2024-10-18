@@ -15,3 +15,6 @@ openhpc-lenovo-repo
 
 [aarch64_builder_01]
 aarch64-builder-01
+
+[openhpc_lenovo_jenkins_c3]
+openhpc-lenovo-jenkins-c3
