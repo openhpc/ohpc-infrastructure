@@ -344,6 +344,9 @@ post_install_cmds() {
 	elif [ "${Provisioner}" == "confluent" ]; then
 		local_sleep 1
 		/opt/confluent/bin/nodeapply -F compute
+	elif [ "${Provisioner}" == "warewulf4" ]; then
+		local_sleep 10
+		wwctl overlay build
 	else
 		ERROR "Unknown provisioner type -> ${Provisioner}"
 	fi
@@ -451,6 +454,13 @@ pre_install_cmds() {
 	fi
 	"${PKG_MANAGER}" "${YES}" update
 
+	if [ "${Provisioner}" == "warewulf4" ]; then
+		# warewulf4 only configures SSH keys if there is no
+		# /root/.ssh/cluster and /root/.ssh/config
+		# warewulf3, however, expects SSH keys in /root/.ssh/cluster*
+		rm -f /root/.ssh/cluster*
+	fi
+
 	if [[ ("${BaseOS}" == "rocky"* || "${BaseOS}" == "almalinux"*) ]] && [[ "${Architecture}" == "aarch64" ]]; then
 		# On Rocky 9.2 on aarch64 there were errors like
 		# "(Got a packet bigger than 'max_allowed_packet' bytes)".
@@ -469,10 +479,10 @@ pre_install_cmds() {
 }
 
 install_doc_rpm() {
-	if [ "${Provisioner}" == "confluent" ]; then
+	if [ "${Provisioner}" == "confluent" ] || [ "${Provisioner}" == "warewulf4" ]; then
 		# Those packages are needed but pulled in by warewulf.
 		# For confluent an extra step is needed. Works only on EL9.
-		install_package perl-File-Copy perl-Log-Log4perl
+		install_package perl-File-Copy perl-Log-Log4perl perl-Config-IniFiles
 	fi
 	install_package docs-ohpc
 }
@@ -538,6 +548,11 @@ wait_for_computes() {
 		pdsh -w "${compute_prefix}"[1-"${num_computes}"] systemctl disable --now firewalld
 		# Disable IB for now
 		pdsh -w "${compute_prefix}"[1-"${num_computes}"] rmmod mlx5_ib mlx5_core
+	fi
+
+	if [ "${Provisioner}" == "warewulf4" ]; then
+		wwctl overlay build
+		local_sleep 10
 	fi
 
 	if [ "${RMS}" == "slurm" ]; then

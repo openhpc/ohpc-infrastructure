@@ -104,10 +104,19 @@
         group: ohpc
       with_items:
         - /repos
+        - /repos/vault
         - /repos/.files
         - /stats
         - /stats/old
         - /results
+
+    - name: Mount /repos/vault partition
+      ansible.posix.mount:
+        path: /repos/vault
+        src: UUID=5277343f-7070-4ce9-a296-97ffed2527be
+        opts: defaults,noatime,ro
+        state: mounted
+        fstype: xfs
 
     - name: Create RHEL sync directories
       ansible.builtin.file:
