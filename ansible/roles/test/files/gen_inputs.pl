@@ -87,6 +87,7 @@ my $master_ip        = "";
 my $master_ipoib     = "";
 ###my $netmask          = "";
 my $internal_netmask = "";
+my $internal_network = "";
 my $ipoib_netmask    = "";
 my $mgs_fs_name      = "";
 my $sysmgmtd_host    = "";
@@ -173,6 +174,8 @@ while(my $line=<IN>) {
 ###	$netmask = $1;
     } elsif ($line =~ /^internal_netmask=(\S+)$/) {
 	$internal_netmask = $1;
+    } elsif ($line =~ /^internal_network=(\S+)$/) {
+	$internal_network = $1;
     } elsif ($line =~ /^ipoib_netmask=(\S+)$/) {
 	$ipoib_netmask = $1;
     } elsif ($line =~ /^bmc_username=(\S+)$/) {
@@ -255,6 +258,8 @@ while(my $line=<IN>) {
     } elsif ( update_var("sms_eth_internal",$sms_eth_internal,$line) ) {
 	print OUT $line;
     } elsif ( update_var("internal_netmask",$internal_netmask,$line) ) {
+	print OUT $line;
+    } elsif ( update_var("internal_network",$internal_network,$line) ) {
 	print OUT $line;
     } elsif ( update_var("eth_provision",$eth_provision,$line) ) {
 	print OUT $line;

@@ -22,6 +22,7 @@ sms_eth_internal_leap15.5=eth0
 sms_eth_internal_leap15.3=eth0
 
 internal_netmask=255.255.255.240
+internal_network=10.241.58.128
 
 {% if distro.startswith('rocky') %}
 eth_provision=ens2f0

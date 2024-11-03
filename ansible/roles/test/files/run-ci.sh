@@ -206,6 +206,10 @@ else
 	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --with-mpi-families='mpich openmpi4'"
 fi
 
+if [[ "${CI_CLUSTER}" == "huawei" ]]; then
+	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-spack"
+fi
+
 print_overview
 
 if ! "ansible/roles/test/files/${LAUNCHER}" "${SMS}" "${DISTRIBUTION}" "${VERSION}" "${ROOT_PASSWORD}" | tee -a "${LOG}"; then
@@ -238,6 +242,8 @@ set -x
 	echo "export COMPUTE_HOSTS=\"${COMPUTE_HOSTS}\""
 	echo "export EnableOneAPI=${WITH_INTEL:-false}"
 	echo "export USER_TEST_OPTIONS=\"${USER_TEST_OPTIONS}\""
+	echo "export dns_servers=1.1.1.1"
+	echo "export ipv4_gateway=${GATEWAY}"
 } >>"${VARS}"
 
 if [[ "${PROVISIONER}" == "confluent" ]]; then
@@ -246,13 +252,14 @@ if [[ "${PROVISIONER}" == "confluent" ]]; then
 		echo "export deployment_protocols=firmware"
 		echo "export iso_path=/root/Rocky-9.4-x86_64-dvd.iso"
 		echo "export dns_domain=local"
-		echo "export dns_servers=1.1.1.1"
-		echo "export ipv4_gateway=${GATEWAY}"
 	} >>"${VARS}"
 fi
 
 if [[ "${DISTRIBUTION}" == "almalinux"* ]] && [[ "${SMS}" == "openhpc-oe-jenkins-sms" ]]; then
 	echo "export YUM_MIRROR_BASE=http://mirrors.nju.edu.cn/almalinux/" >>"${VARS}"
+fi
+if [[ "${DISTRIBUTION}" == "rocky"* ]] && [[ "${SMS}" == "openhpc-oe-jenkins-sms" ]]; then
+	echo "export YUM_MIRROR_BASE=http://mirrors.nju.edu.cn/rocky/" >>"${VARS}"
 fi
 if [[ "${DISTRIBUTION}" == "openEuler"* ]] && [[ "${SMS}" == "openhpc-lenovo-jenkins-sms" ]]; then
 	echo "export YUM_MIRROR_BASE=http://repo.huaweicloud.com/openeuler/" >>"${VARS}"
