@@ -17,14 +17,15 @@ show_usage() {
 	echo "                        (openpbs, slurm (default))"
 	echo "  -p <PROVISIONER>      RUN the CI test using the specified provisioner"
 	echo "                        (confluent, warewulf (default))"
-	echo "  -i                    Install and run tests using package built with the"
+	echo "  -i                    Install and run tests using packages built with the"
 	echo "                        Intel compiler"
+	echo "  -b                    Use InfiniBand"
 	echo "  -h                    Show this help"
 }
 
 TIMEOUT="100"
 
-while getopts "d:v:r:m:p:ih" OPTION; do
+while getopts "d:v:r:m:p:ibh" OPTION; do
 	case $OPTION in
 	d)
 		DISTRIBUTION=$OPTARG
@@ -44,6 +45,9 @@ while getopts "d:v:r:m:p:ih" OPTION; do
 	i)
 		WITH_INTEL="true"
 		TIMEOUT="150"
+		;;
+	b)
+		USE_IB="true"
 		;;
 	h)
 		show_usage
@@ -122,6 +126,7 @@ print_overview() {
 	echo "--> SMS:               ${SMS}"
 	echo "--> test architecture: ${TEST_ARCH}"
 	echo "--> enable intel:      ${WITH_INTEL:-false}"
+	echo "--> infiniband:        ${USE_IB:-false}"
 	echo "--> node names:        ${COMPUTE_HOSTS}"
 	echo "--> launcher:          ${LAUNCHER}"
 	echo "--> test timeout:      ${TIMEOUT}m"
@@ -159,6 +164,11 @@ cleanup() {
 	echo "DURATION=${DURATION}" >>"$OUT/INFO"
 	DEST_DIR="${RESULTS}/${VERSION_MAJOR}/${VERSION}"
 	NAME="OHPC-${VERSION}-${DISTRIBUTION}-${PROVISIONER}"
+	if [ -n "${USE_IB}" ]; then
+		NAME="${NAME}-infiniband"
+	else
+		NAME="${NAME}-ethernet"
+	fi
 	if [ -n "${WITH_INTEL}" ]; then
 		NAME="${NAME}-INTEL"
 	fi
@@ -263,6 +273,18 @@ if [[ "${DISTRIBUTION}" == "rocky"* ]] && [[ "${SMS}" == "openhpc-oe-jenkins-sms
 fi
 if [[ "${DISTRIBUTION}" == "openEuler"* ]] && [[ "${SMS}" == "openhpc-lenovo-jenkins-sms" ]]; then
 	echo "export YUM_MIRROR_BASE=http://repo.huaweicloud.com/openeuler/" >>"${VARS}"
+fi
+
+if [ -n "${USE_IB}" ]; then
+	{
+		echo "export enable_ib=1"
+		echo "export enable_ipoib=1"
+	} >>"${VARS}"
+else
+	{
+		echo "export enable_ib=0"
+		echo "export enable_ipoib=0"
+	} >>"${VARS}"
 fi
 
 scp "${VARS}" "${SMS}":/root/vars

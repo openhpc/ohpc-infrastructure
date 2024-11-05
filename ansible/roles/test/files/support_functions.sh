@@ -233,6 +233,12 @@ EOF
 	elif [[ ${CI_CLUSTER} == "huawei" ]]; then
 		echo "export UCX_NET_DEVICES=enp189s0f0" >>/tmp/user_integration_tests
 	fi
+	if [ "${CI_CLUSTER}" == "lenovo" ] && [ "${enable_ib}" -eq 1 ]; then
+		echo "export UCX_NET_DEVICES=mlx5_0:1" >>/tmp/user_integration_tests
+		# Those tests are not working with Open MPI and InfiniBand currently.
+		config_opts="$config_opts --disable-opencoarrays --disable-imb"
+		config_opts="$config_opts --disable-superlu_dist"
+	fi
 
 	cat <<EOF >>/tmp/user_integration_tests
 
@@ -279,10 +285,12 @@ install_openHPC_cluster() {
 			# shellcheck disable=SC2016
 			sed -e 's,/etc/yum.repos.d$,/etc/yum.repos.d; echo -e "[main]\nuser_agent=curl" > $CHROOT/etc/dnf/dnf.conf,g' -i "${recipeFile}"
 		fi
-		# for warewulf stateless provisioning we need a way to install opensm on one of the compute nodes
-		# sed -e 's,     dnf -y --installroot=$CHROOT groupinstall "InfiniBand Support",     dnf -y --installroot=$CHROOT groupinstall "InfiniBand Support"; \
-		#     dnf -y --installroot=$CHROOT install opensm; chroot $CHROOT systemctl enable opensm,g' -i "${recipeFile}"
-		# switch mellanox cards to InfiniBand mode: mstconfig -d 8a:00.0 set LINK_TYPE_P1=1
+		if [ "${enable_ib}" -eq 1 ] || [ "${Provisioner}" == "warewulf" ]; then
+			# for warewulf stateless provisioning we need a way to install opensm on one of the compute nodes
+			sed -e "s,\(dnf -y --installroot=\$CHROOT groupinstall \"InfiniBand Support\"\),\1 ; \
+				dnf -y --installroot=\$CHROOT install opensm; chroot \$CHROOT systemctl enable opensm,g" -i "${recipeFile}"
+			# switch mellanox cards to InfiniBand mode: mstconfig -d 8a:00.0 set LINK_TYPE_P1=1
+		fi
 	else
 		echo "No CI specialization"
 	fi
@@ -546,8 +554,10 @@ wait_for_computes() {
 	if [[ $CI_CLUSTER == "lenovo" ]]; then
 		# This is mainly necessary for confluent statefull provisioning
 		pdsh -w "${compute_prefix}"[1-"${num_computes}"] systemctl disable --now firewalld
-		# Disable IB for now
-		pdsh -w "${compute_prefix}"[1-"${num_computes}"] rmmod mlx5_ib mlx5_core
+		if [ "${enable_ib}" -eq 0 ]; then
+			# Disable IB
+			pdsh -w "${compute_prefix}"[1-"${num_computes}"] rmmod mlx5_ib mlx5_core
+		fi
 	fi
 
 	if [ "${Provisioner}" == "warewulf4" ]; then
