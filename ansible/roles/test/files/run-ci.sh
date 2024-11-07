@@ -154,14 +154,24 @@ cleanup() {
 		cd - >/dev/null
 		set -e
 	fi
+	set +e
 	echo "Finished at $(date -u +"%Y-%m-%d-%H-%M-%S")" >>"${LOG}"
+	FAILED=$(grep "Failed       :" "${LOG}" | cut -d: -f2 | xargs)
+	PASSED=$(grep "Passed       :" "${LOG}" | cut -d: -f2 | xargs)
+	SKIPPED=$(grep "Skipped      :" "${LOG}" | cut -d: -f2 | xargs)
+	set -e
 	mv "${LOG}" "${OUT}"/console.out
 	chmod 644 "${OUT}"/console.out
 	sed -e "s,${SMS_IPMI_PASSWORD//\$/\\$},****,g" -i "${OUT}"/console.out
 	touch "${OUT}/${RESULT}"
 	END=$(date +%s)
 	((DURATION = END - START))
-	echo "DURATION=${DURATION}" >>"$OUT/INFO"
+	{
+		echo "DURATION=${DURATION}"
+		echo "FAILED=${FAILED:-0}"
+		echo "PASSED=${PASSED:-0}"
+		echo "SKIPPED=${SKIPPED:-0}"
+	} >>"$OUT/INFO"
 	DEST_DIR="${RESULTS}/${VERSION_MAJOR}/${VERSION}"
 	NAME="OHPC-${VERSION}-${DISTRIBUTION}-${PROVISIONER}"
 	if [ -n "${USE_IB}" ]; then
