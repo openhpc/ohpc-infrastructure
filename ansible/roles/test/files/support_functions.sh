@@ -238,6 +238,10 @@ EOF
 		# Those tests are not working with Open MPI and InfiniBand currently.
 		config_opts="$config_opts --disable-opencoarrays --disable-imb"
 		config_opts="$config_opts --disable-superlu_dist"
+		if [ "${RMS}" == "openpbs" ]; then
+			config_opts="$config_opts --disable-mpi4py"
+			config_opts="$config_opts --disable-fftw"
+		fi
 	fi
 
 	cat <<EOF >>/tmp/user_integration_tests
@@ -286,6 +290,7 @@ install_openHPC_cluster() {
 			sed -e 's,/etc/yum.repos.d$,/etc/yum.repos.d; echo -e "[main]\nuser_agent=curl" > $CHROOT/etc/dnf/dnf.conf,g' -i "${recipeFile}"
 		fi
 		if [ "${enable_ib}" -eq 1 ] || [ "${Provisioner}" == "warewulf" ]; then
+			echo "CI Customization: Install opensm on compute node"
 			# for warewulf stateless provisioning we need a way to install opensm on one of the compute nodes
 			sed -e "s,\(dnf -y --installroot=\$CHROOT groupinstall \"InfiniBand Support\"\),\1 ; \
 				dnf -y --installroot=\$CHROOT install opensm; chroot \$CHROOT systemctl enable opensm,g" -i "${recipeFile}"
@@ -355,6 +360,11 @@ post_install_cmds() {
 	elif [ "${Provisioner}" == "warewulf4" ]; then
 		local_sleep 10
 		wwctl overlay build
+		# The test to check for same kernel on SMS and compute
+		# does not work with warewulf4 because the image
+		# will not automatically boot the latest installed kernel.
+		# shellcheck disable=SC2016
+		sed -e 's,assert_equal $kernel $sms_kernel,/bin/true,g' -i /home/ohpc-test/tests/bos/computes
 	else
 		ERROR "Unknown provisioner type -> ${Provisioner}"
 	fi
@@ -413,6 +423,11 @@ post_install_cmds() {
 		# needed for the test-suite as long as openEuler and Leap
 		# do not have the RPM.
 		cpan -Tfi XML::Generator >>/root/cpan.log 2>&1
+	fi
+
+	if [[ "${BaseOS}" == "leap"* ]] && [[ ${CI_CLUSTER} == "huawei" ]]; then
+		echo "Syncing time on compute nodes"
+		pdsh -w "${compute_prefix}"[1-"${num_computes}"] "chronyc -m 'burst 3/3' 'makestep 0.1 3'"
 	fi
 }
 
