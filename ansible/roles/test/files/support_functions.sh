@@ -414,6 +414,11 @@ post_install_cmds() {
 		# do not have the RPM.
 		cpan -Tfi XML::Generator >>/root/cpan.log 2>&1
 	fi
+
+	if [[ "${BaseOS}" == "leap"* ]] && [[ ${CI_CLUSTER} == "huawei" ]]; then
+		echo "Syncing time on compute nodes"
+		pdsh -w "${compute_prefix}"[1-"${num_computes}"] "chronyc -m 'burst 3/3' 'makestep 0.1 3'"
+	fi
 }
 
 gen_localized_inputs() {
