@@ -20,11 +20,24 @@ mv .htaccess.new .htaccess
 
 sed '1,/<!-- END HEADER MARKER -->/!d' -i HEADER.html
 
+TOTAL_RUNTIME=0
+
+for i in 20*; do
+	if [ -e "$i/INFO" ]; then
+		# shellcheck disable=SC1091
+		. "$i/INFO"
+		((TOTAL_RUNTIME += DURATION))
+	fi
+done
+
 TOTAL=$(echo 0-LATEST* | wc -w)
 
-echo "<ul><li>Total number of test permutations: ${TOTAL}</li></ul>" >>HEADER.html
+{
+	echo "<ul><li>Total number of test permutations: ${TOTAL}</li>"
+	echo "    <li>Total hours of test runtime: $((TOTAL_RUNTIME / 60 / 60))h</li></ul>"
 
-echo "<table><tr><th>Test</th><th>Total</th><th>PASS</th><th>FAIL</th><th>Overall</th><tr>" >>HEADER.html
+	echo "<table><tr><th>Test</th><th>Total</th><th>PASS</th><th>FAIL</th><th>Overall</th><tr>"
+} >>HEADER.html
 
 FAIL=0
 PASS=0
