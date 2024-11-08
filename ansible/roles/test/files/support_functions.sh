@@ -542,7 +542,7 @@ wait_for_computes() {
 
 	for i in $(seq 90 -1 1); do
 		echo "Waiting for compute nodes to get ready ($i)"
-		if ! "${CHECK_COMMAND[@]}" | grep -E '(down|refused|booting|route|closed)'; then
+		if ! "${CHECK_COMMAND[@]}" | grep -E '(down|refused|booting|route|closed|disconnect)'; then
 			echo "All compute nodes are ready"
 			not_ready=0
 			break
