@@ -294,6 +294,8 @@
         - reposync.sh
         - build_dist_sums.sh
         - move-httpd-logs.sh
+        - mk_dist.sh
+        - make_repo.sh
 
     - name: Open /var/log/httpd to be accessible for user ohpc for log analysis
       ansible.builtin.cron:
