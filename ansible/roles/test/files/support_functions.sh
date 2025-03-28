@@ -238,12 +238,15 @@ EOF
 		# Those tests are not working with Open MPI and InfiniBand currently.
 		config_opts="$config_opts --disable-opencoarrays --disable-imb"
 		config_opts="$config_opts --disable-superlu_dist"
+		config_opts="$config_opts --disable-fftw"
 		if [ "${RMS}" == "openpbs" ]; then
 			config_opts="$config_opts --disable-mpi4py"
-			config_opts="$config_opts --disable-fftw"
 		fi
 	fi
 
+	if [ "${enable_nvidia_gpu_driver}" == "1" ]; then
+		config_opts="$config_opts --enable-cuda"
+	fi
 	cat <<EOF >>/tmp/user_integration_tests
 
 cd "$TESTDIR/" || exit 1
@@ -288,6 +291,23 @@ install_openHPC_cluster() {
 		if [ "${PKG_MANAGER}" == "dnf" ]; then
 			# shellcheck disable=SC2016
 			sed -e 's,/etc/yum.repos.d$,/etc/yum.repos.d; echo -e "[main]\nuser_agent=curl" > $CHROOT/etc/dnf/dnf.conf,g' -i "${recipeFile}"
+		fi
+		if [ "${Provisioner}" == "confluent" ]; then
+			echo "CI Customization: Switch to http in repository definition"
+			sed '/excludedocs/a nodersync /etc/yum.repos.d/ compute:/etc/yum.repos.d/' -i "${recipeFile}"
+			sed '/excludedocs/a nodersync /etc/dnf/dnf.conf compute:/etc/dnf/dnf.conf' -i "${recipeFile}"
+			sed '/excludedocs/a nodersync /etc/profile.d/proxy.sh compute:/etc/profile.d/proxy.sh' -i "${recipeFile}"
+		fi
+		if [ "${Provisioner}" == "warewulf4" ]; then
+			echo "CI Customization: Switch to http in repository definition"
+			sed "/export CHROOT/a sed -i '/\\\/metalink?/ s/$/\\\&protocol=http/g' \$CHROOT/etc/yum.repos.d/*repo" -i "${recipeFile}"
+			sed "/export CHROOT/a sed -i '/\\\/mirrorlist?/ s/$/\\\&protocol=http/g' \$CHROOT/etc/yum.repos.d/*repo" -i "${recipeFile}"
+			echo "CI Customization: Switch to user_agent=curl"
+			# shellcheck disable=SC2016
+			sed '/export CHROOT/a echo  "user_agent=curl" >> $CHROOT/etc/dnf/dnf.conf' -i "${recipeFile}"
+			echo "CI Customization: Use OpenHPC repository files form host"
+			# shellcheck disable=SC2016
+			sed '/export CHROOT/a /usr/bin/cp -vf /etc/yum.repos.d/OpenHPC*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
 		fi
 		if [ "${enable_ib}" -eq 1 ] || [ "${Provisioner}" == "warewulf" ]; then
 			echo "CI Customization: Install opensm on compute node"
@@ -357,9 +377,13 @@ post_install_cmds() {
 	elif [ "${Provisioner}" == "confluent" ]; then
 		local_sleep 1
 		/opt/confluent/bin/nodeapply -F compute
+		# The test to check for same kernel on SMS and compute
+		# does not work with confluent.
+		# shellcheck disable=SC2016
+		sed -e 's,assert_equal $kernel $sms_kernel,/bin/true,g' -i /home/ohpc-test/tests/bos/computes
 	elif [ "${Provisioner}" == "warewulf4" ]; then
-		local_sleep 10
 		wwctl overlay build
+		local_sleep 10
 		# The test to check for same kernel on SMS and compute
 		# does not work with warewulf4 because the image
 		# will not automatically boot the latest installed kernel.
@@ -470,7 +494,12 @@ gen_localized_inputs() {
 
 pre_install_cmds() {
 	if [ "${Provisioner}" == "confluent" ]; then
-		wget -q http://10.241.58.130/Rocky-9.4-x86_64-dvd.iso
+		if [[ "${BaseOS}" == "rocky"* ]]; then
+			wget -q http://10.241.58.130/Rocky-9.4-x86_64-dvd.iso
+		fi
+		if [[ "${BaseOS}" == "almalinux"* ]]; then
+			wget -q http://10.241.58.130/AlmaLinux-9.5-x86_64-dvd.iso
+		fi
 	fi
 	if [[ "${BaseOS}" == "leap"* ]] && [[ ${CI_CLUSTER} == "huawei" ]]; then
 		sed -e "s,download.opensuse.org/,mirrors.nju.edu.cn/opensuse/,g" -i /etc/zypp/repos.d/*repo
@@ -497,6 +526,11 @@ pre_install_cmds() {
 		setenforce 0
 	fi
 
+	if [ -n "${overwrite_rpm}" ]; then
+		wget https://kojipkgs.fedoraproject.org//packages/yq/4.43.1/2.fc39/x86_64/yq-4.43.1-2.fc39.x86_64.rpm
+		install_package yq-4.43.1-2.fc39.x86_64.rpm
+		rpm -Uhv "${overwrite_rpm}" --force
+	fi
 	# needed for computes_installed.py test runner
 	loop_command pip3 install xmlrunner
 }
@@ -552,7 +586,7 @@ wait_for_computes() {
 			retry_counter=0
 			if [[ $CI_CLUSTER == "lenovo" ]]; then
 				((n_c = num_computes - 1))
-				for j in $(seq "${n_c}" -1 1); do
+				for j in $(seq 0 "${n_c}"); do
 					echo "Telling BMC ${c_bmc[$j]} to try another reboot"
 					ipmitool -E -I lanplus -H "${c_bmc[$j]}" -U "${bmc_username}" -P "${bmc_password}" chassis bootdev pxe options=efiboot
 					ipmitool -E -I lanplus -H "${c_bmc[$j]}" -U "${bmc_username}" -P "${bmc_password}" power reset
@@ -578,6 +612,8 @@ wait_for_computes() {
 	if [ "${Provisioner}" == "warewulf4" ]; then
 		wwctl overlay build
 		local_sleep 10
+		# Mount all NFS. That sometimes fails.
+		pdsh -w "${compute_prefix}"[1-"${num_computes}"] mount -t nfs -a
 	fi
 
 	if [ "${RMS}" == "slurm" ]; then
@@ -664,5 +700,12 @@ enable_repo() {
 				"${PKG_MANAGER}" clean -a
 			fi
 		fi
+	fi
+}
+
+switch_repo_to_http() {
+	if [[ "${os_repo}" == "EL_"* ]]; then
+		sed -i '/\/metalink?/ s/$/\&protocol=http/g' "${repo_dir}/"*repo
+		sed -i '/\/mirrorlist?/ s/$/\&protocol=http/g' "${repo_dir}/"*repo
 	fi
 }

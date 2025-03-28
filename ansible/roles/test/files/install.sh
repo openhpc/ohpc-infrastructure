@@ -118,14 +118,17 @@ fi
 # shellcheck disable=SC1091
 . "${CWD}/support_functions.sh"
 
+# Switch to http if possible for better caching
+switch_repo_to_http
+
 if [ -e /etc/profile.d/proxy.sh ]; then
 	# shellcheck disable=SC1091
 	. /etc/profile.d/proxy.sh
 fi
 
 # Due to the network setup of the huawei test cluster
-# there is not nameserver and no /etc/resolv.conf is
-# created. Some tools fail if there is not resolv.conf.
+# there is no nameserver and no /etc/resolv.conf is
+# created. Some tools fail if there is no resolv.conf.
 # Let's just give them an empty file.
 touch /etc/resolv.conf
 

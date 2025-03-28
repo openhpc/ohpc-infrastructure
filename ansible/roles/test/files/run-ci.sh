@@ -15,17 +15,20 @@ show_usage() {
 	echo "                        (Factory, Staging, Release)"
 	echo "  -m <RMS>              Run the CI test using the specified resource manager"
 	echo "                        (openpbs, slurm (default))"
-	echo "  -p <PROVISIONER>      RUN the CI test using the specified provisioner"
+	echo "  -p <PROVISIONER>      Run the CI test using the specified provisioner"
 	echo "                        (confluent, warewulf (default))"
 	echo "  -i                    Install and run tests using packages built with the"
 	echo "                        Intel compiler"
+	echo "  -g <GPU>              Run the CI test with GPU installation and tests enabled"
+	echo "                        (nvidia, none (default))"
+	echo "  -o <RPM>              Use this RPM to overwrite the default docs-ohpc RPM"
 	echo "  -b                    Use InfiniBand"
 	echo "  -h                    Show this help"
 }
 
 TIMEOUT="100"
 
-while getopts "d:v:r:m:p:ibh" OPTION; do
+while getopts "d:v:r:m:p:ig:bo:h" OPTION; do
 	case $OPTION in
 	d)
 		DISTRIBUTION=$OPTARG
@@ -49,6 +52,12 @@ while getopts "d:v:r:m:p:ibh" OPTION; do
 	b)
 		USE_IB="true"
 		;;
+	o)
+		RPM=$OPTARG
+		;;
+	g)
+		WITH_GPU=$OPTARG
+		;;
 	h)
 		show_usage
 		exit 0
@@ -63,6 +72,10 @@ done
 
 if [ -z "${RMS}" ]; then
 	RMS=slurm
+fi
+
+if [ -z "${WITH_GPU}" ]; then
+	WITH_GPU=none
 fi
 
 if [ -z "${PROVISIONER}" ]; then
@@ -134,6 +147,7 @@ print_overview() {
 	echo "--> provisioner:       ${PROVISIONER}"
 	echo "--> test options:      ${USER_TEST_OPTIONS}"
 	echo "--> gateway:           ${GATEWAY}"
+	echo "--> gpu:               ${WITH_GPU}"
 }
 
 cleanup() {
@@ -182,7 +196,7 @@ cleanup() {
 	if [ -n "${WITH_INTEL}" ]; then
 		NAME="${NAME}-INTEL"
 	fi
-	NAME="${NAME}-${TEST_ARCH}-${RMS}"
+	NAME="${NAME}-gpu-${WITH_GPU}-${TEST_ARCH}-${RMS}"
 	DEST_NAME="$(date -u +"%Y-%m-%d-%H-%M-%S")-${RESULT}-${NAME}-${RANDOM}"
 	mv "${OUT}" "${DEST_DIR}/${DEST_NAME}"
 	chmod 755 "${DEST_DIR}/${DEST_NAME}"
@@ -270,9 +284,15 @@ if [[ "${PROVISIONER}" == "confluent" ]]; then
 	{
 		echo "export initialize_options=usklpta"
 		echo "export deployment_protocols=firmware"
-		echo "export iso_path=/root/Rocky-9.4-x86_64-dvd.iso"
 		echo "export dns_domain=local"
 	} >>"${VARS}"
+
+	if [[ "${DISTRIBUTION}" == "rocky"* ]]; then
+		echo "export iso_path=/root/Rocky-9.4-x86_64-dvd.iso" >>"${VARS}"
+	fi
+	if [[ "${DISTRIBUTION}" == "almalinux"* ]]; then
+		echo "export iso_path=/root/AlmaLinux-9.5-x86_64-dvd.iso" >>"${VARS}"
+	fi
 fi
 
 if [[ "${DISTRIBUTION}" == "almalinux"* ]] && [[ "${SMS}" == "openhpc-oe-jenkins-sms" ]]; then
@@ -295,6 +315,15 @@ else
 		echo "export enable_ib=0"
 		echo "export enable_ipoib=0"
 	} >>"${VARS}"
+fi
+
+if [ -n "${RPM}" ]; then
+	scp "${RPM}" "${SMS}":/root/ci
+	echo "export overwrite_rpm=\"/root/ci/$(basename "${RPM}")\"" >>"${VARS}"
+fi
+
+if [[ "${WITH_GPU}" == "nvidia" ]]; then
+	echo "export enable_nvidia_gpu_driver=1" >>"${VARS}"
 fi
 
 scp "${VARS}" "${SMS}":/root/vars

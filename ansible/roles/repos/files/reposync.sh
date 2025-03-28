@@ -155,6 +155,9 @@ else
 		echo "----> setting up links for $arch packages..."
 
 		for dir in **/"$arch"; do
+			if ! ls "$dir"/*rpm* >/dev/null 2>&1; then
+				continue
+			fi
 			pushd "$dir" >/dev/null
 			# cache list of newly updated packages
 			PREVIOUS_RPMS=$(ls ./*rpm*)
