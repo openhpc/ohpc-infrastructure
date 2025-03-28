@@ -106,6 +106,7 @@ my $enable_ipoib     = "";
 my $enable_opa       = "";
 my $enable_beegfs_client = "";
 my $enable_lustre_client = "";
+my $enable_nvidia_gpu_driver = "";
 my $enable_ganglia   = "";
 my $enable_nagios    = "";
 my $enable_genders   = "";
@@ -140,6 +141,8 @@ while(my $line=<IN>) {
 	$enable_kargs = $1;
     } elsif ($line =~ /^enable_ib=(\S+)$/) {
 	$enable_ib = $1;
+    } elsif ($line =~ /^enable_nvidia_gpu_driver=(\S+)$/) {
+	$enable_nvidia_gpu_driver = $1;
     } elsif ($line =~ /^enable_ipoib=(\S+)$/) {
 	$enable_ipoib = $1;
     } elsif ($line =~ /^enable_beegfs_client_$BaseOS=(\S+)$/) {
