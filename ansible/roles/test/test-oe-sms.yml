@@ -47,7 +47,7 @@
     with_items:
       - OpenHPC-obs-factory.repo
       - arm1.repo
-    when: (distro.startswith("rocky")) or (distro == "almalinux9.2")
+    when: (distro.startswith("rocky")) or (distro == "almalinux9")
 
   - name: install obs repository configuration
     template:
@@ -67,7 +67,7 @@
       - epel-release
       - tzdata-java
       - bind-utils
-    when: (distro.startswith("rocky")) or (distro == "almalinux9.2")
+    when: (distro.startswith("rocky")) or (distro == "almalinux9")
 
   - name: install packages
     package:
@@ -105,7 +105,7 @@
       owner: root
       group: root
       mode: 0600
-    when: (distro == "openEuler_22.03") or (distro.startswith("rocky")) or (distro == "almalinux9.2")
+    when: (distro == "openEuler_22.03") or (distro.startswith("rocky")) or (distro == "almalinux9")
 
   - name: install openvpn key file
     copy:
@@ -114,7 +114,7 @@
       owner: root
       group: root
       mode: 0600
-    when: (distro == "openEuler_22.03") or (distro.startswith("rocky")) or (distro == "almalinux9.2")
+    when: (distro == "openEuler_22.03") or (distro.startswith("rocky")) or (distro == "almalinux9")
 
   - name: install openvpn server file
     template:
@@ -136,7 +136,7 @@
 
   - name: enable openvpn-server@tun1
     service: name=openvpn-server@tun1 enabled=yes state=started
-    when: (distro == "openEuler_22.03") or (distro.startswith("rocky")) or (distro == "almalinux9.2")
+    when: (distro == "openEuler_22.03") or (distro.startswith("rocky")) or (distro == "almalinux9")
 
   - name: enable openvpn@tun1
     service: name=openvpn@tun1 enabled=yes state=started

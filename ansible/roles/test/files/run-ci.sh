@@ -47,7 +47,7 @@ while getopts "d:v:r:m:p:ig:bo:h" OPTION; do
 		;;
 	i)
 		WITH_INTEL="true"
-		TIMEOUT="150"
+		((TIMEOUT += 50))
 		;;
 	b)
 		USE_IB="true"
@@ -57,6 +57,7 @@ while getopts "d:v:r:m:p:ig:bo:h" OPTION; do
 		;;
 	g)
 		WITH_GPU=$OPTARG
+		((TIMEOUT += 50))
 		;;
 	h)
 		show_usage
@@ -112,6 +113,44 @@ RESULT=FAIL
 RESULTS="/results"
 
 VERSION_MAJOR=$(echo "${VERSION}" | awk -F. '{print $1}')
+
+if [[ "${VERSION_MAJOR}" == "3" ]]; then
+	case "${DISTRIBUTION}" in
+	rocky)
+		DISTRIBUTION=rocky9
+		;;
+	almalinux)
+		DISTRIBUTION=almalinux9
+		;;
+	leap)
+		DISTRIBUTION=leap15.5
+		;;
+	openEuler)
+		DISTRIBUTION=openEuler_22.03
+		;;
+	*)
+		echo "Unknown distribution ${DISTRIBUTION}. Exiting!"
+		exit 1
+		;;
+	esac
+fi
+
+if [[ "${VERSION_MAJOR}" == "2" ]]; then
+	case "${DISTRIBUTION}" in
+	rocky)
+		DISTRIBUTION=rocky8
+		;;
+	leap)
+		DISTRIBUTION=leap15.3
+		((TIMEOUT += 50))
+		;;
+	*)
+		echo "Unknown distribution ${DISTRIBUTION}. Exiting!"
+		exit 1
+		;;
+	esac
+fi
+
 if [[ "${SMS}" == "openhpc-oe-jenkins-sms" ]]; then
 	TEST_ARCH="aarch64"
 	CI_CLUSTER=huawei
@@ -233,6 +272,7 @@ USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-papi"
 USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-geopm"
 USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-tau"
 USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-extrae"
+USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-mfem"
 
 if [[ "${VERSION}" == "3."* ]]; then
 	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --with-mpi-families='mpich openmpi5'"
@@ -264,7 +304,7 @@ echo "export IPMI_PASSWORD=${SMS_IPMI_PASSWORD}" >>"${VARS}"
 set -x
 
 {
-	echo "export BaseOS=${DISTRIBUTION}"
+	echo "export DISTRIBUTION=${DISTRIBUTION}"
 	echo "export Version=${VERSION}"
 	echo "export Architecture=${TEST_ARCH}"
 	echo "export SMS=${SMS}"
@@ -330,12 +370,13 @@ scp "${VARS}" "${SMS}":/root/vars
 
 set +x
 
-echo "Running install.sh on ${SMS} with timeout ${TIMEOUT}m"
-if timeout --signal=9 "${TIMEOUT}m" ssh -t -n "${SMS}" 'bash -c "source /root/vars; /root/ci/install.sh"' 2>&1 | sed -u -e "s,${SMS_IPMI_PASSWORD//\$/\\$},****,g" | tee -a "${LOG}"; then
+echo "Running install.sh on ${SMS} with timeout ${TIMEOUT}m at $(date -u +"%Y-%m-%d-%H-%M-%S")" | tee -a "${LOG}"
+if timeout -v --signal=9 "${TIMEOUT}m" ssh -t -n "${SMS}" 'bash -c "source /root/vars; /root/ci/install.sh"' 2>&1 | sed -u -e "s,${SMS_IPMI_PASSWORD//\$/\\$},****,g" | tee -a "${LOG}"; then
 	RESULT=PASS
 else
 	echo "Running tests on ${SMS} failed!" | tee -a "${LOG}"
 fi
+echo "Finished install.sh on ${SMS} with timeout ${TIMEOUT}m at $(date -u +"%Y-%m-%d-%H-%M-%S")" | tee -a "${LOG}"
 
 rm -f "${VARS}"
 

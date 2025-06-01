@@ -38,12 +38,12 @@ if ( $#ARGV < 0) {
     exit 1;
 }
 
-my $BaseOS;
-if( !defined $ENV{BaseOS} ) {
-    print STDERR "BaseOS environment variable must be set to choice of OS\n";
+my $DISTRIBUTION;
+if( !defined $ENV{DISTRIBUTION} ) {
+    print STDERR "DISTRIBUTION environment variable must be set to choice of OS\n";
     exit 1;
 } else {
-    $BaseOS=$ENV{BaseOS};
+    $DISTRIBUTION=$ENV{DISTRIBUTION};
 }
 
 my $Architecture;
@@ -145,13 +145,13 @@ while(my $line=<IN>) {
 	$enable_nvidia_gpu_driver = $1;
     } elsif ($line =~ /^enable_ipoib=(\S+)$/) {
 	$enable_ipoib = $1;
-    } elsif ($line =~ /^enable_beegfs_client_$BaseOS=(\S+)$/) {
+    } elsif ($line =~ /^enable_beegfs_client_$DISTRIBUTION=(\S+)$/) {
 	$enable_beegfs_client = $1;
-    } elsif ($line =~ /^enable_lustre_client_$BaseOS=(\S+)$/) {
+    } elsif ($line =~ /^enable_lustre_client_$DISTRIBUTION=(\S+)$/) {
 	$enable_lustre_client = $1;
-    } elsif ($line =~ /^enable_nagios_$BaseOS=(\S+)$/) {
+    } elsif ($line =~ /^enable_nagios_$DISTRIBUTION=(\S+)$/) {
 	$enable_nagios = $1;
-    } elsif ($line =~ /^enable_ganglia_$BaseOS=(\S+)$/) {
+    } elsif ($line =~ /^enable_ganglia_$DISTRIBUTION=(\S+)$/) {
 	$enable_ganglia = $1;
     } elsif ($line =~ /^enable_genders=(\S+)$/) {
 	$enable_genders = $1;
@@ -185,7 +185,7 @@ while(my $line=<IN>) {
 	$bmc_username = $1;
     } elsif ($line =~ /^bmc_password=(\S+)$/) {
 	$bmc_password = $1;
-    } elsif ($line =~ /^sms_eth_internal_$BaseOS=(\S+)$/) {
+    } elsif ($line =~ /^sms_eth_internal_$DISTRIBUTION=(\S+)$/) {
 	$sms_eth_internal = $1;
     } elsif ($line =~ /^eth_provision=(\S+)$/) {
 	$eth_provision = $1;

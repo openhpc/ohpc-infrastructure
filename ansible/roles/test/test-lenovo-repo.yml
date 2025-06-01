@@ -2,7 +2,7 @@
   hosts: openhpc_lenovo_repo
   gather_facts: True
   vars:
-    distro: almalinux9.2
+    distro: almalinux9
 
   handlers:
     - name: Include handlers
@@ -161,7 +161,7 @@
       with_items:
         - /home/rocky/9/BaseOS/x86_64/os/images/pxeboot/initrd.img
         - /home/rocky/9/BaseOS/x86_64/os/images/pxeboot/vmlinuz
-      when: distro == "rocky9.2"
+      when: distro == "rocky9"
 
     - name: setup tftp booting for rocky8
       ansible.builtin.copy:
@@ -171,7 +171,7 @@
       with_items:
         - /home/rocky/8/BaseOS/x86_64/os/images/pxeboot/initrd.img
         - /home/rocky/8/BaseOS/x86_64/os/images/pxeboot/vmlinuz
-      when: distro == "rocky8.8"
+      when: distro == "rocky8"
 
     - name: setup tftp booting for almalinux9
       ansible.builtin.copy:
@@ -181,7 +181,7 @@
       with_items:
         - /home/almalinux/9/BaseOS/x86_64/os/images/pxeboot/initrd.img
         - /home/almalinux/9/BaseOS/x86_64/os/images/pxeboot/vmlinuz
-      when: distro == "almalinux9.2"
+      when: distro == "almalinux9"
 
     - name: setup tftp booting for leap15.5
       ansible.builtin.copy:
@@ -207,7 +207,7 @@
       template:
         src: "{{ distro }}-kickstart.lenovo"
         dest: "/var/www/html/{{ distro }}-kickstart"
-      when: (distro == "openEuler_22.03") or (distro == "rocky9.2") or (distro == "almalinux9.2") or (distro == "rocky8.8")
+      when: (distro == "openEuler_22.03") or (distro == "rocky9") or (distro == "almalinux9") or (distro == "rocky8")
 
     - name: "{{ distro }}-autoyast"
       template:

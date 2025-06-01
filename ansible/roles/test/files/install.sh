@@ -25,7 +25,7 @@ for env in InstallCluster \
 	JOB_BASE_NAME \
 	JOB_NAME \
 	enable_ib \
-	BaseOS \
+	DISTRIBUTION \
 	provision_wait \
 	Architecture \
 	UserLevelTests \
@@ -49,26 +49,26 @@ for env in InstallCluster \
 
 done
 
-case ${BaseOS} in
+case ${DISTRIBUTION} in
 openEuler_22.03)
 	os_major=openeuler22.03
 	os_repo=openEuler_22.03
 	os_dist=".oe2203"
 	repo_dir=/etc/yum.repos.d
 	;;
-rocky9.2)
+rocky9)
 	os_major=rocky9
 	os_repo=EL_9
 	os_dist=".el9"
 	repo_dir=/etc/yum.repos.d
 	;;
-rocky8.8)
+rocky8)
 	os_major=rocky8
 	os_repo=EL_8
 	os_dist=".el8"
 	repo_dir=/etc/yum.repos.d
 	;;
-almalinux9.2)
+almalinux9)
 	os_major=almalinux9
 	os_repo=EL_9
 	os_dist=".el9"
@@ -87,7 +87,7 @@ leap15.3)
 	repo_dir=/etc/zypp/repos.d
 	;;
 *)
-	echo "Unknown BaseOS ${BaseOS}. Exiting!"
+	echo "Unknown DISTRIBUTION ${DISTRIBUTION}. Exiting!"
 	exit 1
 	;;
 esac
@@ -95,7 +95,7 @@ esac
 repo_file="${repo_dir}/OpenHPC.repo"
 export os_major os_repo os_dist repo_file
 
-if [[ "${BaseOS}" == "leap"* ]]; then
+if [[ "${DISTRIBUTION}" == "leap"* ]]; then
 	PKG_MANAGER="zypper"
 	YES="-n"
 else
