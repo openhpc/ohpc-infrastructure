@@ -10,7 +10,7 @@
 
 	. /etc/os-release
 
-	case ${BaseOS} in
+	case ${DISTRIBUTION} in
 	openEuler_22.03)
 		[ "$NAME" == "openEuler" ]
 		[[ "$VERSION" == "22.03"* ]]
@@ -19,20 +19,20 @@
 		[ "$NAME" == "openSUSE Leap" ]
 		[ "$VERSION" == "15.5" ]
 		;;
-	rocky8.8)
+	rocky8)
 		[ "$NAME" == "Rocky Linux" ]
 		[[ "$VERSION" == "8."* ]]
 		;;
-	rocky9.2)
+	rocky9)
 		[ "$NAME" == "Rocky Linux" ]
 		[[ "$VERSION" == "9."* ]]
 		;;
-	almalinux9.2)
+	almalinux9)
 		[ "$NAME" == "AlmaLinux" ]
 		[[ "$VERSION" == "9."* ]]
 		;;
 	*)
-		echo "Unknown BaseOS ${BaseOS}. Error!"
+		echo "Unknown DISTRIBUTION ${DISTRIBUTION}. Error!"
 		false
 		;;
 	esac

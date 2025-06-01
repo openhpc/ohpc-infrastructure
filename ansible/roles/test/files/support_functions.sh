@@ -74,11 +74,11 @@ show_pwd() {
 }
 
 show_runtime_config() {
-	test -z "${BaseOS}" && ERROR "Variable BaseOS not defined"
+	test -z "${DISTRIBUTION}" && ERROR "Variable DISTRIBUTION not defined"
 
 	echo " "
 	echo "Requested runtime configuration parameters:"
-	echo "--> BaseOS                 = ${BaseOS}"
+	echo "--> DISTRIBUTION           = ${DISTRIBUTION}"
 	echo "--> os_major               = ${os_major}"
 
 	test -z "${Repo}" && ERROR "Variable Repo not defined"
@@ -134,7 +134,7 @@ run_root_level_tests() {
 	fi
 
 	if [ "$CI_CLUSTER" == "moontower" ]; then
-		if echo "${BaseOS}" | grep -q centos; then
+		if echo "${DISTRIBUTION}" | grep -q centos; then
 			localOptions="--enable-lustre"
 		fi
 	fi
@@ -143,7 +143,7 @@ run_root_level_tests() {
 		echo "ipmitool test already fixed in the git repository"
 		sed -e "/TESTS  += nagios/d" -i admin/Makefile.am
 		sed -e "/TESTS += ipmitool/d" -i oob/Makefile.am
-		if [[ "${BaseOS}" == "leap15.3" ]]; then
+		if [[ "${DISTRIBUTION}" == "leap15.3" ]]; then
 			sed -e "s,-Sg,-Sng,g" -i /home/ohpc-test/tests/admin/clustershell
 		fi
 	fi
@@ -228,7 +228,7 @@ EOF
 			echo "export UCX_NET_DEVICES=eth3"
 		} >>/tmp/user_integration_tests
 	fi
-	if [[ ${CI_CLUSTER} == "huawei" ]] && [[ "${BaseOS}" == "openEuler_22.03" ]]; then
+	if [[ ${CI_CLUSTER} == "huawei" ]] && [[ "${DISTRIBUTION}" == "openEuler_22.03" ]]; then
 		echo "export UCX_NET_DEVICES=eth0,eth2" >>/tmp/user_integration_tests
 	elif [[ ${CI_CLUSTER} == "huawei" ]]; then
 		echo "export UCX_NET_DEVICES=enp189s0f0" >>/tmp/user_integration_tests
@@ -276,12 +276,12 @@ install_openHPC_cluster() {
 
 	if [[ $CI_CLUSTER == "hera" ]]; then
 
-		if [[ $BaseOS == "sles12" || $BaseOS == "sles12sp1" || $BaseOS == "sles12sp2" ]]; then
+		if [[ $DISTRIBUTION == "sles12" || $DISTRIBUTION == "sles12sp1" || $DISTRIBUTION == "sles12sp2" ]]; then
 			echo "CI Customization: setting DHCPD_INTERFACE=eth2 for sles on Hera"
 			perl -pi -e 's/DHCPD_INTERFACE=\${sms_eth_internal}/DHCPD_INTERFACE=eth2/' "${recipeFile}"
 		fi
 	elif [[ $CI_CLUSTER == "moontower" ]]; then
-		if [[ $BaseOS == "sles12" || $BaseOS == "sles12sp1" || $BaseOS == "sles12sp2" || $BaseOS == "sles12sp3" || $BaseOS == "sles12sp4" ]]; then
+		if [[ $DISTRIBUTION == "sles12" || $DISTRIBUTION == "sles12sp1" || $DISTRIBUTION == "sles12sp2" || $DISTRIBUTION == "sles12sp3" || $DISTRIBUTION == "sles12sp4" ]]; then
 			echo "CI Customization: setting DHCPD_INTERFACE=eth2 for sles on Moontower"
 			perl -pi -e 's/DHCPD_INTERFACE=\${sms_eth_internal}/DHCPD_INTERFACE=eth0/' "${recipeFile}"
 		fi
@@ -309,6 +309,9 @@ install_openHPC_cluster() {
 			# shellcheck disable=SC2016
 			sed '/export CHROOT/a /usr/bin/cp -vf /etc/yum.repos.d/OpenHPC*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
 		fi
+		if [ "${Provisioner}" == "warewulf" ] && [ "${PKG_MANAGER}" == "zypper" ]; then
+			sed -e "s,install nhc-ohpc,install nhc-ohpc attr,g" -i "${recipeFile}"
+		fi
 		if [ "${enable_ib}" -eq 1 ] || [ "${Provisioner}" == "warewulf" ]; then
 			echo "CI Customization: Install opensm on compute node"
 			# for warewulf stateless provisioning we need a way to install opensm on one of the compute nodes
@@ -319,7 +322,7 @@ install_openHPC_cluster() {
 	else
 		echo "No CI specialization"
 	fi
-	echo "BaseOS = $BaseOS"
+	echo "DISTRIBUTION = $DISTRIBUTION"
 	echo "CI_CLUSTER = $CI_CLUSTER"
 
 	if [ "${EnableArmCompiler}" == "true" ]; then
@@ -422,7 +425,7 @@ post_install_cmds() {
 		fi
 	done
 
-	if [[ "${BaseOS}" == "openEuler_22.03" ]]; then
+	if [[ "${DISTRIBUTION}" == "openEuler_22.03" ]]; then
 		# Point to newer version of the java binary.
 		# Without this Jenkins does not work.
 		update-alternatives --set java \
@@ -438,7 +441,7 @@ post_install_cmds() {
 		install_package perl-XML-Generator
 	else
 		local CPAN
-		if [[ "${BaseOS}" == "leap"* ]]; then
+		if [[ "${DISTRIBUTION}" == "leap"* ]]; then
 			CPAN="perl-App-cpanminus"
 		else
 			CPAN="perl-CPAN"
@@ -449,7 +452,7 @@ post_install_cmds() {
 		cpan -Tfi XML::Generator >>/root/cpan.log 2>&1
 	fi
 
-	if [[ "${BaseOS}" == "leap"* ]] && [[ ${CI_CLUSTER} == "huawei" ]]; then
+	if [[ "${DISTRIBUTION}" == "leap"* ]] && [[ ${CI_CLUSTER} == "huawei" ]]; then
 		echo "Syncing time on compute nodes"
 		pdsh -w "${compute_prefix}"[1-"${num_computes}"] "chronyc -m 'burst 3/3' 'makestep 0.1 3'"
 	fi
@@ -477,7 +480,7 @@ gen_localized_inputs() {
 		sed -i -e "s/enable_intel_packages:-0/enable_intel_packages:-1/" "${inputFile}"
 	fi
 
-	if [[ "${BaseOS}" == "leap15.3" ]]; then
+	if [[ "${DISTRIBUTION}" == "leap15.3" ]]; then
 		# bats on leap 15.3 is too old. Just skip this.
 		return
 	fi
@@ -494,14 +497,14 @@ gen_localized_inputs() {
 
 pre_install_cmds() {
 	if [ "${Provisioner}" == "confluent" ]; then
-		if [[ "${BaseOS}" == "rocky"* ]]; then
+		if [[ "${DISTRIBUTION}" == "rocky"* ]]; then
 			wget -q http://10.241.58.130/Rocky-9.4-x86_64-dvd.iso
 		fi
-		if [[ "${BaseOS}" == "almalinux"* ]]; then
+		if [[ "${DISTRIBUTION}" == "almalinux"* ]]; then
 			wget -q http://10.241.58.130/AlmaLinux-9.5-x86_64-dvd.iso
 		fi
 	fi
-	if [[ "${BaseOS}" == "leap"* ]] && [[ ${CI_CLUSTER} == "huawei" ]]; then
+	if [[ "${DISTRIBUTION}" == "leap"* ]] && [[ ${CI_CLUSTER} == "huawei" ]]; then
 		sed -e "s,download.opensuse.org/,mirrors.nju.edu.cn/opensuse/,g" -i /etc/zypp/repos.d/*repo
 	fi
 	"${PKG_MANAGER}" "${YES}" update
@@ -513,7 +516,7 @@ pre_install_cmds() {
 		rm -f /root/.ssh/cluster*
 	fi
 
-	if [[ ("${BaseOS}" == "rocky"* || "${BaseOS}" == "almalinux"*) ]] && [[ "${Architecture}" == "aarch64" ]]; then
+	if [[ ("${DISTRIBUTION}" == "rocky"* || "${DISTRIBUTION}" == "almalinux"*) ]] && [[ "${Architecture}" == "aarch64" ]]; then
 		# On Rocky 9.2 on aarch64 there were errors like
 		# "(Got a packet bigger than 'max_allowed_packet' bytes)".
 		# This tries to fix that error:
@@ -696,7 +699,7 @@ enable_repo() {
 		if [[ "${Repo}" == "Staging" ]]; then
 			sed -e 's|community/OpenHPC/|community/.staging/OpenHPC/|' \
 				-i "${repo_file}" || ERROR "Unable to use staging repo"
-			if [[ "${BaseOS}" =~ "leap" ]]; then
+			if [[ "${DISTRIBUTION}" =~ "leap" ]]; then
 				"${PKG_MANAGER}" clean -a
 			fi
 		fi

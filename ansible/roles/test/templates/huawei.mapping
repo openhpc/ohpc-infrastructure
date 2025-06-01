@@ -14,8 +14,8 @@ enable_magpie=1
 
 ntp_server=192.168.1.220
 
-sms_eth_internal_rocky9.2=enp189s0f0
-sms_eth_internal_almalinux9.2=enp189s0f0
+sms_eth_internal_rocky9=enp189s0f0
+sms_eth_internal_almalinux9=enp189s0f0
 sms_eth_internal_openEuler_22.03=eth0
 sms_eth_internal_leap15.5=eth0
 

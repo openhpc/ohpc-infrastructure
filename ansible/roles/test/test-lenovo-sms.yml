@@ -15,7 +15,7 @@
       line: "{{ item }}"
     with_items:
       - user_agent="curl"
-    when: (distro.startswith("rocky")) or (distro == "almalinux9.2") or (distro.startswith("openEuler"))
+    when: (distro.startswith("rocky")) or (distro == "almalinux9") or (distro.startswith("openEuler"))
 
   - name: Replace mirror URL for openeuler
     ansible.builtin.replace:
@@ -55,7 +55,7 @@
       mode: 0644
     with_items:
       - OpenHPC-obs-factory.repo
-    when: (distro.startswith("rocky")) or (distro == "almalinux9.2")
+    when: (distro.startswith("rocky")) or (distro == "almalinux9")
 
   - name: install obs repository configuration
     template:
@@ -74,7 +74,7 @@
       name:
       - epel-release
       - tzdata-java
-    when: (distro.startswith("rocky")) or (distro == "almalinux9.2")
+    when: (distro.startswith("rocky")) or (distro == "almalinux9")
 
   - name: install packages
     package:
