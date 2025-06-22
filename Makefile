@@ -1,4 +1,4 @@
-lint: codespell-lint whitespace-lint shellcheck-lint shfmt-lint
+lint: codespell-lint whitespace-lint shellcheck-lint shfmt-lint ansible-lint
 
 codespell-lint:
 	@echo "Running 'codespell' on all files"
@@ -18,3 +18,7 @@ shfmt-lint:
 	@echo "Running 'shfmt' on all shell scripts"
 	shfmt -w -d \
 		$$(find . -name *sh)
+
+ansible-lint:
+	@echo "Running 'ansible-lint' on selected yaml files"
+	ansible-lint --offline ansible/roles/test/ohpc-huawei-*yml

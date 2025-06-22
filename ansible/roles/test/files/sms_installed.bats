@@ -1,8 +1,8 @@
-#!/usr/bin/env -S bats --report-formatter junit --formatter tap
+#!/usr/bin/env -S bats --report-formatter junit --formatter tap -j 2
 # shellcheck disable=SC1091,SC2154
 
 @test "Verify hostname matches expectations" {
-	[ "$SMS" == "$(hostname)" ]
+	[ "$NODE_NAME" == "$(hostname)" ]
 }
 
 @test "Base OS check" {

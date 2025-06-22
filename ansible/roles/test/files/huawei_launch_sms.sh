@@ -49,9 +49,9 @@ cd ansible || exit
 ansible-playbook \
 	--extra-vars "distro=${OS} root_password_crypted=${ROOT_PASSWORD_CRYPTED}" \
 	-i inventory/test \
-	roles/test/test-oe-repo.yml
+	roles/test/ohpc-huawei-repo.yml
 cd ..
-ssh "${BOOT_SERVER}" systemctl start dhcpd
+ssh "${BOOT_SERVER}" systemctl start kea-dhcp4
 echo -n "----> Switching boot device to PXE: "
 export IPMI_PASSWORD=${SMS_IPMI_PASSWORD}
 /usr/bin/ipmitool -C 3 -E -I lanplus -H "${BMC}" -U root chassis bootdev pxe
@@ -89,10 +89,10 @@ ssh "${BOOT_SERVER}" "ssh-keygen -R ${TARGET}"
 ssh "${BOOT_SERVER}" "ssh -o StrictHostKeyChecking=accept-new ${TARGET} hostname"
 
 # The boot server only has dhcpd enabled during SMS installation
-ssh "${BOOT_SERVER}" systemctl stop dhcpd
+ssh "${BOOT_SERVER}" systemctl stop kea-dhcp4
 
 cd ansible || exit
-ansible-playbook --extra-vars "distro=${OS} release=${RELEASE}" -i inventory/test roles/test/test-oe-sms.yml
+ansible-playbook --extra-vars "distro=${OS} release=${RELEASE}" -i inventory/test roles/test/ohpc-huawei-sms.yml
 cd ..
 
 # for openEuler we need to use CPAN. This speeds up the

@@ -12,6 +12,18 @@
     name: chronyd
   ignore_errors: "{{ ansible_check_mode }}"
 
+- name: Restart kea-dhcp4
+  ansible.builtin.systemd_service:
+    state: restarted
+    name: kea-dhcp4
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Restart squid
+  ansible.builtin.systemd_service:
+    state: restarted
+    name: squid
+  ignore_errors: "{{ ansible_check_mode }}"
+
 - name: Restart fail2ban
   ansible.builtin.systemd_service:
     state: restarted

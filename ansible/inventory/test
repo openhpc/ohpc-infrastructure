@@ -1,11 +1,11 @@
-[openhpc_oe_jenkins_jumper]
-openhpc-oe-jenkins-jumper
+[ohpc_huawei_jumper]
+ohpc-huawei-jumper
 
-[openhpc_oe_jenkins_sms]
-openhpc-oe-jenkins-sms
+[ohpc_huawei_sms]
+ohpc-huawei-sms
 
-[openhpc_oe_jenkins_repo]
-openhpc-oe-jenkins-repo
+[ohpc_huawei_repo]
+ohpc-huawei-repo
 
 [openhpc_lenovo_repo]
 openhpc-lenovo-repo

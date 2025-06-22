@@ -23,12 +23,13 @@ show_usage() {
 	echo "                        (nvidia, none (default))"
 	echo "  -o <RPM>              Use this RPM to overwrite the default docs-ohpc RPM"
 	echo "  -b                    Use InfiniBand"
+	echo "  -n                    Don't upload test results"
 	echo "  -h                    Show this help"
 }
 
 TIMEOUT="100"
 
-while getopts "d:v:r:m:p:ig:bo:h" OPTION; do
+while getopts "d:v:r:m:p:ig:nbo:h" OPTION; do
 	case $OPTION in
 	d)
 		DISTRIBUTION=$OPTARG
@@ -54,6 +55,9 @@ while getopts "d:v:r:m:p:ig:bo:h" OPTION; do
 		;;
 	o)
 		RPM=$OPTARG
+		;;
+	n)
+		UPLOAD="false"
 		;;
 	g)
 		WITH_GPU=$OPTARG
@@ -98,7 +102,7 @@ fi
 
 if [[ "${SMS}" == "openhpc-lenovo-jenkins-sms" ]]; then
 	LAUNCHER="lenovo_launch_sms.sh"
-elif [[ "${SMS}" == "openhpc-oe-jenkins-sms" ]]; then
+elif [[ "${SMS}" == "ohpc-huawei-sms" ]]; then
 	LAUNCHER="huawei_launch_sms.sh"
 else
 	echo "Unknown system. Exiting"
@@ -151,17 +155,19 @@ if [[ "${VERSION_MAJOR}" == "2" ]]; then
 	esac
 fi
 
-if [[ "${SMS}" == "openhpc-oe-jenkins-sms" ]]; then
+if [[ "${SMS}" == "ohpc-huawei-sms" ]]; then
 	TEST_ARCH="aarch64"
 	CI_CLUSTER=huawei
-	COMPUTE_HOSTS="openhpc-oe-jenkins-c1, openhpc-oe-jenkins-c2"
+	COMPUTE_HOSTS="ohpc-huawei-c1, ohpc-huawei-c2"
 	((TIMEOUT += 100))
-	GATEWAY="192.168.1.218"
+	GATEWAY="192.168.243.4"
+	SMS_INTERNAL="${SMS}-internal"
 else
 	TEST_ARCH=$(uname -m)
 	CI_CLUSTER=lenovo
 	COMPUTE_HOSTS="openhpc-lenovo-jenkins-c1, openhpc-lenovo-jenkins-c2"
 	GATEWAY="10.241.58.129"
+	SMS_INTERNAL="${SMS}"
 fi
 
 if [ ! -d "${RESULTS}" ]; then
@@ -187,32 +193,24 @@ print_overview() {
 	echo "--> test options:      ${USER_TEST_OPTIONS}"
 	echo "--> gateway:           ${GATEWAY}"
 	echo "--> gpu:               ${WITH_GPU}"
+	echo "--> upload:            ${UPLOAD:-true}"
 }
 
 cleanup() {
-	if [ ! -d "${RESULTS}/${VERSION_MAJOR}" ]; then
-		mkdir "${RESULTS}/${VERSION_MAJOR}"
-	fi
-	if [ ! -d "${RESULTS}/${VERSION_MAJOR}/${VERSION}" ]; then
-		mkdir "${RESULTS}/${VERSION_MAJOR}/${VERSION}"
-	fi
+	set +e
 	if [ -s "${OUT}"/test-results.tar ]; then
 		cd "${OUT}"
-		set +e
 		tar xf test-results.tar
 		/usr/local/junit2html/bin/junit2html --merge results tests
 		/usr/local/junit2html/bin/junit2html results --summary-matrix | tee -a "${LOG}"
 		/usr/local/junit2html/bin/junit2html results --report-matrix junit.html
 		rm -rf tests
 		cd - >/dev/null
-		set -e
 	fi
-	set +e
 	echo "Finished at $(date -u +"%Y-%m-%d-%H-%M-%S")" >>"${LOG}"
 	FAILED=$(grep "Failed       :" "${LOG}" | cut -d: -f2 | xargs)
 	PASSED=$(grep "Passed       :" "${LOG}" | cut -d: -f2 | xargs)
 	SKIPPED=$(grep "Skipped      :" "${LOG}" | cut -d: -f2 | xargs)
-	set -e
 	mv "${LOG}" "${OUT}"/console.out
 	chmod 644 "${OUT}"/console.out
 	sed -e "s,${SMS_IPMI_PASSWORD//\$/\\$},****,g" -i "${OUT}"/console.out
@@ -225,28 +223,36 @@ cleanup() {
 		echo "PASSED=${PASSED:-0}"
 		echo "SKIPPED=${SKIPPED:-0}"
 	} >>"$OUT/INFO"
-	DEST_DIR="${RESULTS}/${VERSION_MAJOR}/${VERSION}"
-	NAME="OHPC-${VERSION}-${DISTRIBUTION}-${PROVISIONER}"
-	if [ -n "${USE_IB}" ]; then
-		NAME="${NAME}-infiniband"
-	else
-		NAME="${NAME}-ethernet"
+	if [ -z "${UPLOAD}" ]; then
+		if [ ! -d "${RESULTS}/${VERSION_MAJOR}" ]; then
+			mkdir "${RESULTS}/${VERSION_MAJOR}"
+		fi
+		if [ ! -d "${RESULTS}/${VERSION_MAJOR}/${VERSION}" ]; then
+			mkdir "${RESULTS}/${VERSION_MAJOR}/${VERSION}"
+		fi
+		DEST_DIR="${RESULTS}/${VERSION_MAJOR}/${VERSION}"
+		NAME="OHPC-${VERSION}-${DISTRIBUTION}-${PROVISIONER}"
+		if [ -n "${USE_IB}" ]; then
+			NAME="${NAME}-infiniband"
+		else
+			NAME="${NAME}-ethernet"
+		fi
+		if [ -n "${WITH_INTEL}" ]; then
+			NAME="${NAME}-INTEL"
+		fi
+		NAME="${NAME}-gpu-${WITH_GPU}-${TEST_ARCH}-${RMS}"
+		DEST_NAME="$(date -u +"%Y-%m-%d-%H-%M-%S")-${RESULT}-${NAME}-${RANDOM}"
+		mv "${OUT}" "${DEST_DIR}/${DEST_NAME}"
+		chmod 755 "${DEST_DIR}/${DEST_NAME}"
+		cd "${DEST_DIR}"
+		ln -sfn "${DEST_NAME}" "0-LATEST-${NAME}"
+		cd - >/dev/null
+		echo rsync -a /results/ ohpc@repos.ohpc.io:/results
+		# shellcheck disable=SC2029
+		echo ssh ohpc@repos.ohpc.io /home/ohpc/bin/update_results.sh "${VERSION_MAJOR}" "${VERSION}"
 	fi
-	if [ -n "${WITH_INTEL}" ]; then
-		NAME="${NAME}-INTEL"
-	fi
-	NAME="${NAME}-gpu-${WITH_GPU}-${TEST_ARCH}-${RMS}"
-	DEST_NAME="$(date -u +"%Y-%m-%d-%H-%M-%S")-${RESULT}-${NAME}-${RANDOM}"
-	mv "${OUT}" "${DEST_DIR}/${DEST_NAME}"
-	chmod 755 "${DEST_DIR}/${DEST_NAME}"
-	cd "${DEST_DIR}"
-	ln -sfn "${DEST_NAME}" "0-LATEST-${NAME}"
-	cd - >/dev/null
-	rsync -a /results/ ohpc@repos.ohpc.io:/results
-	# shellcheck disable=SC2029
-	ssh ohpc@repos.ohpc.io /home/ohpc/bin/update_results.sh "${VERSION_MAJOR}" "${VERSION}"
 	# save CPAN cache
-	if [[ "${SMS}" == "openhpc-oe-jenkins-sms" ]]; then
+	if [[ "${SMS}" == "ohpc-huawei-sms" ]]; then
 		# shellcheck disable=SC2029
 		ssh "${BOOT_SERVER}" "bash -c \"rsync -az --info=progress2 --zl 9 --exclude=CPAN/MyConfig.pm ${SMS}:/root/.cpan/ /root/.cache/cpan-backup/\""
 	fi
@@ -281,7 +287,7 @@ else
 fi
 
 if [[ "${CI_CLUSTER}" == "huawei" ]]; then
-	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-spack"
+	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-spack --disable-easybuild"
 fi
 
 print_overview
@@ -308,7 +314,7 @@ set -x
 	echo "export Version=${VERSION}"
 	echo "export Architecture=${TEST_ARCH}"
 	echo "export SMS=${SMS}"
-	echo "export NODE_NAME=${SMS}"
+	echo "export NODE_NAME=${SMS_INTERNAL}"
 	echo "export RMS=${RMS}"
 	echo "export Provisioner=${PROVISIONER}"
 	echo "export Repo=${REPO}"
@@ -335,10 +341,10 @@ if [[ "${PROVISIONER}" == "confluent" ]]; then
 	fi
 fi
 
-if [[ "${DISTRIBUTION}" == "almalinux"* ]] && [[ "${SMS}" == "openhpc-oe-jenkins-sms" ]]; then
+if [[ "${DISTRIBUTION}" == "almalinux"* ]] && [[ "${SMS}" == "ohpc-huawei-sms" ]]; then
 	echo "export YUM_MIRROR_BASE=http://mirrors.nju.edu.cn/almalinux/" >>"${VARS}"
 fi
-if [[ "${DISTRIBUTION}" == "rocky"* ]] && [[ "${SMS}" == "openhpc-oe-jenkins-sms" ]]; then
+if [[ "${DISTRIBUTION}" == "rocky"* ]] && [[ "${SMS}" == "ohpc-huawei-sms" ]]; then
 	echo "export YUM_MIRROR_BASE=http://mirrors.nju.edu.cn/rocky/" >>"${VARS}"
 fi
 if [[ "${DISTRIBUTION}" == "openEuler"* ]] && [[ "${SMS}" == "openhpc-lenovo-jenkins-sms" ]]; then
@@ -369,6 +375,7 @@ fi
 scp "${VARS}" "${SMS}":/root/vars
 
 set +x
+set +e
 
 echo "Running install.sh on ${SMS} with timeout ${TIMEOUT}m at $(date -u +"%Y-%m-%d-%H-%M-%S")" | tee -a "${LOG}"
 if timeout -v --signal=9 "${TIMEOUT}m" ssh -t -n "${SMS}" 'bash -c "source /root/vars; /root/ci/install.sh"' 2>&1 | sed -u -e "s,${SMS_IPMI_PASSWORD//\$/\\$},****,g" | tee -a "${LOG}"; then
