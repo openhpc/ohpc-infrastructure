@@ -231,7 +231,7 @@ EOF
 	if [[ ${CI_CLUSTER} == "huawei" ]] && [[ "${DISTRIBUTION}" == "openEuler_22.03" ]]; then
 		echo "export UCX_NET_DEVICES=eth0,eth2" >>/tmp/user_integration_tests
 	elif [[ ${CI_CLUSTER} == "huawei" ]]; then
-		echo "export UCX_NET_DEVICES=enp189s0f0" >>/tmp/user_integration_tests
+		echo "export UCX_NET_DEVICES=enp125s0f0" >>/tmp/user_integration_tests
 	fi
 	if [ "${CI_CLUSTER}" == "lenovo" ] && [ "${enable_ib}" -eq 1 ]; then
 		echo "export UCX_NET_DEVICES=mlx5_0:1" >>/tmp/user_integration_tests
@@ -284,6 +284,12 @@ install_openHPC_cluster() {
 		if [[ $DISTRIBUTION == "sles12" || $DISTRIBUTION == "sles12sp1" || $DISTRIBUTION == "sles12sp2" || $DISTRIBUTION == "sles12sp3" || $DISTRIBUTION == "sles12sp4" ]]; then
 			echo "CI Customization: setting DHCPD_INTERFACE=eth2 for sles on Moontower"
 			perl -pi -e 's/DHCPD_INTERFACE=\${sms_eth_internal}/DHCPD_INTERFACE=eth0/' "${recipeFile}"
+		fi
+	elif [[ $CI_CLUSTER == "huawei" ]]; then
+		if [ "${Provisioner}" == "warewulf" ]; then
+			echo "CI Customization: console=tty0 breaks the compute nodes"
+			sed '/dnf -y install ohpc-warewulf/a sed -e "s,# \\(database chunk size\\),\\1,g" -i /etc/warewulf/database.conf' -i "${recipeFile}"
+			sed '/dnf -y install ohpc-warewulf/a sed -e "s,console=tty0,,g" -i /usr/share/perl5/vendor_perl/Warewulf/Provision/Pxe.pm' -i "${recipeFile}"
 		fi
 	elif [[ $CI_CLUSTER == "lenovo" ]]; then
 		echo "CI Customization: PXE boot selection is not persistent"

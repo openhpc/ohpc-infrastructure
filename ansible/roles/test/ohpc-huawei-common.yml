@@ -1,0 +1,29 @@
+- name: Update /etc/hosts
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    state: present
+    line: "{{ item }}"
+  with_items:
+    - 129.114.60.186 test.openhpc.community
+    - 192.168.243.1 ohpc-huawei-sms-internal
+    - 175.200.16.11 ohpc-huawei-sms sms
+    - 175.200.16.12 ohpc-huawei-c1 c1
+    - 175.200.16.13 ohpc-huawei-c2 c2
+    - 175.200.16.14 ohpc-huawei-repo repo
+    - 150.50.16.11 mohpc-huawei-sms
+    - 150.50.16.12 mohpc-huawei-c1
+    - 150.50.16.13 mohpc-huawei-c2
+    - 150.50.16.14 mohpc-huawei-repo
+
+- name: Set a hostname to "{{ inventory_hostname_short }}"
+  ansible.builtin.hostname:
+    name: "{% if local_hostname is defined %}{{ local_hostname }}{% else %}{{ inventory_hostname_short }}{% endif %}"
+    use: systemd
+
+- name: Remove ssh banner (this breaks ansible)
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    state: absent
+    regexp: '^Banner.*$'
+  notify:
+    - Restart sshd

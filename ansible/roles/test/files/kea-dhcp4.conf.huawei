@@ -1,0 +1,48 @@
+{
+  "Dhcp4": {
+    "interfaces-config": {
+      "interfaces": [
+        "enp125s0f0"
+      ]
+    },
+    "control-socket": {
+      "socket-type": "unix",
+      "socket-name": "/tmp/kea4-ctrl-socket"
+    },
+    "option-data": [
+      {
+        "name": "domain-name-servers",
+        "data": "8.8.8.8"
+      },
+      {
+        "name": "boot-file-name",
+        "data": "grubaa64.efi"
+      }
+    ],
+    "subnet4": [
+      {
+        "id": 1,
+        "subnet": "192.168.243.0/28",
+        "reservations": [
+          {
+            "hw-address": "f4:de:af:6c:ce:a1",
+            "next-server": "192.168.243.4",
+            "ip-address": "192.168.243.1"
+          }
+        ]
+      }
+    ],
+    "loggers": [
+      {
+        "name": "kea-dhcp4",
+        "output-options": [
+          {
+            "output": "stderr"
+          }
+        ],
+        "severity": "INFO",
+        "debuglevel": 0
+      }
+    ]
+  }
+}

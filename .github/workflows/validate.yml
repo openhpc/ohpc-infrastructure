@@ -23,14 +23,14 @@ jobs:
   lint:
     strategy:
       matrix:
-        step: [codespell, shellcheck, whitespace, shfmt]
+        step: [codespell, shellcheck, whitespace, shfmt, ansible]
     name: Run ${{ matrix.step }} linter
     runs-on: ubuntu-latest
     container:
       image: registry.fedoraproject.org/fedora:latest
     steps:
       - name: Setup
-        run: dnf -y install codespell make python3-flake8 ShellCheck shfmt
+        run: dnf -y install codespell make python3-flake8 ShellCheck shfmt python3-ansible-lint ansible
       - uses: actions/checkout@v4
       - name: Run ${{ matrix.step }}
         run: make ${{ matrix.step }}-lint

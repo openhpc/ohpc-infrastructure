@@ -1,5 +1,5 @@
-- name: OpenHPC OE jumper
-  hosts: openhpc_oe_jenkins_jumper
+- name: OpenHPC Huawei jumper
+  hosts: ohpc_huawei_jumper
   become: true
   gather_facts: true
 
@@ -21,14 +21,6 @@
           - netcat
           - rsync
           - ansible
-
-    # This requires that the following command already ran:
-    # 'openvpn3 config-import -p -n Huawei -c /root/HuaweiVPN/Huawei.ovpn'
-    - name: Enable openvpn3-session@Huawei service
-      ansible.builtin.service:
-        name: openvpn3-session@Huawei
-        enabled: true
-        state: started
 
     - name: Install openvpn client file
       ansible.builtin.copy:
@@ -58,8 +50,8 @@
       notify:
         - Restart chronyd
 
-    - name: Import common OE file
-      ansible.builtin.import_tasks: test-oe-common.yml
+    - name: Import common Huawei file
+      ansible.builtin.import_tasks: ohpc-huawei-common.yml
 
     - name: Enable masquerade in public zone
       ansible.posix.firewalld:
@@ -81,10 +73,30 @@
       tags:
         - skip_ansible_lint
 
+    - name: Allow impitool access
+      ansible.posix.firewalld:
+        zone: public
+        port: 623/udp
+        permanent: true
+        state: enabled
+        immediate: true
+      tags:
+        - skip_ansible_lint
+
     - name: Add tun1 to public zone
       ansible.posix.firewalld:
         zone: public
         interface: tun1
+        permanent: true
+        immediate: true
+        state: enabled
+      tags:
+        - skip_ansible_lint
+
+    - name: Add ipsec_vnic to public zone
+      ansible.posix.firewalld:
+        zone: public
+        interface: ipsec_vnic
         permanent: true
         immediate: true
         state: enabled
