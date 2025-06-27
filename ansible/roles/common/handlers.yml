@@ -24,6 +24,12 @@
     name: squid
   ignore_errors: "{{ ansible_check_mode }}"
 
+- name: Restart httpd
+  ansible.builtin.systemd_service:
+    state: restarted
+    name: httpd
+  ignore_errors: "{{ ansible_check_mode }}"
+
 - name: Restart fail2ban
   ansible.builtin.systemd_service:
     state: restarted
