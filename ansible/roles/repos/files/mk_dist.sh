@@ -10,6 +10,7 @@ BASE_REPO_PATH="/repos/.staging/OpenHPC"
 DEST_DIR="/repos/dist/"
 TMPDIR="/repos/.staging/.tmp"
 MAKE_REPO_SH="/home/ohpc/bin/make_repo.sh"
+PUBLIC_KEY="/home/ohpc/RPM-GPG-KEY-OpenHPC-3"
 
 show_usage() {
 	echo "$0: script to create distribution tarballs"
@@ -72,7 +73,7 @@ for DISTRO in "${DISTROS[@]}"; do
 name=OpenHPC-${VERSION_MAJOR} - Base
 baseurl=file://@PATH@/${DISTRO}
 gpgcheck=1
-gpgkey=file://@PATH@/${DISTRO}/repodata/repomd.xml.key
+gpgkey=file://@PATH@/RPM-GPG-KEY-OpenHPC-3
 EOF
 
 	if [[ "${VERSION_MINOR}" != "0" ]]; then
@@ -80,11 +81,11 @@ EOF
 		DEST="${TMP_DIR}/${DISTRO}/updates"
 		echo "--> Copying updates from ${SRC} to ${DEST}"
 		cat <<EOF >>"${TMP_DIR}/OpenHPC.local.repo"
-[OpenHPC-local]
+[OpenHPC-local-updates]
 name=OpenHPC-${VERSION} - Updates
 baseurl=file://@PATH@/${DISTRO}/updates
 gpgcheck=1
-gpgkey=file://@PATH@/${DISTRO}/updates/repodata/repomd.xml.key
+gpgkey=file://@PATH@/RPM-GPG-KEY-OpenHPC-3
 EOF
 		cp -aLl --reflink=auto "${SRC}" "${DEST}"
 	fi
@@ -154,9 +155,10 @@ ${DISTRO} make_repo.sh OpenHPC-${VERSION}.${DISTRO}.${ARCH}.tar OpenHPC.local.re
 EOF
 		# add make_repo.sh
 		cp -f "${MAKE_REPO_SH}" "${TMP_DIR}"
+		cp -f "${PUBLIC_KEY}" "${TMP_DIR}"
 
 		# Create tarball
-		TAR_ARGS+=("${DISTRO}" "OpenHPC.local.repo" "make_repo.sh" "README")
+		TAR_ARGS+=("${DISTRO}" "OpenHPC.local.repo" "make_repo.sh" "README" "${PUBLIC_KEY##*/}")
 		echo "--> Creating dist tarball for ${DISTRO}:${ARCH}"
 		echo "--> tar command -> tar " "${TAR_ARGS[@]}"
 
