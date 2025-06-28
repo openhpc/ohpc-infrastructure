@@ -285,7 +285,7 @@
       tags:
         - skip_ansible_lint
 
-    - name: Install update_results.sh
+    - name: Install helper scripts
       ansible.builtin.copy:
         src: "{{ item }}"
         dest: /home/ohpc/bin/
@@ -299,6 +299,16 @@
         - move-httpd-logs.sh
         - mk_dist.sh
         - make_repo.sh
+
+    - name: Copy public keys
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: /home/ohpc/
+        owner: root
+        group: root
+        mode: "0644"
+      with_items:
+        - RPM-GPG-KEY-OpenHPC-3
 
     - name: Open /var/log/httpd to be accessible for user ohpc for log analysis
       ansible.builtin.cron:
