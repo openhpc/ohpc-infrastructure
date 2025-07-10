@@ -69,6 +69,10 @@ timezone UTC --utc
 url --url http://192.168.243.4/AlmaLinux-9-latest/
 repo --cost=1 --install --name="BaseOS" --baseurl="http://192.168.243.4/AlmaLinux-9-latest/BaseOS/"
 repo --cost=1 --install --name="AppStream" --baseurl="http://192.168.243.4/AlmaLinux-9-latest/AppStream/"
+repo --cost=50 --install  --name="BaseOSMirror1" --baseurl="http://mirrors.zju.edu.cn/almalinux/9/BaseOS/aarch64/os/" --proxy="http://175.200.16.14:3128"
+repo --cost=50 --install  --name="AppStreamMirror1" --baseurl="http://mirrors.zju.edu.cn/almalinux/9/AppStream/aarch64/os/" --proxy="http://175.200.16.14:3128"
+repo --cost=55 --install  --name="BaseOSMirror2" --baseurl="http://mirrors.nju.edu.cn/almalinux/9/BaseOS/aarch64/os/" --proxy="http://175.200.16.14:3128"
+repo --cost=55 --install  --name="AppStreamMirror2" --baseurl="http://mirrors.nju.edu.cn/almalinux/9/AppStream/aarch64/os/" --proxy="http://175.200.16.14:3128"
 {% elif distro.startswith('rocky') %}
 url --url http://192.168.243.4/Rocky-9-latest/
 repo --cost=1 --install --name="BaseOS" --baseurl="http://192.168.243.4/Rocky-9-latest/BaseOS/"
