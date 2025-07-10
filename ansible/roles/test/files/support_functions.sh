@@ -536,8 +536,6 @@ pre_install_cmds() {
 	fi
 
 	if [ -n "${overwrite_rpm}" ]; then
-		wget https://kojipkgs.fedoraproject.org//packages/yq/4.43.1/2.fc39/x86_64/yq-4.43.1-2.fc39.x86_64.rpm
-		install_package yq-4.43.1-2.fc39.x86_64.rpm
 		rpm -Uhv "${overwrite_rpm}" --force
 	fi
 	# needed for computes_installed.py test runner

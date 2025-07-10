@@ -20,6 +20,7 @@
         - /var/www/html/AlmaLinux-9-latest
         - /var/www/html/Rocky-9-latest
         - /root/.cache
+        - /home/registry
       tags:
         - skip_ansible_lint
 
@@ -37,6 +38,7 @@
           - rsync
           - openvpn
           - firewalld
+          - podman
 
     - name: Import ohpc-huawei-common.yml
       ansible.builtin.import_tasks: ohpc-huawei-common.yml
@@ -234,9 +236,19 @@
         group: root
         mode: "0600"
 
+    - name: Install registry.container definition
+      ansible.builtin.copy:
+        src: registry.container
+        dest: /etc/containers/systemd/registry.container
+        owner: root
+        group: root
+        mode: "0644"
+      notify:
+        - Systemd daemon-reload
+
     - name: Enable services
       ansible.builtin.service:
-        name: firewalld
+        name: "{{ item }}"
         enabled: true
         state: started
       with_items:
@@ -245,6 +257,7 @@
         - squid
         - firewalld
         - openvpn-server@tun1
+        - registry.service
 
     - name: Enable masquerade in public zone
       ansible.posix.firewalld:
@@ -294,3 +307,4 @@
         - 22/tcp
         - 80/tcp
         - 3128/tcp
+        - 5000/tcp
