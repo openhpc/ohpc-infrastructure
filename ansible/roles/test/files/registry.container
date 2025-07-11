@@ -9,6 +9,7 @@ HostName=registry
 Image=docker.io/library/registry:latest
 Volume=/home/registry:/var/lib/registry:Z
 PublishPort=5000:5000
+Pull=Never
 [Service]
 TimeoutStartSec=0
 Restart=always
