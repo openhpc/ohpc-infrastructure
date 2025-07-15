@@ -291,6 +291,19 @@ install_openHPC_cluster() {
 			sed '/dnf -y install ohpc-warewulf/a sed -e "s,# \\(database chunk size\\),\\1,g" -i /etc/warewulf/database.conf' -i "${recipeFile}"
 			sed '/dnf -y install ohpc-warewulf/a sed -e "s,console=tty0,,g" -i /usr/share/perl5/vendor_perl/Warewulf/Provision/Pxe.pm' -i "${recipeFile}"
 		fi
+		if [ "${Provisioner}" == "warewulf4" ]; then
+			echo "CI Customization: Switch to http in repository definition"
+			sed "/export CHROOT/a sed -i '/\\\/metalink?/ s/$/\\\&protocol=http/g' \$CHROOT/etc/yum.repos.d/*repo" -i "${recipeFile}"
+			sed "/export CHROOT/a sed -i '/\\\/mirrorlist?/ s/$/\\\&protocol=http/g' \$CHROOT/etc/yum.repos.d/*repo" -i "${recipeFile}"
+			echo "CI Customization: switch to local registry"
+			sed '/dnf -y install ohpc-warewulf/a sed -e "s,console=tty0,,g" -i /usr/share/perl5/vendor_perl/Warewulf/Provision/Pxe.pm' -i "${recipeFile}"
+			sed "s,ghcr.io/warewulf,ohpc-huawei-repo:5000,g" -i "${recipeFile}"
+			mkdir -p /root/.config/containers
+			echo -e "[registries.insecure]\nregistries = ['ohpc-huawei-repo']" >/root/.config/containers/registries.conf
+			echo "CI Customization: Use OpenHPC repository files from host"
+			# shellcheck disable=SC2016
+			sed '/export CHROOT/a /usr/bin/cp -vf /etc/yum.repos.d/OpenHPC*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
+		fi
 	elif [[ $CI_CLUSTER == "lenovo" ]]; then
 		echo "CI Customization: PXE boot selection is not persistent"
 		sed -e 's,ipmitool,ipmitool -E -I lanplus -H ${c_bmc[$i]} -U ${bmc_username} -P ${bmc_password} chassis bootdev pxe options=efiboot; ipmitool,g' -i "${recipeFile}"
@@ -311,7 +324,7 @@ install_openHPC_cluster() {
 			echo "CI Customization: Switch to user_agent=curl"
 			# shellcheck disable=SC2016
 			sed '/export CHROOT/a echo  "user_agent=curl" >> $CHROOT/etc/dnf/dnf.conf' -i "${recipeFile}"
-			echo "CI Customization: Use OpenHPC repository files form host"
+			echo "CI Customization: Use OpenHPC repository files from host"
 			# shellcheck disable=SC2016
 			sed '/export CHROOT/a /usr/bin/cp -vf /etc/yum.repos.d/OpenHPC*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
 		fi
