@@ -38,7 +38,7 @@
 @@ -8209,6 +8228,101 @@
    return ($trackers, $BSXML::issue_trackers);
  }
- 
+
 +# karl.w.schulz@intel.com (5/10/17) - scan .spec to see if %include
 +# directive is requested
 +sub scanspec_for_includes {
@@ -68,14 +68,14 @@
 +    }
 +
 +    my $rev = getrev($projid,$packid);
-+    
++
 +    my @includeFiles = ();
 +    my @expanded_spec = ();
 +
 +    foreach my $line (<SPEC>) {
 +	if ($line =~ /^%include\s+%{_sourcedir}\/(\S+)$/) {
 +	    my $scanfile = $1;
-+	    
++
 +	    push (@includeFiles,$scanfile);
 +
 +	    # resolve path to includeFile
@@ -135,5 +135,5 @@
 +}
 +
  ####################################################################
- 
+
  sub external_notification {

@@ -534,7 +534,7 @@ standalone = ["arm-compilers-devel","autoconf","automake","charliecloud","cmake"
 	      "lmod","losf","lustre-client","meta-packages","mrsh","msr-safe","nhc",
 	      "ohpc-filesystem","openpbs","papi","paraver","pdsh","pmix","prun","python-Cython",
 	      "singularity","slurm","test-suite","ucx","valgrind"]
-              
+
 
 # define (compiler dependent) packages
 compiler_dependent = ["gsl","hdf5","metis","mpich","mvapich2","numpy","likwid",

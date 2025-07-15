@@ -61,7 +61,7 @@ check_for_package_update () {
     # before scanning for updates, check if this is a child package with _link
     osc api -X GET "/source/${branchCurrent}/$1/_link" &> /dev/null && found_link=1 || found_link=0
 
-    for i in `seq 1 ${MAX_UPDATES}`; do 
+    for i in `seq 1 ${MAX_UPDATES}`; do
 
 	igot=$(osc ls ${PARENT_PROJ}:${SOURCE_VER}:Update$i:Factory $1 2> /dev/null)
 	returned=$?
@@ -120,7 +120,7 @@ update_pkg_if_service () {
     local localdir="${branchNew}/$1"
     local version=`echo $branchNew | awk -F : '{print $2}'`
 
-    echo "${branchNew}" | grep -q ":Update" 
+    echo "${branchNew}" | grep -q ":Update"
 
     if [ $? -eq 0 ];then
 	local update_ver=`echo $branchNew | awk -F : '{print $3}' | awk -F 'Update' '{print $2}'`
@@ -160,7 +160,7 @@ else
     PKG_LIST=`osc ls ${branchCurrent}`
 fi
 
-for PKG in ${PKG_LIST} ; do 
+for PKG in ${PKG_LIST} ; do
 
     echo "Copying existing package $PKG from ${branchCurrent} to ${branchNew}..."
 
@@ -168,7 +168,7 @@ for PKG in ${PKG_LIST} ; do
 	echo "Skipping _pattern..."
 	continue
     fi
-    
+
     # check for package in update releases...
     check_for_package_update ${PKG}
 
@@ -178,13 +178,13 @@ for PKG in ${PKG_LIST} ; do
     else
 	cmd="osc release ${branchCurrent} $PKG"
     fi
-    
+
     run_cmd "$cmd"
 
     # disable arch'es present in previous build (to avoid rebuilds)
     # osc api -X POST "/source/OpenHPC:1.2:Factory/autoconf?cmd=set_flag&flag=build&status=disable&arch=x86_64"
 
-    for myarch in ${DISABLE_ARCH}; do    
+    for myarch in ${DISABLE_ARCH}; do
 	cmd="osc api -X POST \"/source/${branchNew}/${PKG}?cmd=set_flag&flag=build&status=disable&arch=${myarch}\""
 	run_cmd "$cmd"
     done
@@ -193,16 +193,16 @@ for PKG in ${PKG_LIST} ; do
 
     if [[ ($found_link -eq 0) && ($ENABLE_CMDS -eq 1) ]]; then
 	echo "Updating _service file to use latest branch for source"
-	update_pkg_if_service ${PKG} 
+	update_pkg_if_service ${PKG}
     fi
-    
+
     # update config if source_package was a link, since "osc release" will simply create a _service file
     if [[ ($found_link -eq 1) && ($ENABLE_CMDS -eq 1) ]]; then
 	echo "Originating package source for $PKG is a _link..."
 	update_pkg_if_link ${PKG}
     fi
-    
-    
+
+
 done
 
 if [[ $found_link -eq 1 ]];then

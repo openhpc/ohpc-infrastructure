@@ -19,15 +19,15 @@ permissions and limitations under the License.
   <service name="tar_scm">
     <param name="revision">!VERSION!</param>
     <param name="include">tests</param>
-    
+
     <param name="filename">tests</param>
     <param name="version">ohpc</param>
     <param name="package-meta">yes</param>
-    
+
     <param name="scm">git</param>
     <param name="url">https://github.com/openhpc/ohpc.git</param>
   </service>
-  
+
   <service name="tar_scm">
 
     <!-- Begin INPUT ######################################  -->

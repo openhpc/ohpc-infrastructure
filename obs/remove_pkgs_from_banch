@@ -28,7 +28,7 @@ run_cmd () {
 
 echo "Project = $branchCurrent"
 
-for PKG in `osc ls $branchCurrent`; do 
+for PKG in `osc ls $branchCurrent`; do
 
 	if [[ ${PKG} == "_pattern" ]];then
 	    echo "Skipping _pattern..."

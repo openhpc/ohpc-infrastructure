@@ -16,7 +16,7 @@ ENABLE_CMDS=1
 
 # v1.3.3 is when we converted to using a Staging project area. Once
 # v1.4 comes out, this can be set to a value of 1
-stagingTransition=3	
+stagingTransition=3
 
 # define non-x86 packages that need to also be retained
 
@@ -124,13 +124,13 @@ for i in `seq ${startMicroVer} ${endMicroVer}`; do
 			    skipme=1
 			fi
 		    done
-		    if [[ $skipme -eq 1 ]];then 
+		    if [[ $skipme -eq 1 ]];then
 			continue
 		    fi
-			
+
 		fi
 
-		igot=$(osc ls ${obsProjectNewer} ${pkg} 2> /dev/null) 
+		igot=$(osc ls ${obsProjectNewer} ${pkg} 2> /dev/null)
 		if [[ $? -ne 0 ]]; then
 		    echo "  --> ${pkg} not present in ${obsProjectNewer}"
 		    continue
@@ -176,7 +176,7 @@ for i in `seq ${startMicroVer} ${endMicroVer}`; do
 		echo "$pkg INCLUDED from v$minorVer.$i (latest release)"
 	    fi
 	fi
-	
+
     done
 done
 
@@ -233,7 +233,7 @@ if [[ "${minorVer}" == "1.3" && "${endMicroVer}" -eq 5 ]];then
               python-mpi4py-intel-mvapich2-v1.3.3
               python-mpi4py-intel-openmpi3-v1.3.3
               python-numpy-gnu7-v1.3.2 python-numpy-intel-v1.3.2
-              python-scipy-gnu7-mpich-v1.3.2 python-scipy-gnu7-mvapich2-v1.3.2 
+              python-scipy-gnu7-mpich-v1.3.2 python-scipy-gnu7-mvapich2-v1.3.2
               python-scipy-gnu7-openmpi-v1.3.2 python-scipy-gnu7-openmpi3-v1.3.3
               imb-gnu7-openmpi-v1.3.2
               tau-gnu7-openmpi-v1.3.2
@@ -250,7 +250,7 @@ fi
 
 for pkg in $packages; do
     echo "v${minorVer}.${endMicroVer}: checking if $pkg exists..."
-    igot=$(osc ls ${project} ${pkg} 2> /dev/null) 
+    igot=$(osc ls ${project} ${pkg} 2> /dev/null)
     if [[ $? -eq 0 ]]; then
 	echo "--> removing package $pkg...."
 	osc rdelete -m "remove deprecated package ${pkg}" ${project} $pkg
