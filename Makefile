@@ -1,4 +1,4 @@
-lint: codespell-lint whitespace-lint shellcheck-lint shfmt-lint ansible-lint
+lint: codespell-lint whitespace-lint shellcheck-lint shfmt-lint ansible-lint ruff-lint
 
 codespell-lint:
 	@echo "Running 'codespell' on all files"
@@ -24,3 +24,12 @@ ansible-lint:
 	ansible-lint --offline ansible/roles/test/ohpc-huawei-*yml \
 		ansible/roles/common/handlers.yml \
 		ansible/roles/repos/repos-aarch64.yml
+
+ruff-lint:
+	@echo "Running 'ruff' on selected Python files"
+	ruff check \
+		obs/obs_config.py \
+		ansible/roles/test/files/computes_installed.py
+	ruff format --diff \
+		obs/obs_config.py \
+		ansible/roles/test/files/computes_installed.py
