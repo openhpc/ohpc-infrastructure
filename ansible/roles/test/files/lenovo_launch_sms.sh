@@ -60,6 +60,8 @@ echo -n "----> Rebooting ${TARGET}: "
 echo "----> done"
 
 echo "--> Waiting for ${TARGET} to finish installation"
+# Wait some time to make sure the system is rebooting
+sleep 15
 # This can take up to 30 minutes
 for i in $(seq 90 -1 1); do
 	echo "----> ${i}"
