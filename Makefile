@@ -22,7 +22,7 @@ shfmt-lint:
 ansible-lint:
 	@echo "Running 'ansible-lint' on selected yaml files"
 	ansible-lint --offline ansible/roles/test/ohpc-huawei-*yml \
-		ansible/roles/test/ohpc-lenovo-repo.yml \
+		ansible/roles/test/ohpc-lenovo-*yml \
 		ansible/roles/common/automatic-updates.yml \
 		ansible/roles/common/handlers.yml \
 		ansible/roles/repos/repos-aarch64.yml \

@@ -37,27 +37,27 @@ eth_provision=eth2
 eth_provision=eth2
 {% endif %}
 
-openhpc-lenovo-jenkins-sms_ip=10.241.58.134
+ohpc-lenovo-sms_ip=10.241.58.134
 
 bmc_username=root
 
 # Compute node IPs
 
-openhpc-lenovo-jenkins-c1_ip=10.241.58.132
-openhpc-lenovo-jenkins-c2_ip=10.241.58.133
+ohpc-lenovo-c1_ip=10.241.58.132
+ohpc-lenovo-c2_ip=10.241.58.133
 
 # Compute node BMCs
 
-openhpc-lenovo-jenkins-c1_bmc=10.241.58.139
-openhpc-lenovo-jenkins-c2_bmc=10.241.58.138
+ohpc-lenovo-c1_bmc=10.241.58.139
+ohpc-lenovo-c2_bmc=10.241.58.138
 
 # Compute node MACs
 
-openhpc-lenovo-jenkins-c1_mac=f4:c7:aa:44:41:4a
-openhpc-lenovo-jenkins-c2_mac=f4:c7:aa:44:40:f0
+ohpc-lenovo-c1_mac=f4:c7:aa:44:41:4a
+ohpc-lenovo-c2_mac=f4:c7:aa:44:40:f0
 
 
 # Compute node IPoIB (not used)
 
-openhpc-lenovo-jenkins-c1_ipoib=172.17.1.1
-openhpc-lenovo-jenkins-c2_ipoib=172.17.1.2
+ohpc-lenovo-c1_ipoib=172.17.1.1
+ohpc-lenovo-c2_ipoib=172.17.1.2
