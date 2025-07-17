@@ -86,7 +86,7 @@ compiler_dependent = ["!openmpi", "!mpich", "!mvapich2", "!openblas", "!R", "!li
                       "!numpy", "!plasma", "!hdf5", "!gotcha", "!cubew", "!cubelib", "!opari2"]
 
 standalone = ["docs", "test-suite", "warewulf", "!gnu-compilers", "ohpc-filesystem",
-	      "!cmake", "!pdsh", "intel-compilers-devel",
+	      "!cmake", "!pdsh", "intel-compilers-devel", "examples",
 	      "impi-devel", "!meta-packages", "easybuild", "!spack", "!hwloc", "!ucx",
 	      "lmod", "!genders", "!hpc-workspace", "!valgrind", "!slurm", "!cuda-devel"]
 mpi_dependent = ["!otf2", "!sionlib", "!fftw", "!scalapack",
