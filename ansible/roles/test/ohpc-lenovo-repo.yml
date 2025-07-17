@@ -29,6 +29,7 @@
         - /var/www/html/Rocky-8-latest
         - /root/.cache
         - /home/registry
+        - /results
       tags:
         - skip_ansible_lint
 
@@ -49,7 +50,13 @@
           - firewalld
           - podman
           - python3-policycoreutils
+          - ansible-core
+          - ansible-collection-community-general
+          - ansible-collection-ansible-posix
           - wget
+          - screen
+          - nmap-ncat
+          - python3-virtualenv
 
     - name: Import ohpc-lenovo-common.yml
       ansible.builtin.import_tasks: ohpc-lenovo-common.yml

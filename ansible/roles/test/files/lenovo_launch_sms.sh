@@ -51,7 +51,7 @@ ansible-playbook \
 	-i inventory/test \
 	roles/test/ohpc-lenovo-repo.yml
 cd ..
-ssh "${BOOT_SERVER}" systemctl start dhcpd
+ssh "${BOOT_SERVER}" systemctl start kea-dhcp4
 echo -n "----> Switching boot device to PXE: "
 export IPMI_PASSWORD=${SMS_IPMI_PASSWORD}
 /usr/bin/ipmitool -E -I lanplus -H "${BMC}" -U "${SMS_IPMI_USER}" chassis bootdev pxe options=efiboot
@@ -87,7 +87,7 @@ ssh-keygen -R "${TARGET}"
 ssh -o StrictHostKeyChecking=accept-new "${TARGET}" hostname
 
 # The boot server only has dhcpd enabled during SMS installation
-ssh "${BOOT_SERVER}" systemctl stop dhcpd
+ssh "${BOOT_SERVER}" systemctl stop kea-dhcp4
 
 cd ansible || exit
 ansible-playbook --extra-vars "distro=${OS} release=${RELEASE}" -i inventory/test roles/test/ohpc-lenovo-sms.yml

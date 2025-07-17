@@ -50,7 +50,7 @@ perl-ph
 lang en_US.UTF-8
 
 {% if inventory_hostname_short.startswith('ohpc-lenovo-repo') %}
-network --hostname=openhpc-lenovo-jenkins-sms --device=ens2f0 --ip=10.241.58.134 --netmask=255.255.255.240 --gateway=10.241.58.129 --bootproto=static --nameserver=1.1.1.1
+network --hostname=ohpc-lenovo-sms --device=ens2f0 --ip=10.241.58.134 --netmask=255.255.255.240 --gateway=10.241.58.129 --bootproto=static --nameserver=1.1.1.1
 {% endif %}
 {% if inventory_hostname_short.startswith('ohpc-huawei-repo') %}
 {% if distro.startswith('rocky') or distro.startswith('almalinux') %}
