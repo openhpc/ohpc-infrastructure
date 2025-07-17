@@ -1,31 +1,37 @@
-- name: Configure ohpc-huawei-repo
-  hosts: ohpc_huawei_repo
+- name: Configure ohpc-lenovo-repo
+  hosts: ohpc_lenovo_repo
   gather_facts: true
   vars:
-    distro: openEuler_22.03
-    disks: sda,sdb
-    repo: 192.168.243.4
-    proxy: 175.200.16.14:3128
+    distro: almalinux9
+    disks: sda
+    repo: 10.241.58.130
+    proxy: 10.241.58.130:3128
 
   handlers:
     - name: Include handlers
       ansible.builtin.import_tasks: ../common/handlers.yml
 
   tasks:
+    - name: Include history.yml
+      ansible.builtin.include_tasks: ../common/history.yml
+
     - name: Create directories
-      file:
+      ansible.builtin.file:
         dest: "{{ item }}"
         state: directory
       with_items:
-        - /var/www/html/openSUSE-Leap-15.3-3-DVD-aarch64-Media
+        - /var/www/html/openSUSE-Leap-15.3-DVD-x86_64-Current
+        - /var/www/html/openSUSE-Leap-15.5-DVD-x86_64-Current
         - /var/www/html/openEuler-22.03-LTS-SP3-everything
         - /var/www/html/AlmaLinux-10-latest
         - /var/www/html/AlmaLinux-9-latest
         - /var/www/html/Rocky-9-latest
+        - /var/www/html/Rocky-8-latest
         - /root/.cache
         - /home/registry
       tags:
         - skip_ansible_lint
+
 
     - name: Install packages
       ansible.builtin.package:
@@ -36,24 +42,17 @@
           - ipmitool
           - kea
           - tftp-server
-          - grub2-efi-aa64
+          - grub2-efi-x64
           - httpd
           - rsync
           - openvpn
           - firewalld
           - podman
+          - python3-policycoreutils
+          - wget
 
-    - name: Import ohpc-huawei-common.yml
-      ansible.builtin.import_tasks: ohpc-huawei-common.yml
-
-    - name: Configure enp125s0f0
-      community.general.nmcli:
-        conn_name: enp125s0f0
-        ifname: enp125s0f0
-        type: ethernet
-        ip4: 192.168.243.4/28
-        state: present
-        autoconnect: true
+    - name: Import ohpc-lenovo-common.yml
+      ansible.builtin.import_tasks: ohpc-lenovo-common.yml
 
     - name: Create directories
       ansible.builtin.file:
@@ -71,6 +70,29 @@
         setype: squid_cache_t
         state: present
 
+    - name: Set file context /home/almalinux
+      community.general.sefcontext:
+        target: '/home/almalinux(/.*)?'
+        setype: public_content_t
+        state: present
+
+    - name: Set file context /home/rocky
+      community.general.sefcontext:
+        target: '/home/rocky(/.*)?'
+        setype: public_content_t
+        state: present
+
+    - name: Set file context /mnt/images
+      community.general.sefcontext:
+        target: '/mnt/images(/.*)?'
+        setype: public_content_t
+        state: present
+
+    - name: Apply new SELinux file context to filesystem
+      ansible.builtin.command: restorecon -irv /home/ /mnt/images/
+      tags:
+        - skip_ansible_lint
+
     - name: Install squid.conf
       ansible.builtin.template:
         src: squid.conf
@@ -82,24 +104,32 @@
     - name: Mount iso images as installation source
       ansible.posix.mount:
         path: "/var/www/html/{{ item }}"
-        src: "/home/{{ item }}-aarch64-dvd.iso"
+        src: "/home/{{ item }}-x86_64-dvd.iso"
         opts: defaults,ro
         state: mounted
         fstype: iso9660
       with_items:
+        - Rocky-8-latest
         - Rocky-9-latest
         - AlmaLinux-9-latest
         - AlmaLinux-10-latest
         - openEuler-22.03-LTS-SP3-everything
 
-        ##  - name: mount leap dvd as installation source
-        ##    ansible.posix.mount:
-        ##      path: /var/www/html/openSUSE-Leap-15.5-DVD-aarch64-Current
-        ##      src: /mnt/images/openSUSE-Leap-15.5-DVD-aarch64-Current.iso
-        ##      opts: defaults,ro
-        ##      state: mounted
-        ##      fstype: iso9660
-        ##
+    - name: Mount leap 15.5 dvd as installation source
+      ansible.posix.mount:
+        path: /var/www/html/openSUSE-Leap-15.5-DVD-x86_64-Current
+        src: /home/openSUSE-Leap-15.5-DVD-x86_64-Current.iso
+        opts: defaults,ro
+        state: mounted
+        fstype: iso9660
+
+    - name: Mount leap 15.3 dvd as installation source
+      ansible.posix.mount:
+        path: /var/www/html/openSUSE-Leap-15.3-DVD-x86_64-Current
+        src: /home/openSUSE-Leap-15.3-DVD-x86_64-Current.iso
+        opts: defaults,ro
+        state: mounted
+        fstype: iso9660
 
     - name: Setup tftp booting
       ansible.builtin.copy:
@@ -108,7 +138,7 @@
         dest: /var/lib/tftpboot/
         mode: "0644"
       with_items:
-        - /boot/efi/EFI/almalinux/grubaa64.efi
+        - /boot/efi/EFI/almalinux/grubx64.efi
 
     - name: Setup tftp booting for openEuler 22.03
       ansible.builtin.copy:
@@ -117,8 +147,8 @@
         dest: /var/lib/tftpboot/
         mode: "0644"
       with_items:
-        - /var/www/html/openEuler-22.03-LTS-SP3-everything/images/pxeboot/initrd.img
-        - /var/www/html/openEuler-22.03-LTS-SP3-everything/images/pxeboot/vmlinuz
+        - /var/www/html/openEuler-22.03-LTS-SP3-x86_64-dvd/images/pxeboot/initrd.img
+        - /var/www/html/openEuler-22.03-LTS-SP3-x86_64-dvd/images/pxeboot/vmlinuz
       when: distro == "openEuler_22.03"
 
     - name: Setup tftp booting for rocky9
@@ -139,8 +169,8 @@
         dest: /var/lib/tftpboot/
         mode: "0644"
       with_items:
-        - /home/rocky/8/BaseOS/aarch64/os/images/pxeboot/initrd.img
-        - /home/rocky/8/BaseOS/aarch64/os/images/pxeboot/vmlinuz
+        - /var/www/html/Rocky-8-latest/images/pxeboot/initrd.img
+        - /var/www/html/Rocky-8-latest/images/pxeboot/vmlinuz
       when: distro == "rocky8"
 
     - name: Setup tftp booting for almalinux9
@@ -161,8 +191,8 @@
         dest: /var/lib/tftpboot/
         mode: "0644"
       with_items:
-        - /var/www/html/openSUSE-Leap-15.5-DVD-aarch64-Current/boot/aarch64/initrd
-        - /var/www/html/openSUSE-Leap-15.5-DVD-aarch64-Current/boot/aarch64/linux
+        - /var/www/html/openSUSE-Leap-15.5-DVD-x86_64-Current/boot/x86_64/loader/initrd
+        - /var/www/html/openSUSE-Leap-15.5-DVD-x86_64-Current/boot/x86_64/loader/linux
       when: distro == "leap15.5"
 
     - name: Setup tftp booting for leap15.3
@@ -172,48 +202,37 @@
         dest: /var/lib/tftpboot/
         mode: "0644"
       with_items:
-        - /var/www/html/openSUSE-Leap-15.3-DVD-aarch64-Media/boot/aarch64/initrd
-        - /var/www/html/openSUSE-Leap-15.3-DVD-aarch64-Media/boot/aarch64/linux
+        - /var/www/html/openSUSE-Leap-15.3-DVD-x86_64-Current/boot/x86_64/loader/initrd
+        - /var/www/html/openSUSE-Leap-15.3-DVD-x86_64-Current/boot/x86_64/loader/linux
       when: distro == "leap15.3"
 
     - name: Copy el-kickstart file
       ansible.builtin.template:
-        src: el-kickstart.huawei
+        src: el-kickstart.lenovo
         dest: "/var/www/html/{{ distro }}-kickstart"
         mode: "0644"
       when: (distro.startswith("rocky")) or (distro == "almalinux9") or (distro == "openEuler_22.03")
 
-    - name: Copy autoyast for "{{ distro }}"
+    - name: Install autoyast definition
       ansible.builtin.template:
-        src: "{{ distro }}-autoyast.huawei"
+        src: "{{ distro }}-autoyast.lenovo"
         dest: "/var/www/html/{{ distro }}-autoyast"
         mode: "0644"
       when: distro.startswith("leap15")
 
     - name: Network boot grub.cfg "({{ distro }})"
       ansible.builtin.template:
-        src: grub.cfg.huawei
+        src: grub.cfg.lenovo
         dest: /var/lib/tftpboot/grub.cfg
         mode: "0644"
 
     - name: Install kea-dhcp4.conf
       ansible.builtin.copy:
-        src: kea-dhcp4.conf.huawei
+        src: kea-dhcp4.conf.lenovo
         dest: /etc/kea/kea-dhcp4.conf
         mode: "0644"
       notify:
         - Restart kea-dhcp4
-
-    - name: Allow time sync from other test systems
-      ansible.builtin.lineinfile:
-        path: /etc/chrony.conf
-        state: present
-        line: "{{ item }}"
-      with_items:
-        - "allow 175.200.16.11/16"
-        - "allow 192.168.243.1/28"
-      notify:
-        - Restart chronyd
 
     - name: Allow password based login
       ansible.builtin.lineinfile:
@@ -222,32 +241,6 @@
         line: 'PermitRootLogin yes'
       notify:
         - Restart sshd
-
-    - name: Install openvpn server file
-      ansible.builtin.template:
-        src: server-tun1.conf
-        dest: /etc/openvpn/server/tun1.conf
-        owner: root
-        group: root
-        mode: "0600"
-
-    - name: Install openvpn key file
-      ansible.builtin.copy:
-        src: /etc/openvpn/client/test.key
-        dest: /etc/openvpn/server/test.key
-        owner: root
-        group: root
-        mode: "0600"
-
-    - name: Install registry.container definition
-      ansible.builtin.copy:
-        src: registry.container
-        dest: /etc/containers/systemd/registry.container
-        owner: root
-        group: root
-        mode: "0644"
-      notify:
-        - Systemd daemon-reload
 
     - name: Enable services
       ansible.builtin.service:
@@ -259,38 +252,7 @@
         - tftp
         - squid
         - firewalld
-        - openvpn-server@tun1
-        - registry.service
 
-    - name: Enable masquerade in public zone
-      ansible.posix.firewalld:
-        masquerade: true
-        state: enabled
-        permanent: true
-        zone: public
-        immediate: true
-      tags:
-        - skip_ansible_lint
-
-    - name: Allow impitool access
-      ansible.posix.firewalld:
-        zone: public
-        port: 623/udp
-        permanent: true
-        state: enabled
-        immediate: true
-      tags:
-        - skip_ansible_lint
-
-    - name: Add tun1 to public zone
-      ansible.posix.firewalld:
-        zone: public
-        interface: tun1
-        permanent: true
-        immediate: true
-        state: enabled
-      tags:
-        - skip_ansible_lint
 
     - name: Open firewall ports
       ansible.posix.firewalld:
@@ -305,9 +267,6 @@
         - 67/udp
         - 68/udp
         - 69/udp
-        - 123/udp
-        - 1194/udp
         - 22/tcp
         - 80/tcp
         - 3128/tcp
-        - 5000/tcp

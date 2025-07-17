@@ -100,7 +100,7 @@ fi
 # shellcheck disable=SC1091
 . /etc/sysconfig/openhpc-test.config
 
-if [[ "${SMS}" == "openhpc-lenovo-jenkins-sms" ]]; then
+if [[ "${SMS}" == "ohpc-lenovo-sms" ]]; then
 	LAUNCHER="lenovo_launch_sms.sh"
 elif [[ "${SMS}" == "ohpc-huawei-sms" ]]; then
 	LAUNCHER="huawei_launch_sms.sh"
@@ -165,7 +165,7 @@ if [[ "${SMS}" == "ohpc-huawei-sms" ]]; then
 else
 	TEST_ARCH=$(uname -m)
 	CI_CLUSTER=lenovo
-	COMPUTE_HOSTS="openhpc-lenovo-jenkins-c1, openhpc-lenovo-jenkins-c2"
+	COMPUTE_HOSTS="ohpc-lenovo-c1, ohpc-lenovo-c2"
 	GATEWAY="10.241.58.129"
 	SMS_INTERNAL="${SMS}"
 fi
@@ -347,7 +347,7 @@ fi
 if [[ "${DISTRIBUTION}" == "rocky"* ]] && [[ "${SMS}" == "ohpc-huawei-sms" ]]; then
 	echo "export YUM_MIRROR_BASE=http://mirrors.nju.edu.cn/rocky/" >>"${VARS}"
 fi
-if [[ "${DISTRIBUTION}" == "openEuler"* ]] && [[ "${SMS}" == "openhpc-lenovo-jenkins-sms" ]]; then
+if [[ "${DISTRIBUTION}" == "openEuler"* ]] && [[ "${SMS}" == "ohpc-lenovo-sms" ]]; then
 	echo "export YUM_MIRROR_BASE=http://repo.huaweicloud.com/openeuler/" >>"${VARS}"
 fi
 

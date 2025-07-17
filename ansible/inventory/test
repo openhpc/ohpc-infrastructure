@@ -7,8 +7,8 @@ ohpc-huawei-sms
 [ohpc_huawei_repo]
 ohpc-huawei-repo
 
-[openhpc_lenovo_repo]
-openhpc-lenovo-repo
+[ohpc_lenovo_repo]
+ohpc-lenovo-repo
 
 [openhpc_lenovo_jenkins_sms]
 openhpc-lenovo-jenkins-sms

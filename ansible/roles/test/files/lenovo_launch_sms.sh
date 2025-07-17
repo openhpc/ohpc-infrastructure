@@ -49,7 +49,7 @@ cd ansible || exit
 ansible-playbook \
 	--extra-vars "distro=${OS} root_password_crypted=${ROOT_PASSWORD_CRYPTED}" \
 	-i inventory/test \
-	roles/test/test-lenovo-repo.yml
+	roles/test/ohpc-lenovo-repo.yml
 cd ..
 ssh "${BOOT_SERVER}" systemctl start dhcpd
 echo -n "----> Switching boot device to PXE: "
@@ -80,7 +80,7 @@ if [ "${IGOT}" -ne 0 ]; then
 fi
 
 echo
-echo "Host ${TARGET} is up. Launching Jenkins Swarm client" | logger -s
+echo "Host ${TARGET} is up."
 
 # Handling new SSH host keys
 ssh-keygen -R "${TARGET}"
@@ -90,7 +90,7 @@ ssh -o StrictHostKeyChecking=accept-new "${TARGET}" hostname
 ssh "${BOOT_SERVER}" systemctl stop dhcpd
 
 cd ansible || exit
-ansible-playbook --extra-vars "distro=${OS} release=${RELEASE}" -i inventory/test roles/test/test-lenovo-sms.yml
+ansible-playbook --extra-vars "distro=${OS} release=${RELEASE}" -i inventory/test roles/test/ohpc-lenovo-sms.yml
 cd ..
 
 # sync time

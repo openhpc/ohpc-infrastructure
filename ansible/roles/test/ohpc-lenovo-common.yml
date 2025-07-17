@@ -1,0 +1,22 @@
+- name: Update /etc/hosts
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    state: present
+    line: "{{ item }}"
+  with_items:
+    - 10.241.58.130 ohpc-lenovo-repo repo
+    - 10.241.58.134 ohpc-lenovo-sms sms
+    - 10.241.58.132 ohpc-lenovo-c1 c1
+    - 10.241.58.133 ohpc-lenovo-c2 c2
+    - 10.241.58.131 ohpc-lenovo-c3 c3
+    - 10.241.58.140 mohpc-lenovo-repo
+    - 10.241.58.137 mohpc-lenovo-sms
+    - 10.241.58.139 mohpc-lenovo-c1
+    - 10.241.58.138 mohpc-lenovo-c2
+    - 10.241.58.141 mohpc-lenovo-c3
+    - 129.114.60.186 test.openhpc.community
+
+- name: Set a hostname to "{{ inventory_hostname_short }}"
+  ansible.builtin.hostname:
+    name: "{{ inventory_hostname_short }}"
+    use: systemd
