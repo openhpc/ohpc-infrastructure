@@ -87,7 +87,7 @@
       - bats
     when: distro != "leap15.3"
 
-  - import_tasks: test-lenovo-common.yml
+  - import_tasks: ohpc-lenovo-common.yml
 
   - name: create directories
     file: dest="{{item}}" state=directory
