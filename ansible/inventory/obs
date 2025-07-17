@@ -10,8 +10,8 @@ huawei-obs-centos-arm64-1
 [huawei_arm64_obs:vars]
 ansible_python_interpreter=/usr/libexec/platform-python
 
-[openhpc_lenovo_repo]
-openhpc-lenovo-repo
+[ohpc_lenovo_repo]
+ohpc-lenovo-repo
 
 [aarch64_builder_01]
 aarch64-builder-01

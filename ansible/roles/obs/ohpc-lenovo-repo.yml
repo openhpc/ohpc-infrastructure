@@ -1,0 +1,110 @@
+---
+
+- name: Configure ohpc-lenovo-repo obs workers
+  hosts: ohpc_lenovo_repo
+  user: root
+  gather_facts: true
+  vars:
+    obs_worker_instances: 4
+    obs_worker_jobs: 6
+    container_tag: amd64
+    obs_repository_server: 10.255.255.0
+
+  handlers:
+    - name: Include handlers
+      ansible.builtin.import_tasks: ../common/handlers.yml
+
+  tasks:
+    - name: Include history.yml
+      ansible.builtin.include_tasks: ../common/history.yml
+
+    - name: Include automatic-updates.yml
+      ansible.builtin.include_tasks: ../common/automatic-updates.yml
+
+    - name: Create OBS directories
+      ansible.builtin.file:
+        dest: "{{ item }}"
+        mode: "0755"
+        state: directory
+      with_items:
+        - /workers/
+        - /workers/cache
+        - /etc/systemd/system/obsworker-podman.service.d
+        - /etc/systemd/system/openvpn-client@obs.service.d
+
+    - name: Install packages
+      ansible.builtin.package:
+        state: present
+        name:
+          - epel-release
+
+    - name: Install packages
+      ansible.builtin.package:
+        state: present
+        name:
+          - podman
+          - stunnel
+          - openvpn
+          - vim-enhanced
+          - bash-completion
+          - git
+
+    - name: Install obs worker configuration
+      ansible.builtin.template:
+        src: obs-server
+        dest: /etc/sysconfig/obs-server
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Install stunnel configuration
+      ansible.builtin.copy:
+        src: stunnel.conf
+        dest: /etc/stunnel/stunnel.conf
+        owner: root
+        group: root
+        mode: "0600"
+
+    - name: Install openvpn configuration
+      ansible.builtin.copy:
+        src: openvpn-obs.conf
+        dest: /etc/openvpn/client/obs.conf
+        owner: root
+        group: root
+        mode: "0600"
+
+    - name: Install openvpn override.conf
+      ansible.builtin.copy:
+        src: openvpn.service.override.conf
+        dest: /etc/systemd/system/openvpn-client@obs.service.d/override.conf
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Install obsworker override.conf
+      ansible.builtin.copy:
+        src: obsworker-podman.service.override.conf
+        dest: /etc/systemd/system/obsworker-podman.service.d/override.conf
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Install obsworker podman service
+      ansible.builtin.template:
+        src: obsworker-podman.service
+        dest: /etc/systemd/system/obsworker-podman.service
+        owner: root
+        group: root
+        mode: "0644"
+      notify:
+        - Systemd daemon-reload
+
+    - name: Enable services
+      ansible.builtin.service:
+        name: "{{ item }}"
+        enabled: true
+        state: started
+      with_items:
+        - stunnel
+        - openvpn-client@obs
+        - obsworker-podman

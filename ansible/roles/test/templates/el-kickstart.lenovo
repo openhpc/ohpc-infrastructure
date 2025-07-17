@@ -49,6 +49,10 @@ perl-ph
 
 lang en_US.UTF-8
 
+{% if inventory_hostname_short.startswith('ohpc-lenovo-repo') %}
+network --hostname=openhpc-lenovo-jenkins-sms --device=ens2f0 --ip=10.241.58.134 --netmask=255.255.255.240 --gateway=10.241.58.129 --bootproto=static --nameserver=1.1.1.1
+{% endif %}
+{% if inventory_hostname_short.startswith('ohpc-huawei-repo') %}
 {% if distro.startswith('rocky') or distro.startswith('almalinux') %}
 network --hostname=ohpc-huawei-sms --device=enp189s0f0 --ip=175.200.16.11 --netmask=255.255.0.0 --gateway=175.200.0.1 --bootproto=static --nameserver=8.8.8.8
 network --device=enp125s0f0 --ip=192.168.243.1 --netmask=255.255.255.240 --bootproto=static
@@ -57,7 +61,7 @@ network --device=enp125s0f0 --ip=192.168.243.1 --netmask=255.255.255.240 --bootp
 network --hostname=ohpc-huawei-sms --device=eth0 --ip=175.200.16.11 --netmask=255.255.0.0 --gateway=175.200.0.1 --bootproto=static --nameserver=8.8.8.8
 network --device=eth2 --ip=192.168.243.1 --netmask=255.255.255.240 --bootproto=static
 {% endif %}
-
+{% endif %}
 
 ignoredisk --only-use={{ disks }}
 bootloader --location=mbr --boot-drive=sda
@@ -65,28 +69,43 @@ clearpart --all --initlabel --drives={{ disks }}
 autopart
 timezone UTC --utc
 
+{% if inventory_hostname_short.startswith('ohpc-lenovo-repo') %}
 {% if distro.startswith('almalinux') %}
-url --url http://192.168.243.4/AlmaLinux-9-latest/
-repo --cost=1 --install --name="BaseOS" --baseurl="http://192.168.243.4/AlmaLinux-9-latest/BaseOS/"
-repo --cost=1 --install --name="AppStream" --baseurl="http://192.168.243.4/AlmaLinux-9-latest/AppStream/"
+url --url http://{{ repo }}/AlmaLinux-9-latest/
+repo --cost=1 --install --name="BaseOS" --baseurl="http://{{ repo }}/AlmaLinux-9-latest/BaseOS/"
+repo --cost=1 --install --name="AppStream" --baseurl="http://{{ repo }}/AlmaLinux-9-latest/AppStream/"
+repo --cost=50 --install  --name="BaseOSMirror1" --baseurl="http://mirrors.nxthost.com/almalinux/9/BaseOS/x86_64/os/" --proxy="http://{{ proxy }}"
+repo --cost=50 --install  --name="AppStreamMirror1" --baseurl="http://mirrors.nxthost.com/almalinux/9/AppStream/aarch64/os/" --proxy="http://{{ proxy }}"
+repo --cost=50 --install  --name="BaseOSMirror2" --baseurl="http://mirrors.nav.ro/almalinux/9/BaseOS/aarch64/os/" --proxy="http://{{ proxy }}"
+repo --cost=50 --install  --name="AppStreamMirror2" --baseurl="http://mirrors.nav.ro/almalinux/9/AppStream/aarch64/os/" --proxy="http://{{ proxy }}"
+{% endif %}
+{% endif %}
+
+
+{% if inventory_hostname_short.startswith('ohpc-huawei-repo') %}
+{% if distro.startswith('almalinux') %}
+url --url http://{{ repo }}/AlmaLinux-9-latest/
+repo --cost=1 --install --name="BaseOS" --baseurl="http://{{ repo }}/AlmaLinux-9-latest/BaseOS/"
+repo --cost=1 --install --name="AppStream" --baseurl="http://{{ repo }}/AlmaLinux-9-latest/AppStream/"
 repo --cost=50 --install  --name="BaseOSMirror1" --baseurl="http://mirrors.nju.edu.cn/almalinux/9/BaseOS/aarch64/os/" --proxy="http://175.200.16.14:3128"
 repo --cost=50 --install  --name="AppStreamMirror1" --baseurl="http://mirrors.nju.edu.cn/almalinux/9/AppStream/aarch64/os/" --proxy="http://175.200.16.14:3128"
 repo --cost=50 --install  --name="BaseOSMirror2" --baseurl="http://mirrors.zju.edu.cn/almalinux/9/BaseOS/aarch64/os/" --proxy="http://175.200.16.14:3128"
 repo --cost=50 --install  --name="AppStreamMirror2" --baseurl="http://mirrors.zju.edu.cn/almalinux/9/AppStream/aarch64/os/" --proxy="http://175.200.16.14:3128"
 {% elif distro.startswith('rocky') %}
-url --url http://192.168.243.4/Rocky-9-latest/
-repo --cost=1 --install --name="BaseOS" --baseurl="http://192.168.243.4/Rocky-9-latest/BaseOS/"
-repo --cost=1 --install --name="AppStream" --baseurl="http://192.168.243.4/Rocky-9-latest/AppStream/"
+url --url http://{{ repo }}/Rocky-9-latest/
+repo --cost=1 --install --name="BaseOS" --baseurl="http://{{ repo }}/Rocky-9-latest/BaseOS/"
+repo --cost=1 --install --name="AppStream" --baseurl="http://{{ repo }}/Rocky-9-latest/AppStream/"
 repo --cost=50 --install  --name="BaseOSMirror1" --baseurl="http://mirrors.ustc.edu.cn/rocky/9/BaseOS/aarch64/os/" --proxy="http://175.200.16.14:3128"
 repo --cost=50 --install  --name="AppStreamMirror1" --baseurl="http://mirrors.ustc.edu.cn/rocky/9/AppStream/aarch64/os/" --proxy="http://175.200.16.14:3128"
 repo --cost=55 --install  --name="BaseOSMirror2" --baseurl="http://mirrors.nju.edu.cn/rocky/9/BaseOS/aarch64/os/" --proxy="http://175.200.16.14:3128"
 repo --cost=55 --install  --name="AppStreamMirror2" --baseurl="http://mirrors.nju.edu.cn/rocky/9/AppStream/aarch64/os/" --proxy="http://175.200.16.14:3128"
 {% endif %}
 {% if distro.startswith('openEuler') %}
-url --url http://192.168.243.4/openEuler-22.03-LTS-SP3-everything/
-repo --cost=1 --install --name="DVD" --baseurl="http://192.168.243.4/openEuler-22.03-LTS-SP3-everything/"
+url --url http://{{ repo }}/openEuler-22.03-LTS-SP3-everything/
+repo --cost=1 --install --name="DVD" --baseurl="http://{{ repo }}/openEuler-22.03-LTS-SP3-everything/"
 repo --cost=50 --install  --name="everythingMirror" --baseurl="http://mirrors.nju.edu.cn/openeuler/openEuler-22.03-LTS-SP3/everything/aarch64/" --proxy="http://175.200.16.14:3128"
 repo --cost=50 --install  --name="updateMirror" --baseurl="http://mirrors.nju.edu.cn/openeuler/openEuler-22.03-LTS-SP3/update/aarch64/" --proxy="http://175.200.16.14:3128"
+{% endif %}
 {% endif %}
 
 skipx
@@ -98,8 +117,8 @@ reboot --kexec
 
 %post
 set -x
-export https_proxy=http://175.200.16.14:3128
-export http_proxy=http://175.200.16.14:3128
+export https_proxy=http://{{ proxy }}
+export http_proxy=http://{{ proxy }}
 {% if distro.startswith('rocky') or distro.startswith('almalinux') %}
 echo "gpgcheck=0" >> /etc/yum.repos.d/BaseOS.repo
 echo "gpgcheck=0" >> /etc/yum.repos.d/AppStream.repo
@@ -108,11 +127,13 @@ echo "gpgcheck=0" >> /etc/yum.repos.d/AppStreamMirror1.repo
 echo "gpgcheck=0" >> /etc/yum.repos.d/BaseOSMirror2.repo
 echo "gpgcheck=0" >> /etc/yum.repos.d/AppStreamMirror2.repo
 dnf -y install epel-release
+{% if inventory_hostname_short.startswith('ohpc-huawei-repo') %}
 cat /etc/NetworkManager/system-connections/enp125s0f0.nmconnection | \
 	nmcli --offline connection modify +ipv4.routes "150.50.0.0/16 192.168.243.4" > \
 	/etc/NetworkManager/system-connections/enp125s0f0.nmconnection.new
 mv /etc/NetworkManager/system-connections/enp125s0f0.nmconnection.new /etc/NetworkManager/system-connections/enp125s0f0.nmconnection
 chmod 600 /etc/NetworkManager/system-connections/enp125s0f0.nmconnection
+{% endif %}
 /usr/bin/crb enable
 {% endif %}
 {% if distro.startswith('openEuler') %}
@@ -122,13 +143,15 @@ echo "gpgcheck=0" >> /etc/yum.repos.d/updateMirror.repo
 sed -i "s,metalink,#metalink,g" -i /etc/yum.repos.d/openEuler.repo
 sed '/Banner/d;/AllowTcpForwarding/d;/AllowAgentForwarding/d;/GatewayPorts/d;/PermitTunnel/d;' -i /etc/ssh/sshd_config
 sed 's,/usr/libexec/openssh/openssh/sftp-server,/usr/libexec/openssh/sftp-server,g;' -i /etc/ssh/sshd_config
+{% if inventory_hostname_short.startswith('ohpc-huawei-repo') %}
 cat > /etc/sysconfig/network-scripts/route-eth2 <<EOF
 150.50.0.0/16 via 192.168.243.4
 EOF
 {% endif %}
+{% endif %}
 dnf -y upgrade
-mkdir -p /root/.ssh/
-curl --output-dir /root/.ssh/ --remote-name http://192.168.243.4/authorized_keys
+mkdir /root/.ssh/
+curl --output-dir /root/.ssh/ --remote-name http://{{ repo }}/authorized_keys
 cp /root/.ssh/authorized_keys /root/.ssh/jumper.pub
 ssh-keygen -t rsa -f /root/.ssh/cluster -N '' > /root/keygen.output
 ssh-keygen -t rsa -f /root/.ssh/id_rsa -N '' >> /root/keygen.output
@@ -137,5 +160,8 @@ ssh-keygen -t dsa -f /root/.ssh/id_dsa -N '' >> /root/keygen.output
 cat /root/.ssh/cluster.pub >> /root/.ssh/authorized_keys
 ipmitool chassis bootdev disk
 mkdir -p /root/.cpan/CPAN/
-curl --output-dir /root/.cpan/CPAN/ --remote-name http://192.168.243.4/MyConfig.pm
+curl --output-dir /root/.cpan/CPAN/ --remote-name http://{{ repo }}/MyConfig.pm
+echo "gpgcheck=0" >> /etc/yum.repos.d/BaseOS.repo
+echo "gpgcheck=0" >> /etc/yum.repos.d/AppStream.repo
+echo "gpgcheck=0" >> /etc/yum.repos.d/CRB.repo
 %end
