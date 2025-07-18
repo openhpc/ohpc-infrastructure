@@ -6,45 +6,17 @@
     disks: sda,sdb
     repo: 192.168.243.4
     proxy: 175.200.16.14:3128
+    cluster: huawei
+    arch: aarch64
+    arch_short: aa64
 
   handlers:
     - name: Include handlers
       ansible.builtin.import_tasks: ../common/handlers.yml
 
   tasks:
-    - name: Create directories
-      file:
-        dest: "{{ item }}"
-        state: directory
-      with_items:
-        - /var/www/html/openSUSE-Leap-15.3-3-DVD-aarch64-Media
-        - /var/www/html/openEuler-22.03-LTS-SP3-everything
-        - /var/www/html/AlmaLinux-10-latest
-        - /var/www/html/AlmaLinux-9-latest
-        - /var/www/html/Rocky-9-latest
-        - /root/.cache
-        - /home/registry
-      tags:
-        - skip_ansible_lint
-
-    - name: Install packages
-      ansible.builtin.package:
-        state: present
-        name:
-          - git
-          - squid
-          - ipmitool
-          - kea
-          - tftp-server
-          - grub2-efi-aa64
-          - httpd
-          - rsync
-          - openvpn
-          - firewalld
-          - podman
-
-    - name: Import ohpc-huawei-common.yml
-      ansible.builtin.import_tasks: ohpc-huawei-common.yml
+    - name: Include ohpc-common-repo.yml
+      ansible.builtin.include_tasks: ohpc-common-repo.yml
 
     - name: Configure enp125s0f0
       community.general.nmcli:
@@ -54,155 +26,6 @@
         ip4: 192.168.243.4/28
         state: present
         autoconnect: true
-
-    - name: Create directories
-      ansible.builtin.file:
-        dest: "{{ item }}"
-        state: directory
-        owner: squid
-        group: squid
-        mode: "0755"
-      with_items:
-        - /home/cache
-
-    - name: Set file context /home/cache
-      community.general.sefcontext:
-        target: '/home/cache(/.*)?'
-        setype: squid_cache_t
-        state: present
-
-    - name: Install squid.conf
-      ansible.builtin.template:
-        src: squid.conf
-        dest: /etc/squid/squid.conf
-        mode: "0644"
-      notify:
-        - Restart squid
-
-    - name: Mount iso images as installation source
-      ansible.posix.mount:
-        path: "/var/www/html/{{ item }}"
-        src: "/home/{{ item }}-aarch64-dvd.iso"
-        opts: defaults,ro
-        state: mounted
-        fstype: iso9660
-      with_items:
-        - Rocky-9-latest
-        - AlmaLinux-9-latest
-        - AlmaLinux-10-latest
-        - openEuler-22.03-LTS-SP3-everything
-
-        ##  - name: mount leap dvd as installation source
-        ##    ansible.posix.mount:
-        ##      path: /var/www/html/openSUSE-Leap-15.5-DVD-aarch64-Current
-        ##      src: /mnt/images/openSUSE-Leap-15.5-DVD-aarch64-Current.iso
-        ##      opts: defaults,ro
-        ##      state: mounted
-        ##      fstype: iso9660
-        ##
-
-    - name: Setup tftp booting
-      ansible.builtin.copy:
-        remote_src: true
-        src: "{{ item }}"
-        dest: /var/lib/tftpboot/
-        mode: "0644"
-      with_items:
-        - /boot/efi/EFI/almalinux/grubaa64.efi
-
-    - name: Setup tftp booting for openEuler 22.03
-      ansible.builtin.copy:
-        remote_src: true
-        src: "{{ item }}"
-        dest: /var/lib/tftpboot/
-        mode: "0644"
-      with_items:
-        - /var/www/html/openEuler-22.03-LTS-SP3-everything/images/pxeboot/initrd.img
-        - /var/www/html/openEuler-22.03-LTS-SP3-everything/images/pxeboot/vmlinuz
-      when: distro == "openEuler_22.03"
-
-    - name: Setup tftp booting for rocky9
-      ansible.builtin.copy:
-        remote_src: true
-        src: "{{ item }}"
-        dest: /var/lib/tftpboot/
-        mode: "0644"
-      with_items:
-        - /var/www/html/Rocky-9-latest/images/pxeboot/initrd.img
-        - /var/www/html/Rocky-9-latest/images/pxeboot/vmlinuz
-      when: distro == "rocky9"
-
-    - name: Setup tftp booting for rocky8
-      ansible.builtin.copy:
-        remote_src: true
-        src: "{{ item }}"
-        dest: /var/lib/tftpboot/
-        mode: "0644"
-      with_items:
-        - /home/rocky/8/BaseOS/aarch64/os/images/pxeboot/initrd.img
-        - /home/rocky/8/BaseOS/aarch64/os/images/pxeboot/vmlinuz
-      when: distro == "rocky8"
-
-    - name: Setup tftp booting for almalinux9
-      ansible.builtin.copy:
-        remote_src: true
-        src: "{{ item }}"
-        dest: /var/lib/tftpboot/
-        mode: "0644"
-      with_items:
-        - /var/www/html/AlmaLinux-9-latest/images/pxeboot/initrd.img
-        - /var/www/html/AlmaLinux-9-latest/images/pxeboot/vmlinuz
-      when: distro == "almalinux9"
-
-    - name: Setup tftp booting for leap15.5
-      ansible.builtin.copy:
-        remote_src: true
-        src: "{{ item }}"
-        dest: /var/lib/tftpboot/
-        mode: "0644"
-      with_items:
-        - /var/www/html/openSUSE-Leap-15.5-DVD-aarch64-Current/boot/aarch64/initrd
-        - /var/www/html/openSUSE-Leap-15.5-DVD-aarch64-Current/boot/aarch64/linux
-      when: distro == "leap15.5"
-
-    - name: Setup tftp booting for leap15.3
-      ansible.builtin.copy:
-        remote_src: true
-        src: "{{ item }}"
-        dest: /var/lib/tftpboot/
-        mode: "0644"
-      with_items:
-        - /var/www/html/openSUSE-Leap-15.3-DVD-aarch64-Media/boot/aarch64/initrd
-        - /var/www/html/openSUSE-Leap-15.3-DVD-aarch64-Media/boot/aarch64/linux
-      when: distro == "leap15.3"
-
-    - name: Copy el-kickstart file
-      ansible.builtin.template:
-        src: el-kickstart
-        dest: "/var/www/html/{{ distro }}-kickstart"
-        mode: "0644"
-      when: (distro.startswith("rocky")) or (distro == "almalinux9") or (distro == "openEuler_22.03")
-
-    - name: Copy autoyast for "{{ distro }}"
-      ansible.builtin.template:
-        src: "{{ distro }}-autoyast.huawei"
-        dest: "/var/www/html/{{ distro }}-autoyast"
-        mode: "0644"
-      when: distro.startswith("leap15")
-
-    - name: Network boot grub.cfg "({{ distro }})"
-      ansible.builtin.template:
-        src: grub.cfg.huawei
-        dest: /var/lib/tftpboot/grub.cfg
-        mode: "0644"
-
-    - name: Install kea-dhcp4.conf
-      ansible.builtin.copy:
-        src: kea-dhcp4.conf.huawei
-        dest: /etc/kea/kea-dhcp4.conf
-        mode: "0644"
-      notify:
-        - Restart kea-dhcp4
 
     - name: Allow time sync from other test systems
       ansible.builtin.lineinfile:
@@ -214,14 +37,6 @@
         - "allow 192.168.243.1/28"
       notify:
         - Restart chronyd
-
-    - name: Allow password based login
-      ansible.builtin.lineinfile:
-        path: /etc/ssh/sshd_config
-        state: present
-        line: 'PermitRootLogin yes'
-      notify:
-        - Restart sshd
 
     - name: Install openvpn server file
       ansible.builtin.template:
@@ -255,10 +70,6 @@
         enabled: true
         state: started
       with_items:
-        - httpd
-        - tftp
-        - squid
-        - firewalld
         - openvpn-server@tun1
         - registry.service
 
@@ -302,12 +113,6 @@
       tags:
         - skip_ansible_lint
       with_items:
-        - 67/udp
-        - 68/udp
-        - 69/udp
         - 123/udp
         - 1194/udp
-        - 22/tcp
-        - 80/tcp
-        - 3128/tcp
         - 5000/tcp
