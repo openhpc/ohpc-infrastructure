@@ -1,0 +1,132 @@
+---
+
+- name: Configure proxy
+  ansible.builtin.copy:
+    dest: /etc/profile.d/proxy.sh
+    src: "proxy.sh.{{ cluster }}"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Include history.yml
+  ansible.builtin.include_tasks: ../common/history.yml
+
+- name: Install obs repository configuration
+  ansible.builtin.template:
+    src: "{{ item }}"
+    dest: /etc/yum.repos.d/
+    owner: root
+    group: root
+    mode: "0644"
+  with_items:
+    - OpenHPC-obs-factory.repo
+  when: distro == "openEuler_22.03"
+
+- name: Install obs repository configuration
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: /etc/yum.repos.d/
+    owner: root
+    group: root
+    mode: "0644"
+  with_items:
+    - mgrigorov-OpenHPC-openeuler-22.03_LTS_SP3.repo
+  when: distro == "openEuler_22.03"
+
+- name: Install obs repository configuration
+  ansible.builtin.template:
+    src: "{{ item }}"
+    dest: /etc/yum.repos.d/
+    owner: root
+    group: root
+    mode: "0644"
+  with_items:
+    - OpenHPC-obs-factory.repo
+  when: (distro.startswith("rocky")) or (distro == "almalinux9")
+
+- name: Install obs repository configuration
+  ansible.builtin.template:
+    src: "{{ item }}"
+    dest: /etc/yum.repos.d/
+    owner: root
+    group: root
+    mode: "0644"
+  with_items:
+    - arm1.repo
+  when: ((distro.startswith("rocky")) or (distro == "almalinux9")) and (cluster == "huawei")
+
+- name: Install obs repository configuration
+  ansible.builtin.template:
+    src: "{{ item }}"
+    dest: /etc/zypp/repos.d/
+    owner: root
+    group: root
+    mode: "0644"
+  with_items:
+    - OpenHPC-obs-factory.repo
+  when: distro.startswith("leap15")
+
+- name: Install packages
+  ansible.builtin.package:
+    state: present
+    name:
+      - epel-release
+      - tzdata-java
+  when: (distro.startswith("rocky")) or (distro == "almalinux9")
+
+- name: Install packages
+  ansible.builtin.package:
+    state: present
+    name:
+      - openvpn
+      - bind-utils
+      - git
+      - ipmitool
+      - rsync
+      - chrony
+      - bats
+  when: distro != "leap15.3"
+
+- name: "Import ohpc-cluster-common.yml for {{ cluster }}"
+  ansible.builtin.import_tasks: "ohpc-{{ cluster }}-common.yml"
+
+- name: Create directories
+  ansible.builtin.file:
+    dest: "{{ item }}"
+    state: directory
+    mode: "0755"
+  with_items:
+    - /root/ci
+
+- name: Copy helper scripts
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: /root/ci/
+    owner: root
+    group: root
+    mode: "0644"
+  with_items:
+    - install.sh
+    - support_functions.sh
+    - computes_installed.py
+    - sms_installed.bats
+    - gen_inputs.pl
+
+- name: Install installation templates
+  ansible.builtin.template:
+    src: "{{ item }}"
+    dest: /root/ci/
+    owner: root
+    group: root
+    mode: "0644"
+  with_items:
+    - "{{ cluster }}.mapping"
+
+
+- name: Make install script executable
+  ansible.builtin.file:
+    path: "/root/ci/{{ item }}"
+    mode: "0755"
+  with_items:
+    - install.sh
+    - sms_installed.bats

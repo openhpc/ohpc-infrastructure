@@ -2,6 +2,7 @@
   hosts: ohpc_huawei_sms
   gather_facts: true
   vars:
+    cluster: huawei
     local_hostname: ohpc-huawei-sms-internal
 
   handlers:
@@ -9,82 +10,8 @@
       ansible.builtin.import_tasks: ../common/handlers.yml
 
   tasks:
-    - name: Configure proxy
-      ansible.builtin.copy:
-        dest: /etc/profile.d/proxy.sh
-        mode: "0644"
-        content: |
-          export https_proxy=http://175.200.16.14:3128
-          export http_proxy=http://175.200.16.14:3128
-          export no_proxy="ohpc-huawei-repo,test.openhpc.community,pypi.org,192.168.243.4,175.200.16.14"
-
-    - name: Install obs repository configuration
-      ansible.builtin.template:
-        src: "{{ item }}"
-        dest: /etc/yum.repos.d/
-        owner: root
-        group: root
-        mode: "0644"
-      with_items:
-        - OpenHPC-obs-factory.repo
-      when: distro == "openEuler_22.03"
-
-    - name: Install obs repository configuration
-      ansible.builtin.copy:
-        src: "{{ item }}"
-        dest: /etc/yum.repos.d/
-        owner: root
-        group: root
-        mode: "0644"
-      with_items:
-        - mgrigorov-OpenHPC-openeuler-22.03_LTS_SP3.repo
-      when: distro == "openEuler_22.03"
-
-    - name: Install obs repository configuration
-      ansible.builtin.template:
-        src: "{{ item }}"
-        dest: /etc/yum.repos.d/
-        owner: root
-        group: root
-        mode: "0644"
-      with_items:
-        - OpenHPC-obs-factory.repo
-        - arm1.repo
-      when: (distro.startswith("rocky")) or (distro == "almalinux9")
-
-    - name: Install obs repository configuration
-      ansible.builtin.template:
-        src: "{{ item }}"
-        dest: /etc/zypp/repos.d/
-        owner: root
-        group: root
-        mode: "0644"
-      with_items:
-        - OpenHPC-obs-factory.repo
-      when: distro == "leap15.5"
-
-    - name: Install packages
-      ansible.builtin.package:
-        state: present
-        name:
-          - epel-release
-          - tzdata-java
-      when: (distro.startswith("rocky")) or (distro == "almalinux9")
-
-    - name: Install packages
-      ansible.builtin.package:
-        state: present
-        name:
-          - openvpn
-          - bind-utils
-          - git
-          - ipmitool
-          - rsync
-          - chrony
-          - bats
-
-    - name: Include ohpc-huawei-common.yml
-      ansible.builtin.import_tasks: ohpc-huawei-common.yml
+    - name: Include ohpc-common-sms.yml
+      ansible.builtin.include_tasks: ohpc-common-sms.yml
 
     - name: Sync time from repo
       ansible.builtin.lineinfile:
@@ -100,43 +27,3 @@
         line: 'makestep 1 -1'
       notify:
         - Restart chronyd
-
-    - name: Create directories
-      ansible.builtin.file:
-        dest: "{{ item }}"
-        state: directory
-        mode: "0755"
-      with_items:
-        - /root/ci
-
-    - name: Copy helper scripts
-      ansible.builtin.copy:
-        src: "{{ item }}"
-        dest: /root/ci/
-        owner: root
-        group: root
-        mode: "0644"
-      with_items:
-        - install.sh
-        - support_functions.sh
-        - computes_installed.py
-        - sms_installed.bats
-        - gen_inputs.pl
-
-    - name: Install installation templates
-      ansible.builtin.template:
-        src: "{{ item }}"
-        dest: /root/ci/
-        owner: root
-        group: root
-        mode: "0644"
-      with_items:
-        - huawei.mapping
-
-    - name: Make install script executable
-      ansible.builtin.file:
-        path: "/root/ci/{{ item }}"
-        mode: "0755"
-      with_items:
-        - install.sh
-        - sms_installed.bats
