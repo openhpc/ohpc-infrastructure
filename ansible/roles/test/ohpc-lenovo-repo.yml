@@ -6,6 +6,7 @@
     disks: sda
     repo: 10.241.58.130
     proxy: 10.241.58.130:3128
+    cluster: lenovo
 
   handlers:
     - name: Include handlers
@@ -215,7 +216,7 @@
 
     - name: Copy el-kickstart file
       ansible.builtin.template:
-        src: el-kickstart.lenovo
+        src: el-kickstart
         dest: "/var/www/html/{{ distro }}-kickstart"
         mode: "0644"
       when: (distro.startswith("rocky")) or (distro == "almalinux9") or (distro == "openEuler_22.03")
