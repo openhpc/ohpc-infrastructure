@@ -8,7 +8,7 @@
     proxy: 10.241.58.130:3128
     cluster: lenovo
     arch: x86_64
-    arch_short: x86
+    arch_short: x64
 
   handlers:
     - name: Include handlers
