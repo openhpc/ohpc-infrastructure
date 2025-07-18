@@ -8,6 +8,23 @@
     group: root
     mode: "0644"
 
+- name: Fix dnf.conf
+  ansible.builtin.lineinfile:
+    path: /etc/dnf/dnf.conf
+    line: "{{ item }}"
+  with_items:
+    - user_agent="curl"
+  when: >
+    ((distro.startswith("rocky")) or (distro == "almalinux9") or (distro.startswith("openEuler"))) and
+    (cluster == "lenovo")
+
+- name: Replace mirror URL for openeuler
+  ansible.builtin.replace:
+    path: /etc/yum.repos.d/openEuler.repo
+    regexp: 'repo.openeuler.org'
+    replace: 'repo.huaweicloud.com/openeuler'
+  when: (distro == "openEuler_22.03") and (cluster == "lenovo")
+
 - name: Include history.yml
   ansible.builtin.include_tasks: ../common/history.yml
 
@@ -53,7 +70,9 @@
     mode: "0644"
   with_items:
     - arm1.repo
-  when: ((distro.startswith("rocky")) or (distro == "almalinux9")) and (cluster == "huawei")
+  when: >
+    ((distro.startswith("rocky")) or (distro == "almalinux9")) and
+    (cluster == "huawei")
 
 - name: Install obs repository configuration
   ansible.builtin.template:
