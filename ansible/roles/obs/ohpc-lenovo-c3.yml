@@ -1,14 +1,14 @@
 ---
 
-- name: Configure ohpc-lenovo-repo obs workers
-  hosts: ohpc_lenovo_repo
+- name: OBS worker ohpc-lenovo-c3
+  hosts: ohpc_lenovo_c3
   user: root
   gather_facts: true
   vars:
-    obs_worker_instances: 4
+    obs_worker_instances: 30
     obs_worker_jobs: 6
     container_tag: amd64
-    obs_repository_server: 10.255.255.0
+    obs_repository_server: 10.255.254.0
 
   handlers:
     - name: Include handlers
@@ -28,6 +28,21 @@
         state: directory
       with_items:
         - /workers/
+
+    - name: Mount /workers partition
+      ansible.posix.mount:
+        path: /workers
+        src: UUID=008f4b8a-66a7-40d1-957a-97cb19e3b582
+        opts: defaults,noatime
+        state: mounted
+        fstype: xfs
+
+    - name: Create OBS directories
+      ansible.builtin.file:
+        dest: "{{ item }}"
+        mode: "0755"
+        state: directory
+      with_items:
         - /workers/cache
         - /etc/systemd/system/obsworker-podman.service.d
         - /etc/systemd/system/openvpn-client@obs.service.d

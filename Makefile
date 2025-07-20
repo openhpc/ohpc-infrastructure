@@ -28,6 +28,7 @@ ansible-lint:
 		ansible/roles/common/automatic-updates.yml \
 		ansible/roles/common/handlers.yml \
 		ansible/roles/repos/repos-aarch64.yml \
+		ansible/roles/obs/ohpc-lenovo-c3.yml \
 		ansible/roles/obs/ohpc-lenovo-repo.yml
 
 ruff-lint:
