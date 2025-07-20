@@ -88,7 +88,7 @@ compiler_dependent = ["!openmpi", "!mpich", "!mvapich2", "!openblas", "!R", "!li
 standalone = ["docs", "test-suite", "warewulf", "!gnu-compilers", "ohpc-filesystem",
 	      "!cmake", "!pdsh", "intel-compilers-devel", "examples",
 	      "impi-devel", "!meta-packages", "easybuild", "!spack", "!hwloc", "!ucx",
-	      "lmod", "!genders", "!hpc-workspace", "!valgrind", "!slurm", "!cuda-devel"]
+	      "lmod", "!genders", "hpc-workspace", "valgrind", "!slurm", "!cuda-devel"]
 mpi_dependent = ["!otf2", "!sionlib", "!fftw", "!scalapack",
 		 "scorep", "!scalasca", "!scipy", "!phdf5", "!netcdf", "!netcdf-fortran",
 		 "!netcdf-cxx", "!lmod-defaults", "!geopm", "!mumps", "!omb",
