@@ -9,6 +9,8 @@
     obs_worker_jobs: 6
     container_tag: amd64
     obs_repository_server: 10.255.254.0
+    stunnel_remote_port: 8444
+    openvpn_ifconfig: "10.255.254.1 10.255.254.0"
 
   handlers:
     - name: Include handlers
@@ -20,6 +22,9 @@
 
     - name: Include automatic-updates.yml
       ansible.builtin.include_tasks: ../common/automatic-updates.yml
+
+    - name: Import ohpc-lenovo-common.yml
+      ansible.builtin.import_tasks: ../test/ohpc-lenovo-common.yml
 
     - name: Create OBS directories
       ansible.builtin.file:
@@ -65,7 +70,7 @@
           - git
 
     - name: Install stunnel configuration
-      ansible.builtin.copy:
+      ansible.builtin.template:
         src: stunnel.conf
         dest: /etc/stunnel/stunnel.conf
         owner: root
@@ -73,7 +78,7 @@
         mode: "0600"
 
     - name: Install openvpn configuration
-      ansible.builtin.copy:
+      ansible.builtin.template:
         src: openvpn-obs.conf
         dest: /etc/openvpn/client/obs.conf
         owner: root
