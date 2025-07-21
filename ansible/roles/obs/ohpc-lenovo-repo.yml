@@ -9,6 +9,8 @@
     obs_worker_jobs: 6
     container_tag: amd64
     obs_repository_server: 10.255.255.0
+    stunnel_remote_port: 8443
+    openvpn_ifconfig: "10.255.255.1 10.255.255.0"
 
   handlers:
     - name: Include handlers
@@ -50,7 +52,7 @@
           - git
 
     - name: Install stunnel configuration
-      ansible.builtin.copy:
+      ansible.builtin.template:
         src: stunnel.conf
         dest: /etc/stunnel/stunnel.conf
         owner: root
@@ -58,7 +60,7 @@
         mode: "0600"
 
     - name: Install openvpn configuration
-      ansible.builtin.copy:
+      ansible.builtin.template:
         src: openvpn-obs.conf
         dest: /etc/openvpn/client/obs.conf
         owner: root
