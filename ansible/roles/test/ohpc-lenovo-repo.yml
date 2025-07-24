@@ -17,3 +17,23 @@
   tasks:
     - name: Include ohpc-common-repo.yml
       ansible.builtin.include_tasks: ohpc-common-repo.yml
+
+    - name: Add tun1 to public zone
+      ansible.posix.firewalld:
+        zone: public
+        interface: tun1
+        permanent: true
+        immediate: true
+        state: enabled
+      tags:
+        - skip_ansible_lint
+
+    - name: Allow access to 10.255.255.1 (obs via vpn)
+      ansible.posix.firewalld:
+        zone: public
+        rich_rule: rule family="ipv4" destination address="10.255.255.1" accept
+        permanent: true
+        immediate: true
+        state: enabled
+      tags:
+        - skip_ansible_lint
