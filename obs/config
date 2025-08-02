@@ -53,15 +53,15 @@ compiler_dependent = ["openmpi", "mpich", "mvapich2", "openblas", "R", "likwid",
 standalone = ["docs", "test-suite", "warewulf", "gnu-compilers", "ohpc-filesystem",
               "cmake", "pdsh", "intel-compilers-devel","autoconf","automake", "pmix",
               "impi-devel", "meta-packages", "easybuild", "spack", "hwloc", "ucx",
-              "python-Cython", "openpbs", "libtool", "prun",
+              "python-Cython", "openpbs", "libtool", "prun", "papi", "nhc", "losf",
               "lmod", "genders", "hpc-workspace", "valgrind", "slurm", "cuda-devel"]
 
-mpi_dependent = ["!otf2", "!sionlib", "!fftw", "!scalapack",
-		 "!scorep", "!scalasca", "!scipy", "phdf5", "netcdf", "!netcdf-fortran",
-		 "!netcdf-cxx", "lmod-defaults", "!geopm", "!mumps", "omb",
-		 "!ptscotch", "!boost", "!pnetcdf", "!tau", "!extrae", "imb",
-		 "!opencoarrays", "!hypre", "!mpi4py", "!dimemas", "!adios2",
-		 "!trilinos", "!petsc", "!slepc", "!superlu_dist", "!mfem"]
+mpi_dependent = ["otf2", "sionlib", "fftw", "scalapack",
+		 "scorep", "scalasca", "!scipy", "phdf5", "netcdf", "netcdf-fortran",
+		 "netcdf-cxx", "lmod-defaults", "!geopm", "!mumps", "omb",
+		 "ptscotch", "boost", "pnetcdf", "tau", "extrae", "imb",
+		 "opencoarrays", "hypre", "mpi4py", "dimemas", "adios2",
+		 "!trilinos", "petsc", "slepc", "superlu_dist", "!mfem"]
 skip_on_distro_openEuler_22.03 = ["-arm1","-intel","-impi","impi-devel","intel-compilers-devel",
 				  "arm-compilers-devel","warewulf","cuda-devel"]
 openblas_compiler=["gnu15"]
