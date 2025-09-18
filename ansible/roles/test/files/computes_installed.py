@@ -82,7 +82,7 @@ class InstallTests_computesinstalled(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    out = io.StringIO()
+    out = io.BytesIO()
     test_result = unittest.main(
         exit=False,
         testRunner=xmlrunner.XMLTestRunner(
@@ -95,7 +95,7 @@ if __name__ == "__main__":
 
     out.seek(0)
     # update XML classnames for consistency
-    output = str(out.read()).replace(
+    output = str(out.read().decode("utf-8")).replace(
         "InstallTests_computesinstalled",
         "InstallTests.computes_installed",
     )
