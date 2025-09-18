@@ -74,6 +74,12 @@ almalinux9)
 	os_dist=".el9"
 	repo_dir=/etc/yum.repos.d
 	;;
+almalinux10)
+	os_major=almalinux10
+	os_repo=EL_10
+	os_dist=".el10"
+	repo_dir=/etc/yum.repos.d
+	;;
 leap15.5)
 	os_major=leap15
 	os_repo=Leap_15
@@ -93,7 +99,8 @@ leap15.3)
 esac
 
 repo_file="${repo_dir}/OpenHPC.repo"
-export os_major os_repo os_dist repo_file
+VERSION_MAJOR=$(echo "${Version}" | awk -F. '{print $1}')
+export os_major os_repo os_dist repo_file VERSION_MAJOR
 
 if [[ "${DISTRIBUTION}" == "leap"* ]]; then
 	PKG_MANAGER="zypper"

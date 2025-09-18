@@ -27,6 +27,11 @@
         state: present
         autoconnect: true
 
+    - name: Activate enp125s0f0
+      ansible.builtin.command: nmcli device up enp125s0f0
+      tags:
+        - skip_ansible_lint
+
     - name: Allow time sync from other test systems
       ansible.builtin.lineinfile:
         path: /etc/chrony.conf

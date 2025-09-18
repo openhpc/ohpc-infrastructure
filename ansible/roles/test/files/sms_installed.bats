@@ -31,6 +31,10 @@
 		[ "$NAME" == "AlmaLinux" ]
 		[[ "$VERSION" == "9."* ]]
 		;;
+	almalinux10)
+		[ "$NAME" == "AlmaLinux" ]
+		[[ "$VERSION" == "10."* ]]
+		;;
 	*)
 		echo "Unknown DISTRIBUTION ${DISTRIBUTION}. Error!"
 		false

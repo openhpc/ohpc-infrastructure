@@ -1,14 +1,53 @@
+{%- if distro.startswith('almalinux') -%}
+{%- set type = 'el' -%}
+{%- set release = distro[9:] -%}
+{%- set base = 'AlmaLinux-'~release~'-latest/' -%}
+{%- if inventory_hostname_short.startswith('ohpc-lenovo-repo') -%}
+{%- set mirror1_base = 'http://mirrors.nxthost.com/almalinux/'~release~'/' -%}
+{%- set mirror2_base = 'http://mirrors.nav.ro/almalinux/'~release~'/' -%}
+{%- elif inventory_hostname_short.startswith('ohpc-huawei-repo') -%}
+{%- set mirror1_base = 'http://mirrors.nju.edu.cn/almalinux/'~release~'/' -%}
+{%- set mirror2_base = 'http://mirrors.zju.edu.cn/almalinux/'~release~'/' -%}
+{%- endif -%}
+{%- elif distro.startswith('rocky') -%}
+{%- set type = 'el' -%}
+{%- set release = distro[5:] -%}
+{%- set base = 'Rocky-'~release~'-latest/' -%}
+{%- if inventory_hostname_short.startswith('ohpc-lenovo-repo') -%}
+{%- set mirror1_base = 'http://mirrors.nxthost.com/rocky/'~release~'/' -%}
+{%- set mirror2_base = 'http://mirrors.nav.ro/rockylinux/'~release~'/' -%}
+{%- elif inventory_hostname_short.startswith('ohpc-huawei-repo') -%}
+{%- set mirror1_base = 'http:///mirrors.ustc.edu.cn/rocky/'~release~'/' -%}
+{%- set mirror2_base = 'http://mirrors.nju.edu.cn/rocky/'~release~'/' -%}
+{%- endif -%}
+{%- elif distro.startswith('openEuler') -%}
+{%- set type = 'openeuler' -%}
+{%- set release = distro[10:] -%}
+{%- if release == '22.03' -%}
+{%- set SP = 'SP3' -%}
+{%- elif release == '24.03' -%}
+{%- set SP = 'SP2' -%}
+{%- endif -%}
+{%- set base = 'openEuler-'~release~'-LTS-'~SP~'-everything/' -%}
+{%- if inventory_hostname_short.startswith('ohpc-lenovo-repo') -%}
+{%- set mirror1_base = 'http://TODO.mirrors.nxthost.com/rocky/'~release~'/' -%}
+{%- elif inventory_hostname_short.startswith('ohpc-huawei-repo') -%}
+{%- set mirror1_base = 'http://mirrors.nju.edu.cn/openeuler/openEuler-'~release~'-LTS-'~SP~'/' -%}
+{%- endif -%}
+{%- endif -%}
+
 text
 
 %packages
 @standard
 ipmitool
 -firewalld
+openssl-devel
 
-{% if distro.startswith('rocky') or distro.startswith('almalinux') %}
+{% if type == 'el' %}
 	python3-pip
 	perl-ph
-{% elif distro.startswith('openEuler') %}
+{% elif type == 'openeuler' %}
 	-gtk2
 	-gtk3
 	-security-tool
@@ -54,11 +93,10 @@ lang en_US.UTF-8
 {% endif %}
 
 {% if inventory_hostname_short.startswith('ohpc-huawei-repo') %}
-	{% if distro.startswith('rocky') or distro.startswith('almalinux') %}
+	{% if type == 'el' %}
 		network --hostname=ohpc-huawei-sms --device=enp189s0f0 --ip=175.200.16.11 --netmask=255.255.0.0 --gateway=175.200.0.1 --bootproto=static --nameserver=8.8.8.8
 		network --device=enp125s0f0 --ip=192.168.243.1 --netmask=255.255.255.240 --bootproto=static
-	{% endif %}
-	{% if distro.startswith('openEuler') %}
+	{% elif type == 'openeuler' %}
 		network --hostname=ohpc-huawei-sms --device=eth0 --ip=175.200.16.11 --netmask=255.255.0.0 --gateway=175.200.0.1 --bootproto=static --nameserver=8.8.8.8
 		network --device=eth2 --ip=192.168.243.1 --netmask=255.255.255.240 --bootproto=static
 	{% endif %}
@@ -70,43 +108,21 @@ clearpart --all --initlabel --drives={{ disks }}
 autopart
 timezone UTC --utc
 
-{% if inventory_hostname_short.startswith('ohpc-lenovo-repo') %}
-	{% if distro.startswith('almalinux') %}
-		url --url http://{{ repo }}/AlmaLinux-9-latest/
-		repo --cost=1 --install --name="BaseOS" --baseurl="http://{{ repo }}/AlmaLinux-9-latest/BaseOS/"
-		repo --cost=1 --install --name="AppStream" --baseurl="http://{{ repo }}/AlmaLinux-9-latest/AppStream/"
-		repo --cost=50 --install  --name="BaseOSMirror1" --baseurl="http://mirrors.nxthost.com/almalinux/9/BaseOS/x86_64/os/" --proxy="http://{{ proxy }}"
-		repo --cost=50 --install  --name="AppStreamMirror1" --baseurl="http://mirrors.nxthost.com/almalinux/9/AppStream/aarch64/os/" --proxy="http://{{ proxy }}"
-		repo --cost=50 --install  --name="BaseOSMirror2" --baseurl="http://mirrors.nav.ro/almalinux/9/BaseOS/aarch64/os/" --proxy="http://{{ proxy }}"
-		repo --cost=50 --install  --name="AppStreamMirror2" --baseurl="http://mirrors.nav.ro/almalinux/9/AppStream/aarch64/os/" --proxy="http://{{ proxy }}"
-	{% endif %}
-{% endif %}
+url --url http://{{ repo }}/{{base}}
 
 
-{% if inventory_hostname_short.startswith('ohpc-huawei-repo') %}
-	{% if distro.startswith('almalinux') %}
-		url --url http://{{ repo }}/AlmaLinux-9-latest/
-		repo --cost=1 --install --name="BaseOS" --baseurl="http://{{ repo }}/AlmaLinux-9-latest/BaseOS/"
-		repo --cost=1 --install --name="AppStream" --baseurl="http://{{ repo }}/AlmaLinux-9-latest/AppStream/"
-		repo --cost=50 --install  --name="BaseOSMirror1" --baseurl="http://mirrors.nju.edu.cn/almalinux/9/BaseOS/aarch64/os/" --proxy="http://{{ proxy }}"
-		repo --cost=50 --install  --name="AppStreamMirror1" --baseurl="http://mirrors.nju.edu.cn/almalinux/9/AppStream/aarch64/os/" --proxy="http://{{ proxy }}"
-		repo --cost=50 --install  --name="BaseOSMirror2" --baseurl="http://mirrors.zju.edu.cn/almalinux/9/BaseOS/aarch64/os/" --proxy="http://{{ proxy }}"
-		repo --cost=50 --install  --name="AppStreamMirror2" --baseurl="http://mirrors.zju.edu.cn/almalinux/9/AppStream/aarch64/os/" --proxy="http://{{ proxy }}"
-	{% elif distro.startswith('rocky') %}
-		url --url http://{{ repo }}/Rocky-9-latest/
-		repo --cost=1 --install --name="BaseOS" --baseurl="http://{{ repo }}/Rocky-9-latest/BaseOS/"
-		repo --cost=1 --install --name="AppStream" --baseurl="http://{{ repo }}/Rocky-9-latest/AppStream/"
-		repo --cost=50 --install  --name="BaseOSMirror1" --baseurl="http://mirrors.ustc.edu.cn/rocky/9/BaseOS/aarch64/os/" --proxy="http://{{ proxy }}"
-		repo --cost=50 --install  --name="AppStreamMirror1" --baseurl="http://mirrors.ustc.edu.cn/rocky/9/AppStream/aarch64/os/" --proxy="http://{{ proxy }}"
-		repo --cost=55 --install  --name="BaseOSMirror2" --baseurl="http://mirrors.nju.edu.cn/rocky/9/BaseOS/aarch64/os/" --proxy="http://{{ proxy }}"
-		repo --cost=55 --install  --name="AppStreamMirror2" --baseurl="http://mirrors.nju.edu.cn/rocky/9/AppStream/aarch64/os/" --proxy="http://{{ proxy }}"
-	{% elif distro.startswith('openEuler') %}
-		url --url http://{{ repo }}/openEuler-22.03-LTS-SP3-everything/
-		repo --cost=1 --install --name="DVD" --baseurl="http://{{ repo }}/openEuler-22.03-LTS-SP3-everything/"
-		repo --cost=50 --install  --name="everythingMirror" --baseurl="http://mirrors.nju.edu.cn/openeuler/openEuler-22.03-LTS-SP3/everything/aarch64/" --proxy="http://{{ proxy }}"
-		repo --cost=50 --install  --name="updateMirror" --baseurl="http://mirrors.nju.edu.cn/openeuler/openEuler-22.03-LTS-SP3/update/aarch64/" --proxy="http://{{ proxy }}"
-	{% endif %}
-{% endif %}
+{%- if type == 'el' -%}
+repo --cost=1 --install --name="BaseOS" --baseurl="http://{{ repo }}/{{base}}BaseOS/"
+repo --cost=1 --install --name="AppStream" --baseurl="http://{{ repo }}/{{base}}/AppStream/"
+repo --cost=50 --install  --name="BaseOSMirror1" --baseurl="{{ mirror1_base }}BaseOS/{{ arch }}/os/" --proxy="http://{{ proxy }}"
+repo --cost=50 --install  --name="AppStreamMirror1" --baseurl="{{ mirror1_base }}AppStream/{{ arch }}/os/" --proxy="http://{{ proxy }}"
+repo --cost=50 --install  --name="BaseOSMirror2" --baseurl="{{ mirror2_base }}BaseOS/{{ arch }}/os/" --proxy="http://{{ proxy }}"
+repo --cost=50 --install  --name="AppStreamMirror2" --baseurl="{{ mirror2_base }}AppStream/{{ arch }}/os/" --proxy="http://{{ proxy }}"
+{%- elif type == 'openeuler' %}
+repo --cost=50 --install  --name="everythingMirror" --baseurl="{{ mirror1_base }}everything/{{ arch }}/" --proxy="http://{{ proxy }}"
+repo --cost=50 --install  --name="updateMirror" --baseurl="{{ mirror1_base }}update/{{ arch }}/" --proxy="http://{{ proxy }}"
+{%- endif -%}
+
 
 skipx
 services --enabled="chronyd"
@@ -120,7 +136,7 @@ set -x
 export https_proxy=http://{{ proxy }}
 export http_proxy=http://{{ proxy }}
 
-{% if distro.startswith('rocky') or distro.startswith('almalinux') %}
+{% if type == 'el' %}
 	echo "gpgcheck=0" >> /etc/yum.repos.d/BaseOS.repo
 	echo "gpgcheck=0" >> /etc/yum.repos.d/AppStream.repo
 	echo "gpgcheck=0" >> /etc/yum.repos.d/BaseOSMirror1.repo
@@ -136,9 +152,7 @@ export http_proxy=http://{{ proxy }}
 		chmod 600 /etc/NetworkManager/system-connections/enp125s0f0.nmconnection
 	{% endif %}
 	/usr/bin/crb enable
-{% endif %}
-
-{% if distro.startswith('openEuler') %}
+{% elif type == 'openeuler' %}
 	echo "gpgcheck=0" >> /etc/yum.repos.d/DVD.repo
 	echo "gpgcheck=0" >> /etc/yum.repos.d/everythingMirror.repo
 	echo "gpgcheck=0" >> /etc/yum.repos.d/updateMirror.repo

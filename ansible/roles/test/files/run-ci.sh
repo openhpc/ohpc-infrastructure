@@ -118,6 +118,21 @@ RESULTS="/results"
 
 VERSION_MAJOR=$(echo "${VERSION}" | awk -F. '{print $1}')
 
+if [[ "${VERSION_MAJOR}" == "4" ]]; then
+	case "${DISTRIBUTION}" in
+	rocky)
+		DISTRIBUTION=rocky10
+		;;
+	almalinux)
+		DISTRIBUTION=almalinux10
+		;;
+	*)
+		echo "Unknown distribution ${DISTRIBUTION}. Exiting!"
+		exit 1
+		;;
+	esac
+fi
+
 if [[ "${VERSION_MAJOR}" == "3" ]]; then
 	case "${DISTRIBUTION}" in
 	rocky)
@@ -173,6 +188,10 @@ fi
 if [ ! -d "${RESULTS}" ]; then
 	echo "Results directory (${RESULTS}) missing. Exiting"
 	exit 1
+fi
+
+if [[ "${PROVISIONER}" == "openchami" ]]; then
+	((TIMEOUT += 100))
 fi
 
 print_overview() {
@@ -279,11 +298,12 @@ USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-geopm"
 USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-tau"
 USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-extrae"
 USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-mfem"
+USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-scipy"
 
-if [[ "${VERSION}" == "3."* ]]; then
-	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --with-mpi-families='mpich openmpi5'"
-else
+if [[ "${VERSION}" == "2."* ]]; then
 	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --with-mpi-families='mpich openmpi4'"
+else
+	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --with-mpi-families='mpich openmpi5'"
 fi
 
 if [[ "${CI_CLUSTER}" == "huawei" ]]; then
@@ -291,6 +311,19 @@ if [[ "${CI_CLUSTER}" == "huawei" ]]; then
 fi
 
 print_overview
+
+# Save old history
+echo
+echo "Trying to save old history"
+[ -d /root/.backup ] || mkdir -p /root/.backup
+cp -a /root/.bash_history "/root/.backup/history.$(date '+%Y-%m-%d')"
+OLD_HISTORY=$(mktemp)
+NEW_HISTORY=$(mktemp)
+ssh -o ConnectTimeout=10 "${SMS}" cat ~/.bash_history >>"${OLD_HISTORY}"
+cat ~/.bash_history >>"${NEW_HISTORY}"
+grep -F -x -v -f ~/.bash_history "${OLD_HISTORY}" >>"${NEW_HISTORY}"
+mv "${NEW_HISTORY}" ~/.bash_history
+rm -f "${NEW_HISTORY}" "${OLD_HISTORY}"
 
 if ! "ansible/roles/test/files/${LAUNCHER}" "${SMS}" "${DISTRIBUTION}" "${VERSION}" "${ROOT_PASSWORD}" | tee -a "${LOG}"; then
 	cd - >/dev/null
@@ -339,6 +372,9 @@ if [[ "${PROVISIONER}" == "confluent" ]]; then
 	if [[ "${DISTRIBUTION}" == "almalinux"* ]]; then
 		echo "export iso_path=/root/AlmaLinux-9.5-x86_64-dvd.iso" >>"${VARS}"
 	fi
+	if [[ "${DISTRIBUTION}" == "almalinux10" ]]; then
+		echo "export iso_path=/root/AlmaLinux-10.0-x86_64-dvd.iso" >>"${VARS}"
+	fi
 fi
 
 if [[ "${DISTRIBUTION}" == "almalinux"* ]] && [[ "${SMS}" == "ohpc-huawei-sms" ]]; then
@@ -373,6 +409,7 @@ if [[ "${WITH_GPU}" == "nvidia" ]]; then
 fi
 
 scp "${VARS}" "${SMS}":/root/vars
+scp /root/.bash_history "${SMS}":
 
 set +x
 set +e

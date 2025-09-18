@@ -2,13 +2,13 @@
 name=Rolling development build for {{ release }}
 type=rpm-md
 {% if distro.startswith('rocky') or distro.startswith('almalinux') %}
-baseurl=http://obs.openhpc.community:82/OpenHPC{%- if release.startswith('3') -%}3{%- endif -%}:/{{ release }}:/Factory/EL_{%- if release.startswith('3') -%}9{%- else -%}8{%- endif -%}/
+baseurl=http://obs.openhpc.community:82/OpenHPC{%- if release.startswith('3') or release.startswith('4') -%}{{ release[:1] }}{%- endif -%}:/{{ release }}:/Factory/EL_{%- if release.startswith('4') -%}10{%- elif release.startswith('3') -%}9{%- else -%}8{%- endif -%}/
 {% endif %}
 {% if distro.startswith('openEuler') %}
-baseurl=http://obs.openhpc.community:82/OpenHPC{%- if release.startswith('3') -%}3{%- endif -%}:/{{ release }}:/Factory/{{ distro }}/
+baseurl=http://obs.openhpc.community:82/OpenHPC{%- if release.startswith('3') or release.startswith('4') -%}{{ release[:1] }}{%- endif -%}:/{{ release }}:/Factory/{{ distro }}/
 {% endif %}
 {% if distro.startswith('leap') %}
-baseurl=http://obs.openhpc.community:82/OpenHPC{%- if release.startswith('3') -%}3{%- endif -%}:/{{ release }}:/Factory/Leap_15/
+baseurl=http://obs.openhpc.community:82/OpenHPC{%- if release.startswith('3') or release.startswith('4') -%}{{ release[:1] }}{%- endif -%}:/{{ release }}:/Factory/Leap_15/
 {% endif %}
 gpgcheck=0
 enabled=1
