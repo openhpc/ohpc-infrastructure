@@ -111,17 +111,17 @@ timezone UTC --utc
 url --url http://{{ repo }}/{{base}}
 
 
-{%- if type == 'el' -%}
+{% if type == 'el' %}
 repo --cost=1 --install --name="BaseOS" --baseurl="http://{{ repo }}/{{base}}BaseOS/"
 repo --cost=1 --install --name="AppStream" --baseurl="http://{{ repo }}/{{base}}/AppStream/"
 repo --cost=50 --install  --name="BaseOSMirror1" --baseurl="{{ mirror1_base }}BaseOS/{{ arch }}/os/" --proxy="http://{{ proxy }}"
 repo --cost=50 --install  --name="AppStreamMirror1" --baseurl="{{ mirror1_base }}AppStream/{{ arch }}/os/" --proxy="http://{{ proxy }}"
 repo --cost=50 --install  --name="BaseOSMirror2" --baseurl="{{ mirror2_base }}BaseOS/{{ arch }}/os/" --proxy="http://{{ proxy }}"
 repo --cost=50 --install  --name="AppStreamMirror2" --baseurl="{{ mirror2_base }}AppStream/{{ arch }}/os/" --proxy="http://{{ proxy }}"
-{%- elif type == 'openeuler' %}
+{% elif type == 'openeuler' %}
 repo --cost=50 --install  --name="everythingMirror" --baseurl="{{ mirror1_base }}everything/{{ arch }}/" --proxy="http://{{ proxy }}"
 repo --cost=50 --install  --name="updateMirror" --baseurl="{{ mirror1_base }}update/{{ arch }}/" --proxy="http://{{ proxy }}"
-{%- endif -%}
+{% endif %}
 
 
 skipx

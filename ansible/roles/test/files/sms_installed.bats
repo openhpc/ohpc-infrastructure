@@ -27,6 +27,10 @@
 		[ "$NAME" == "Rocky Linux" ]
 		[[ "$VERSION" == "9."* ]]
 		;;
+	rocky10)
+		[ "$NAME" == "Rocky Linux" ]
+		[[ "$VERSION" == "10."* ]]
+		;;
 	almalinux9)
 		[ "$NAME" == "AlmaLinux" ]
 		[[ "$VERSION" == "9."* ]]

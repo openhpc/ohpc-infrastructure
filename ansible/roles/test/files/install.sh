@@ -68,6 +68,12 @@ rocky8)
 	os_dist=".el8"
 	repo_dir=/etc/yum.repos.d
 	;;
+rocky10)
+	os_major=rocky10
+	os_repo=EL_10
+	os_dist=".el10"
+	repo_dir=/etc/yum.repos.d
+	;;
 almalinux9)
 	os_major=almalinux9
 	os_repo=EL_9

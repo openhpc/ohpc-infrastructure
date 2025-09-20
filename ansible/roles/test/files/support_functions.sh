@@ -538,6 +538,10 @@ pre_install_cmds() {
 	fi
 	"${PKG_MANAGER}" "${YES}" update
 
+	if [ -n "${overwrite_rpm}" ]; then
+		rpm -Uhv "${overwrite_rpm}" --force
+	fi
+
 	if [ "${Provisioner}" == "openchami" ]; then
 		((n_c = num_computes - 1))
 		for j in $(seq 0 "${n_c}"); do
@@ -566,9 +570,6 @@ pre_install_cmds() {
 		setenforce 0
 	fi
 
-	if [ -n "${overwrite_rpm}" ]; then
-		rpm -Uhv "${overwrite_rpm}" --force
-	fi
 	# needed for computes_installed.py test runner
 	loop_command pip3 install unittest-xml-reporting
 }
@@ -580,6 +581,10 @@ install_doc_rpm() {
 		install_package perl-File-Copy perl-Log-Log4perl perl-Config-IniFiles
 	fi
 	install_package docs-ohpc
+
+	if [ -n "${overwrite_rpm}" ]; then
+		rpm -Uhv "${overwrite_rpm}" --force
+	fi
 }
 
 install_package() {
@@ -681,12 +686,12 @@ enable_repo() {
 	VERSION_MAJOR_MINOR=$(echo "${Version}" | awk -F. '{print $1"."$2}')
 
 	# shellcheck disable=SC2153
-	echo "VERSION_MAJOR=${VERSION_MAJOR}"
-	echo "VERSION_MINOR=${VERSION_MINOR}"
+	echo "--> VERSION_MAJOR=${VERSION_MAJOR}"
+	echo "--> VERSION_MINOR=${VERSION_MINOR}"
 	if [ -n "${VERSION_MICRO}" ]; then
-		echo "VERSION_MICRO=${VERSION_MICRO}"
+		echo "--> VERSION_MICRO=${VERSION_MICRO}"
 	fi
-	echo "VERSION_MAJOR_MINOR=${VERSION_MAJOR_MINOR}"
+	echo "--> VERSION_MAJOR_MINOR=${VERSION_MAJOR_MINOR}"
 
 	RELEASE_REPO="http://repos.openhpc.community/OpenHPC/${VERSION_MAJOR}"
 	STAGING_REPO="http://repos.openhpc.community/.staging/OpenHPC/${VERSION_MAJOR}"
@@ -702,8 +707,11 @@ enable_repo() {
 	STAGING_REPO_KEY="${STAGING_REPO}/${os_repo}/repodata/repomd.xml.key"
 	RELEASE_REPO_KEY="${RELEASE_REPO}/${os_repo}/repodata/repomd.xml.key"
 
+	echo "--> Importing OBS key (${OBS_KEY})"
 	rpm --import "${OBS_KEY}"
+	echo "--> Importing staging key (${STAGING_REPO_KEY})"
 	rpm --import "${STAGING_REPO_KEY}"
+	echo "--> Importing release key (${RELEASE_REPO_KEY})"
 	rpm --import "${RELEASE_REPO_KEY}"
 
 	if [[ "${Repo}" != "Factory" ]]; then

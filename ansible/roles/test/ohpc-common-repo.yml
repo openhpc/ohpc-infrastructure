@@ -11,6 +11,7 @@
     - /var/www/html/openEuler-24.03-LTS-SP2-everything
     - /var/www/html/AlmaLinux-10-latest
     - /var/www/html/AlmaLinux-9-latest
+    - /var/www/html/Rocky-10-latest
     - /var/www/html/Rocky-9-latest
     - /var/www/html/Rocky-8-latest
     - /root/.cache
@@ -87,6 +88,7 @@
   with_items:
     - Rocky-8-latest
     - Rocky-9-latest
+    - Rocky-10-latest
     - AlmaLinux-9-latest
     - AlmaLinux-10-latest
     - openEuler-22.03-LTS-SP3-everything

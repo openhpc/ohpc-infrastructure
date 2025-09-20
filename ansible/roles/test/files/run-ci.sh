@@ -177,12 +177,14 @@ if [[ "${SMS}" == "ohpc-huawei-sms" ]]; then
 	((TIMEOUT += 100))
 	GATEWAY="192.168.243.4"
 	SMS_INTERNAL="${SMS}-internal"
+	SMS_ETH_INTERNAL="enp189s0f0"
 else
 	TEST_ARCH=$(uname -m)
 	CI_CLUSTER=lenovo
 	COMPUTE_HOSTS="ohpc-lenovo-c1, ohpc-lenovo-c2"
 	GATEWAY="10.241.58.129"
 	SMS_INTERNAL="${SMS}"
+	SMS_ETH_INTERNAL="ens2f0"
 fi
 
 if [ ! -d "${RESULTS}" ]; then
@@ -357,6 +359,7 @@ set -x
 	echo "export USER_TEST_OPTIONS=\"${USER_TEST_OPTIONS}\""
 	echo "export dns_servers=1.1.1.1"
 	echo "export ipv4_gateway=${GATEWAY}"
+	echo "export sms_eth_internal=${SMS_ETH_INTERNAL}"
 } >>"${VARS}"
 
 if [[ "${PROVISIONER}" == "confluent" ]]; then
