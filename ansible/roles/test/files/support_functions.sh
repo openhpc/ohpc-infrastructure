@@ -376,8 +376,8 @@ install_openHPC_cluster() {
 	export BATS_JUNIT_FORMAT=1
 	export BATS_JUNIT_GROUP="RootLevelTests"
 
-	cp "${CWD}/computes_installed.py" .
-	if ! python3 computes_installed.py; then
+	cp "${CWD}/computes_installed.bats" .
+	if ! bats computes_installed.bats; then
 		status=1
 	fi
 }
@@ -570,8 +570,6 @@ pre_install_cmds() {
 		setenforce 0
 	fi
 
-	# needed for computes_installed.py test runner
-	loop_command pip3 install unittest-xml-reporting
 }
 
 install_doc_rpm() {

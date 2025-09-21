@@ -127,7 +127,7 @@
   with_items:
     - install.sh
     - support_functions.sh
-    - computes_installed.py
+    - computes_installed.bats
     - sms_installed.bats
     - gen_inputs.pl
 

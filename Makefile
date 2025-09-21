@@ -12,12 +12,14 @@ shellcheck-lint:
 	@echo "Running 'shellcheck' on all shell scripts"
 	shellcheck \
 		-o quote-safe-variables,deprecate-which,avoid-nullary-conditions \
-		$$(find . -name *sh)
+		$$(find . -name *sh) \
+		ansible/roles/test/files/*.bats
 
 shfmt-lint:
 	@echo "Running 'shfmt' on all shell scripts"
 	shfmt -w -d \
-		$$(find . -name *sh)
+		$$(find . -name *sh) \
+		ansible/roles/test/files/*.bats
 
 ansible-lint:
 	@echo "Running 'ansible-lint' on selected yaml files"
@@ -34,8 +36,6 @@ ansible-lint:
 ruff-lint:
 	@echo "Running 'ruff' on selected Python files"
 	ruff check \
-		obs/obs_config.py \
-		ansible/roles/test/files/computes_installed.py
+		obs/obs_config.py
 	ruff format --diff \
-		obs/obs_config.py \
-		ansible/roles/test/files/computes_installed.py
+		obs/obs_config.py
