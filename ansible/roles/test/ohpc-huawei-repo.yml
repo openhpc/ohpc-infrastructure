@@ -4,7 +4,7 @@
   vars:
     distro: openEuler_22.03
     disks: sda,sdb
-    repo: 192.168.243.4
+    repo: 175.200.16.14
     proxy: 175.200.16.14:3128
     cluster: huawei
     arch: aarch64
@@ -18,20 +18,6 @@
     - name: Include ohpc-common-repo.yml
       ansible.builtin.include_tasks: ohpc-common-repo.yml
 
-    - name: Configure enp125s0f0
-      community.general.nmcli:
-        conn_name: enp125s0f0
-        ifname: enp125s0f0
-        type: ethernet
-        ip4: 192.168.243.4/28
-        state: present
-        autoconnect: true
-
-    - name: Activate enp125s0f0
-      ansible.builtin.command: nmcli device up enp125s0f0
-      tags:
-        - skip_ansible_lint
-
     - name: Allow time sync from other test systems
       ansible.builtin.lineinfile:
         path: /etc/chrony.conf
@@ -39,7 +25,6 @@
         line: "{{ item }}"
       with_items:
         - "allow 175.200.16.11/16"
-        - "allow 192.168.243.1/28"
       notify:
         - Restart chronyd
 

@@ -126,6 +126,9 @@ if [[ "${VERSION_MAJOR}" == "4" ]]; then
 	almalinux)
 		DISTRIBUTION=almalinux10
 		;;
+	openeuler)
+		DISTRIBUTION=openEuler_24.03
+		;;
 	*)
 		echo "Unknown distribution ${DISTRIBUTION}. Exiting!"
 		exit 1
@@ -144,7 +147,7 @@ if [[ "${VERSION_MAJOR}" == "3" ]]; then
 	leap)
 		DISTRIBUTION=leap15.5
 		;;
-	openEuler)
+	openeuler)
 		DISTRIBUTION=openEuler_22.03
 		;;
 	*)
@@ -175,8 +178,8 @@ if [[ "${SMS}" == "ohpc-huawei-sms" ]]; then
 	CI_CLUSTER=huawei
 	COMPUTE_HOSTS="ohpc-huawei-c1, ohpc-huawei-c2"
 	((TIMEOUT += 100))
-	GATEWAY="192.168.243.4"
-	SMS_INTERNAL="${SMS}-internal"
+	GATEWAY="175.200.16.14"
+	SMS_INTERNAL="${SMS}"
 	SMS_ETH_INTERNAL="enp189s0f0"
 else
 	TEST_ARCH=$(uname -m)
@@ -302,10 +305,14 @@ USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-extrae"
 USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-mfem"
 USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-scipy"
 
-if [[ "${VERSION}" == "2."* ]]; then
+if [[ "${VERSION_MAJOR}" == "2" ]]; then
 	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --with-mpi-families='mpich openmpi4'"
 else
 	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --with-mpi-families='mpich openmpi5'"
+fi
+
+if [[ "${VERSION_MAJOR}" == "4" ]]; then
+	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-opencoarrays"
 fi
 
 if [[ "${CI_CLUSTER}" == "huawei" ]]; then

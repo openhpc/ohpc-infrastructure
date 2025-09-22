@@ -56,6 +56,12 @@ openEuler_22.03)
 	os_dist=".oe2203"
 	repo_dir=/etc/yum.repos.d
 	;;
+openEuler_24.03)
+	os_major=openeuler24.03
+	os_repo=openEuler_24.03
+	os_dist=".oe2403"
+	repo_dir=/etc/yum.repos.d
+	;;
 rocky9)
 	os_major=rocky9
 	os_repo=EL_9

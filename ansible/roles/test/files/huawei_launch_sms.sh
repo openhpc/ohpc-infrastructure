@@ -44,12 +44,14 @@ for i in $(seq "${HOLD}" -1 1); do
 	sleep 1
 done
 
+echo "--> Starting firewalld for forwarding"
+systemctl start firewalld
 echo "--> Installing ${OS} on ${TARGET}"
-cd ansible || exit
+cd ansible || exit 1
 ansible-playbook \
 	--extra-vars "distro=${OS} root_password_crypted=${ROOT_PASSWORD_CRYPTED}" \
 	-i inventory/test \
-	roles/test/ohpc-huawei-repo.yml
+	roles/test/ohpc-huawei-repo.yml || exit 1
 cd ..
 ssh "${BOOT_SERVER}" systemctl start kea-dhcp4
 echo -n "----> Switching boot device to PXE: "
@@ -91,8 +93,8 @@ ssh "${BOOT_SERVER}" "ssh -o StrictHostKeyChecking=accept-new ${TARGET} hostname
 # The boot server only has dhcpd enabled during SMS installation
 ssh "${BOOT_SERVER}" systemctl stop kea-dhcp4
 
-cd ansible || exit
-ansible-playbook --extra-vars "distro=${OS} release=${RELEASE}" -i inventory/test roles/test/ohpc-huawei-sms.yml
+cd ansible || exit 1
+ansible-playbook --extra-vars "distro=${OS} release=${RELEASE}" -i inventory/test roles/test/ohpc-huawei-sms.yml || exit 1
 cd ..
 
 # for openEuler we need to use CPAN. This speeds up the

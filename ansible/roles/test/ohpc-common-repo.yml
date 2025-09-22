@@ -192,9 +192,9 @@
     mode: "0644"
   when: distro.startswith("leap15")
 
-- name: Network boot grub.cfg "({{ distro }})"
+- name: Install network boot grub.cfg
   ansible.builtin.template:
-    src: "grub.cfg.{{ cluster }}"
+    src: grub.cfg
     dest: /var/lib/tftpboot/grub.cfg
     mode: "0644"
 

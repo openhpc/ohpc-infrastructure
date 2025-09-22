@@ -3,7 +3,6 @@
   gather_facts: true
   vars:
     cluster: huawei
-    local_hostname: ohpc-huawei-sms-internal
 
   handlers:
     - name: Include handlers

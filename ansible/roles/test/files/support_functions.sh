@@ -286,6 +286,8 @@ install_openHPC_cluster() {
 			perl -pi -e 's/DHCPD_INTERFACE=\${sms_eth_internal}/DHCPD_INTERFACE=eth0/' "${recipeFile}"
 		fi
 	elif [[ $CI_CLUSTER == "huawei" ]]; then
+		echo "CI Customization: switch to a local pypi mirror"
+		pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
 		if [ "${Provisioner}" == "warewulf" ]; then
 			echo "CI Customization: console=tty0 breaks the compute nodes"
 			sed '/dnf -y install ohpc-warewulf/a sed -e "s,# \\(database chunk size\\),\\1,g" -i /etc/warewulf/database.conf' -i "${recipeFile}"
@@ -303,6 +305,10 @@ install_openHPC_cluster() {
 			echo "CI Customization: Use OpenHPC repository files from host"
 			# shellcheck disable=SC2016
 			sed '/export CHROOT/a /usr/bin/cp -vf /etc/yum.repos.d/OpenHPC*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
+			# shellcheck disable=SC2016
+			sed '/export CHROOT/a /usr/bin/cp -vf /etc/yum.repos.d/BaseOS*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
+			# shellcheck disable=SC2016
+			sed '/export CHROOT/a /usr/bin/cp -vf /etc/yum.repos.d/AppStream*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
 		fi
 	elif [[ $CI_CLUSTER == "lenovo" ]]; then
 		echo "CI Customization: PXE boot selection is not persistent"
@@ -373,11 +379,11 @@ install_openHPC_cluster() {
 
 	# Verify we have all the expected hosts available
 
-	export BATS_JUNIT_FORMAT=1
-	export BATS_JUNIT_GROUP="RootLevelTests"
-
+	echo
+	echo "[Running compute nodes tests]"
 	cp "${CWD}/computes_installed.bats" .
-	if ! bats computes_installed.bats; then
+	if ! BATS_REPORT_FILENAME=computes_installed.log.xml ./computes_installed.bats; then
+		# shellcheck disable=SC2034
 		status=1
 	fi
 }
@@ -465,20 +471,24 @@ post_install_cmds() {
 	if [ "${RMS}" == "slurm" ]; then
 		install_package slurm-sview-ohpc
 	fi
-	if [[ "${os_repo}" == "EL_"* ]]; then
-		# Available from EPEL 8 and 9
-		install_package perl-XML-Generator
-	else
-		local CPAN
-		if [[ "${DISTRIBUTION}" == "leap"* ]]; then
-			CPAN="perl-App-cpanminus"
+	# shellcheck disable=SC2153
+	if [[ "${VERSION_MAJOR}" == "2" ]]; then
+		# The other release branches have switched to bats native junit results
+		if [[ "${os_repo}" == "EL_"* ]]; then
+			# Available from EPEL 8 and 9
+			install_package perl-XML-Generator
 		else
-			CPAN="perl-CPAN"
+			local CPAN
+			if [[ "${DISTRIBUTION}" == "leap"* ]]; then
+				CPAN="perl-App-cpanminus"
+			else
+				CPAN="perl-CPAN"
+			fi
+			install_package "${CPAN}"
+			# needed for the test-suite as long as openEuler and Leap
+			# do not have the RPM.
+			cpan -Tfi XML::Generator >>/root/cpan.log 2>&1
 		fi
-		install_package "${CPAN}"
-		# needed for the test-suite as long as openEuler and Leap
-		# do not have the RPM.
-		cpan -Tfi XML::Generator >>/root/cpan.log 2>&1
 	fi
 
 	if [[ "${DISTRIBUTION}" == "leap"* ]] && [[ ${CI_CLUSTER} == "huawei" ]]; then
@@ -573,10 +583,12 @@ pre_install_cmds() {
 }
 
 install_doc_rpm() {
-	if [ "${Provisioner}" == "confluent" ] || [ "${Provisioner}" == "warewulf4" ]; then
-		# Those packages are needed but pulled in by warewulf.
-		# For confluent an extra step is needed. Works only on EL9.
-		install_package perl-File-Copy perl-Log-Log4perl perl-Config-IniFiles
+	if [[ "${os_repo}" == "EL_"* ]]; then
+		if [ "${Provisioner}" == "confluent" ] || [ "${Provisioner}" == "warewulf4" ]; then
+			# Those packages are needed but pulled in by warewulf.
+			# For confluent an extra step is needed. Works only on EL9.
+			install_package perl-File-Copy perl-Log-Log4perl perl-Config-IniFiles
+		fi
 	fi
 	install_package docs-ohpc
 

@@ -15,6 +15,10 @@
 		[ "$NAME" == "openEuler" ]
 		[[ "$VERSION" == "22.03"* ]]
 		;;
+	openEuler_24.03)
+		[ "$NAME" == "openEuler" ]
+		[[ "$VERSION" == "24.03"* ]]
+		;;
 	leap15.5)
 		[ "$NAME" == "openSUSE Leap" ]
 		[ "$VERSION" == "15.5" ]

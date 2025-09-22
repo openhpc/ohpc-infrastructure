@@ -12,31 +12,36 @@ enable_clustershell=1
 enable_geopm=1
 enable_magpie=1
 
-ntp_server=192.168.243.4
+ntp_server=175.200.16.14
 
-sms_eth_internal_rocky9=enp125s0f0
-sms_eth_internal_almalinux9=enp125s0f0
+sms_eth_internal_rocky10=enp189s0f0
+sms_eth_internal_almalinux10=enp189s0f0
+sms_eth_internal_rocky9=enp189s0f0
+sms_eth_internal_almalinux9=enp189s0f0
 sms_eth_internal_openEuler_22.03=eth2
+sms_eth_internal_openEuler_24.03=eth2
 sms_eth_internal_leap15.5=eth0
 
+internal_netmask=255.255.0.0
+internal_network=175.200.0.0
+
 {% if distro.startswith('rocky') or distro.startswith('almalinux') %}
-eth_provision=enp125s0f0
+eth_provision=enp189s0f0
 {% elif distro.startswith('openEuler') %}
 eth_provision=eth2
 {% elif distro.startswith('leap') %}
 eth_provision=eth2
 {% endif %}
 
-internal_netmask=255.255.255.240
 
-ohpc-huawei-sms-internal_ip=192.168.243.1
+ohpc-huawei-sms_ip=175.200.16.11
 
 bmc_username=root
 
 # Compute node IPs
 
-ohpc-huawei-c1_ip=192.168.243.2
-ohpc-huawei-c2_ip=192.168.243.3
+ohpc-huawei-c1_ip=175.200.16.12
+ohpc-huawei-c2_ip=175.200.16.13
 
 # Compute node BMCs
 
@@ -45,8 +50,8 @@ ohpc-huawei-c2_bmc=150.50.16.13
 
 # Compute node MACs
 
-ohpc-huawei-c1_mac=f4:de:af:6c:e2:86
-ohpc-huawei-c2_mac=f4:de:af:6c:e2:94
+ohpc-huawei-c1_mac=f4:de:af:6c:e2:87
+ohpc-huawei-c2_mac=f4:de:af:6c:e2:95
 
 
 # Compute node IPoIB (not used)

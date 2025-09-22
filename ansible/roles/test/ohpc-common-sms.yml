@@ -37,7 +37,7 @@
     mode: "0644"
   with_items:
     - OpenHPC-obs-factory.repo
-  when: distro == "openEuler_22.03"
+  when: distro.startswith("openEuler")
 
 - name: Install obs repository configuration
   ansible.builtin.copy:
@@ -49,6 +49,17 @@
   with_items:
     - mgrigorov-OpenHPC-openeuler-22.03_LTS_SP3.repo
   when: distro == "openEuler_22.03"
+
+- name: Install obs repository configuration
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: /etc/yum.repos.d/
+    owner: root
+    group: root
+    mode: "0644"
+  with_items:
+    - openhpc-OpenHPC-openeuler-24.03_LTS_SP2.repo
+  when: distro == "openEuler_24.03"
 
 - name: Install obs repository configuration
   ansible.builtin.template:
@@ -149,3 +160,4 @@
   with_items:
     - install.sh
     - sms_installed.bats
+    - computes_installed.bats
