@@ -56,6 +56,12 @@ openEuler_22.03)
 	os_dist=".oe2203"
 	repo_dir=/etc/yum.repos.d
 	;;
+openEuler_24.03)
+	os_major=openeuler24.03
+	os_repo=openEuler_24.03
+	os_dist=".oe2403"
+	repo_dir=/etc/yum.repos.d
+	;;
 rocky9)
 	os_major=rocky9
 	os_repo=EL_9
@@ -68,10 +74,22 @@ rocky8)
 	os_dist=".el8"
 	repo_dir=/etc/yum.repos.d
 	;;
+rocky10)
+	os_major=rocky10
+	os_repo=EL_10
+	os_dist=".el10"
+	repo_dir=/etc/yum.repos.d
+	;;
 almalinux9)
 	os_major=almalinux9
 	os_repo=EL_9
 	os_dist=".el9"
+	repo_dir=/etc/yum.repos.d
+	;;
+almalinux10)
+	os_major=almalinux10
+	os_repo=EL_10
+	os_dist=".el10"
 	repo_dir=/etc/yum.repos.d
 	;;
 leap15.5)
@@ -93,7 +111,8 @@ leap15.3)
 esac
 
 repo_file="${repo_dir}/OpenHPC.repo"
-export os_major os_repo os_dist repo_file
+VERSION_MAJOR=$(echo "${Version}" | awk -F. '{print $1}')
+export os_major os_repo os_dist repo_file VERSION_MAJOR
 
 if [[ "${DISTRIBUTION}" == "leap"* ]]; then
 	PKG_MANAGER="zypper"

@@ -8,8 +8,10 @@
     - "/var/www/html/openSUSE-Leap-15.3-DVD-{{ arch }}-Media"
     - "/var/www/html/openSUSE-Leap-15.5-DVD-{{ arch }}-Media"
     - /var/www/html/openEuler-22.03-LTS-SP3-everything
+    - /var/www/html/openEuler-24.03-LTS-SP2-everything
     - /var/www/html/AlmaLinux-10-latest
     - /var/www/html/AlmaLinux-9-latest
+    - /var/www/html/Rocky-10-latest
     - /var/www/html/Rocky-9-latest
     - /var/www/html/Rocky-8-latest
     - /root/.cache
@@ -86,9 +88,11 @@
   with_items:
     - Rocky-8-latest
     - Rocky-9-latest
+    - Rocky-10-latest
     - AlmaLinux-9-latest
     - AlmaLinux-10-latest
     - openEuler-22.03-LTS-SP3-everything
+    - openEuler-24.03-LTS-SP2-everything
 
 - name: Mount leap 15.5 dvd as installation source
   ansible.posix.mount:
@@ -97,6 +101,7 @@
     opts: defaults,ro
     state: mounted
     fstype: iso9660
+  when: inventory_hostname_short.startswith('ohpc-lenovo-repo')
 
 - name: Setup tftp booting
   ansible.builtin.copy:
@@ -118,38 +123,38 @@
     - /var/www/html/openEuler-22.03-LTS-SP3-everything/images/pxeboot/vmlinuz
   when: distro == "openEuler_22.03"
 
-- name: Setup tftp booting for rocky9
+- name: Setup tftp booting for openEuler 24.03
   ansible.builtin.copy:
     remote_src: true
     src: "{{ item }}"
     dest: /var/lib/tftpboot/
     mode: "0644"
   with_items:
-    - /var/www/html/Rocky-9-latest/images/pxeboot/initrd.img
-    - /var/www/html/Rocky-9-latest/images/pxeboot/vmlinuz
-  when: distro == "rocky9"
+    - /var/www/html/openEuler-24.03-LTS-SP2-everything/images/pxeboot/initrd.img
+    - /var/www/html/openEuler-24.03-LTS-SP2-everything/images/pxeboot/vmlinuz
+  when: distro == "openEuler_24.03"
 
-- name: Setup tftp booting for rocky8
+- name: Setup tftp booting for rocky
   ansible.builtin.copy:
     remote_src: true
     src: "{{ item }}"
     dest: /var/lib/tftpboot/
     mode: "0644"
   with_items:
-    - /var/www/html/Rocky-8-latest/images/pxeboot/initrd.img
-    - /var/www/html/Rocky-8-latest/images/pxeboot/vmlinuz
-  when: distro == "rocky8"
+    - "/var/www/html/Rocky-{{ distro[5:] }}-latest/images/pxeboot/initrd.img"
+    - "/var/www/html/Rocky-{{ distro[5:] }}-latest/images/pxeboot/vmlinuz"
+  when: distro.startswith("rocky")
 
-- name: Setup tftp booting for almalinux9
+- name: Setup tftp booting for almalinux
   ansible.builtin.copy:
     remote_src: true
     src: "{{ item }}"
     dest: /var/lib/tftpboot/
     mode: "0644"
   with_items:
-    - /var/www/html/AlmaLinux-9-latest/images/pxeboot/initrd.img
-    - /var/www/html/AlmaLinux-9-latest/images/pxeboot/vmlinuz
-  when: distro == "almalinux9"
+    - "/var/www/html/AlmaLinux-{{ distro[9:] }}-latest/images/pxeboot/initrd.img"
+    - "/var/www/html/AlmaLinux-{{ distro[9:] }}-latest/images/pxeboot/vmlinuz"
+  when: distro.startswith("almalinux")
 
 - name: Setup tftp booting for leap15.5
   ansible.builtin.copy:
@@ -178,7 +183,7 @@
     src: el-kickstart
     dest: "/var/www/html/{{ distro }}-kickstart"
     mode: "0644"
-  when: (distro.startswith("rocky")) or (distro == "almalinux9") or (distro == "openEuler_22.03")
+  when: (distro.startswith("rocky")) or (distro.startswith("almalinux")) or (distro.startswith("openEuler"))
 
 - name: Copy autoyast for "{{ distro }}"
   ansible.builtin.template:
@@ -187,9 +192,9 @@
     mode: "0644"
   when: distro.startswith("leap15")
 
-- name: Network boot grub.cfg "({{ distro }})"
+- name: Install network boot grub.cfg
   ansible.builtin.template:
-    src: "grub.cfg.{{ cluster }}"
+    src: grub.cfg
     dest: /var/lib/tftpboot/grub.cfg
     mode: "0644"
 

@@ -15,6 +15,10 @@
 		[ "$NAME" == "openEuler" ]
 		[[ "$VERSION" == "22.03"* ]]
 		;;
+	openEuler_24.03)
+		[ "$NAME" == "openEuler" ]
+		[[ "$VERSION" == "24.03"* ]]
+		;;
 	leap15.5)
 		[ "$NAME" == "openSUSE Leap" ]
 		[ "$VERSION" == "15.5" ]
@@ -27,9 +31,17 @@
 		[ "$NAME" == "Rocky Linux" ]
 		[[ "$VERSION" == "9."* ]]
 		;;
+	rocky10)
+		[ "$NAME" == "Rocky Linux" ]
+		[[ "$VERSION" == "10."* ]]
+		;;
 	almalinux9)
 		[ "$NAME" == "AlmaLinux" ]
 		[[ "$VERSION" == "9."* ]]
+		;;
+	almalinux10)
+		[ "$NAME" == "AlmaLinux" ]
+		[[ "$VERSION" == "10."* ]]
 		;;
 	*)
 		echo "Unknown DISTRIBUTION ${DISTRIBUTION}. Error!"

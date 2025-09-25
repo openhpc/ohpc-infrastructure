@@ -45,11 +45,11 @@ for i in $(seq "${HOLD}" -1 1); do
 done
 
 echo "--> Installing ${OS} on ${TARGET}"
-cd ansible || exit
+cd ansible || exit 1
 ansible-playbook \
 	--extra-vars "distro=${OS} root_password_crypted=${ROOT_PASSWORD_CRYPTED}" \
 	-i inventory/test \
-	roles/test/ohpc-lenovo-repo.yml
+	roles/test/ohpc-lenovo-repo.yml || exit 1
 cd ..
 ssh "${BOOT_SERVER}" systemctl start kea-dhcp4
 echo -n "----> Switching boot device to PXE: "

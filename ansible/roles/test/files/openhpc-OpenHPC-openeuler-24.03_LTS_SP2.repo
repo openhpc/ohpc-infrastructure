@@ -1,0 +1,10 @@
+[copr:eur.openeuler.openatom.cn:openhpc:OpenHPC]
+name=Copr repo for OpenHPC owned by openhpc
+baseurl=https://eur.openeuler.openatom.cn/results/openhpc/OpenHPC/openeuler-24.03_LTS_SP2-$basearch/
+type=rpm-md
+skip_if_unavailable=True
+gpgcheck=1
+gpgkey=https://eur.openeuler.openatom.cn/results/openhpc/OpenHPC/pubkey.gpg
+repo_gpgcheck=0
+enabled=1
+enabled_metadata=1

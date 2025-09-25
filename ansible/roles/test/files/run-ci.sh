@@ -118,6 +118,24 @@ RESULTS="/results"
 
 VERSION_MAJOR=$(echo "${VERSION}" | awk -F. '{print $1}')
 
+if [[ "${VERSION_MAJOR}" == "4" ]]; then
+	case "${DISTRIBUTION}" in
+	rocky)
+		DISTRIBUTION=rocky10
+		;;
+	almalinux)
+		DISTRIBUTION=almalinux10
+		;;
+	openeuler)
+		DISTRIBUTION=openEuler_24.03
+		;;
+	*)
+		echo "Unknown distribution ${DISTRIBUTION}. Exiting!"
+		exit 1
+		;;
+	esac
+fi
+
 if [[ "${VERSION_MAJOR}" == "3" ]]; then
 	case "${DISTRIBUTION}" in
 	rocky)
@@ -129,7 +147,7 @@ if [[ "${VERSION_MAJOR}" == "3" ]]; then
 	leap)
 		DISTRIBUTION=leap15.5
 		;;
-	openEuler)
+	openeuler)
 		DISTRIBUTION=openEuler_22.03
 		;;
 	*)
@@ -160,19 +178,25 @@ if [[ "${SMS}" == "ohpc-huawei-sms" ]]; then
 	CI_CLUSTER=huawei
 	COMPUTE_HOSTS="ohpc-huawei-c1, ohpc-huawei-c2"
 	((TIMEOUT += 100))
-	GATEWAY="192.168.243.4"
-	SMS_INTERNAL="${SMS}-internal"
+	GATEWAY="175.200.16.14"
+	SMS_INTERNAL="${SMS}"
+	SMS_ETH_INTERNAL="enp189s0f0"
 else
 	TEST_ARCH=$(uname -m)
 	CI_CLUSTER=lenovo
 	COMPUTE_HOSTS="ohpc-lenovo-c1, ohpc-lenovo-c2"
 	GATEWAY="10.241.58.129"
 	SMS_INTERNAL="${SMS}"
+	SMS_ETH_INTERNAL="ens2f0"
 fi
 
 if [ ! -d "${RESULTS}" ]; then
 	echo "Results directory (${RESULTS}) missing. Exiting"
 	exit 1
+fi
+
+if [[ "${PROVISIONER}" == "openchami" ]]; then
+	((TIMEOUT += 100))
 fi
 
 print_overview() {
@@ -279,11 +303,16 @@ USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-geopm"
 USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-tau"
 USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-extrae"
 USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-mfem"
+USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-scipy"
 
-if [[ "${VERSION}" == "3."* ]]; then
-	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --with-mpi-families='mpich openmpi5'"
-else
+if [[ "${VERSION_MAJOR}" == "2" ]]; then
 	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --with-mpi-families='mpich openmpi4'"
+else
+	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --with-mpi-families='mpich openmpi5'"
+fi
+
+if [[ "${VERSION_MAJOR}" == "4" ]]; then
+	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-opencoarrays"
 fi
 
 if [[ "${CI_CLUSTER}" == "huawei" ]]; then
@@ -291,6 +320,19 @@ if [[ "${CI_CLUSTER}" == "huawei" ]]; then
 fi
 
 print_overview
+
+# Save old history
+echo
+echo "Trying to save old history"
+[ -d /root/.backup ] || mkdir -p /root/.backup
+cp -a /root/.bash_history "/root/.backup/history.$(date '+%Y-%m-%d')"
+OLD_HISTORY=$(mktemp)
+NEW_HISTORY=$(mktemp)
+ssh -o ConnectTimeout=10 "${SMS}" cat ~/.bash_history >>"${OLD_HISTORY}"
+cat ~/.bash_history >>"${NEW_HISTORY}"
+grep -F -x -v -f ~/.bash_history "${OLD_HISTORY}" >>"${NEW_HISTORY}"
+mv "${NEW_HISTORY}" ~/.bash_history
+rm -f "${NEW_HISTORY}" "${OLD_HISTORY}"
 
 if ! "ansible/roles/test/files/${LAUNCHER}" "${SMS}" "${DISTRIBUTION}" "${VERSION}" "${ROOT_PASSWORD}" | tee -a "${LOG}"; then
 	cd - >/dev/null
@@ -324,6 +366,7 @@ set -x
 	echo "export USER_TEST_OPTIONS=\"${USER_TEST_OPTIONS}\""
 	echo "export dns_servers=1.1.1.1"
 	echo "export ipv4_gateway=${GATEWAY}"
+	echo "export sms_eth_internal=${SMS_ETH_INTERNAL}"
 } >>"${VARS}"
 
 if [[ "${PROVISIONER}" == "confluent" ]]; then
@@ -338,6 +381,9 @@ if [[ "${PROVISIONER}" == "confluent" ]]; then
 	fi
 	if [[ "${DISTRIBUTION}" == "almalinux"* ]]; then
 		echo "export iso_path=/root/AlmaLinux-9.5-x86_64-dvd.iso" >>"${VARS}"
+	fi
+	if [[ "${DISTRIBUTION}" == "almalinux10" ]]; then
+		echo "export iso_path=/root/AlmaLinux-10.0-x86_64-dvd.iso" >>"${VARS}"
 	fi
 fi
 
@@ -373,6 +419,7 @@ if [[ "${WITH_GPU}" == "nvidia" ]]; then
 fi
 
 scp "${VARS}" "${SMS}":/root/vars
+scp /root/.bash_history "${SMS}":
 
 set +x
 set +e

@@ -286,6 +286,8 @@ install_openHPC_cluster() {
 			perl -pi -e 's/DHCPD_INTERFACE=\${sms_eth_internal}/DHCPD_INTERFACE=eth0/' "${recipeFile}"
 		fi
 	elif [[ $CI_CLUSTER == "huawei" ]]; then
+		echo "CI Customization: switch to a local pypi mirror"
+		pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
 		if [ "${Provisioner}" == "warewulf" ]; then
 			echo "CI Customization: console=tty0 breaks the compute nodes"
 			sed '/dnf -y install ohpc-warewulf/a sed -e "s,# \\(database chunk size\\),\\1,g" -i /etc/warewulf/database.conf' -i "${recipeFile}"
@@ -303,6 +305,10 @@ install_openHPC_cluster() {
 			echo "CI Customization: Use OpenHPC repository files from host"
 			# shellcheck disable=SC2016
 			sed '/export CHROOT/a /usr/bin/cp -vf /etc/yum.repos.d/OpenHPC*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
+			# shellcheck disable=SC2016
+			sed '/export CHROOT/a /usr/bin/cp -vf /etc/yum.repos.d/BaseOS*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
+			# shellcheck disable=SC2016
+			sed '/export CHROOT/a /usr/bin/cp -vf /etc/yum.repos.d/AppStream*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
 		fi
 	elif [[ $CI_CLUSTER == "lenovo" ]]; then
 		echo "CI Customization: PXE boot selection is not persistent"
@@ -316,6 +322,14 @@ install_openHPC_cluster() {
 			sed '/excludedocs/a nodersync /etc/yum.repos.d/ compute:/etc/yum.repos.d/' -i "${recipeFile}"
 			sed '/excludedocs/a nodersync /etc/dnf/dnf.conf compute:/etc/dnf/dnf.conf' -i "${recipeFile}"
 			sed '/excludedocs/a nodersync /etc/profile.d/proxy.sh compute:/etc/profile.d/proxy.sh' -i "${recipeFile}"
+			echo "CI Customization: Switch to text mode installer (nouveau crashes otherwise)"
+			local PROFILE
+			PROFILE=$(grep "nodedeploy -n compute" "${recipeFile}" | cut -d\  -f 5)
+			sed "/nodesetboot compute network/a sed -e 's,\\\\(initrd=distribution\\\\),\\\\1 modprobe.blacklist=nouveau,g' -i /var/lib/confluent/public/os/${PROFILE}/boot.ipxe" -i "${recipeFile}"
+		fi
+		if [ "${Provisioner}" == "openchami" ]; then
+			echo "CI Customization: Switch to http in repository definition"
+			sed -e "s,https://dl,http://dl,g" -i "${recipeFile}"
 		fi
 		if [ "${Provisioner}" == "warewulf4" ]; then
 			echo "CI Customization: Switch to http in repository definition"
@@ -365,11 +379,11 @@ install_openHPC_cluster() {
 
 	# Verify we have all the expected hosts available
 
-	export BATS_JUNIT_FORMAT=1
-	export BATS_JUNIT_GROUP="RootLevelTests"
-
-	cp "${CWD}/computes_installed.py" .
-	if ! python3 computes_installed.py; then
+	echo
+	echo "[Running compute nodes tests]"
+	cp "${CWD}/computes_installed.bats" .
+	if ! BATS_REPORT_FILENAME=computes_installed.log.xml ./computes_installed.bats; then
+		# shellcheck disable=SC2034
 		status=1
 	fi
 }
@@ -396,6 +410,8 @@ post_install_cmds() {
 	elif [ "${Provisioner}" == "xcat" ]; then
 		local_sleep 1
 		/opt/xcat/bin/updatenode compute -F
+	elif [ "${Provisioner}" == "openchami" ]; then
+		pdcp -w "${compute_prefix}"[1-"${num_computes}"] /etc/passwd /etc/passwd
 	elif [ "${Provisioner}" == "confluent" ]; then
 		local_sleep 1
 		/opt/confluent/bin/nodeapply -F compute
@@ -455,20 +471,24 @@ post_install_cmds() {
 	if [ "${RMS}" == "slurm" ]; then
 		install_package slurm-sview-ohpc
 	fi
-	if [[ "${os_repo}" == "EL_"* ]]; then
-		# Available from EPEL 8 and 9
-		install_package perl-XML-Generator
-	else
-		local CPAN
-		if [[ "${DISTRIBUTION}" == "leap"* ]]; then
-			CPAN="perl-App-cpanminus"
+	# shellcheck disable=SC2153
+	if [[ "${VERSION_MAJOR}" == "2" ]]; then
+		# The other release branches have switched to bats native junit results
+		if [[ "${os_repo}" == "EL_"* ]]; then
+			# Available from EPEL 8 and 9
+			install_package perl-XML-Generator
 		else
-			CPAN="perl-CPAN"
+			local CPAN
+			if [[ "${DISTRIBUTION}" == "leap"* ]]; then
+				CPAN="perl-App-cpanminus"
+			else
+				CPAN="perl-CPAN"
+			fi
+			install_package "${CPAN}"
+			# needed for the test-suite as long as openEuler and Leap
+			# do not have the RPM.
+			cpan -Tfi XML::Generator >>/root/cpan.log 2>&1
 		fi
-		install_package "${CPAN}"
-		# needed for the test-suite as long as openEuler and Leap
-		# do not have the RPM.
-		cpan -Tfi XML::Generator >>/root/cpan.log 2>&1
 	fi
 
 	if [[ "${DISTRIBUTION}" == "leap"* ]] && [[ ${CI_CLUSTER} == "huawei" ]]; then
@@ -515,18 +535,30 @@ gen_localized_inputs() {
 }
 
 pre_install_cmds() {
+	if [ -s "${inputFile}" ]; then
+		# shellcheck disable=SC1090
+		. "${inputFile}"
+	fi
 	if [ "${Provisioner}" == "confluent" ]; then
-		if [[ "${DISTRIBUTION}" == "rocky"* ]]; then
-			wget -q http://10.241.58.130/Rocky-9.4-x86_64-dvd.iso
-		fi
-		if [[ "${DISTRIBUTION}" == "almalinux"* ]]; then
-			wget -q http://10.241.58.130/AlmaLinux-9.5-x86_64-dvd.iso
-		fi
+		echo "Downloading ISO image for compute nodes installation $(basename "${iso_path}")"
+		wget -q http://10.241.58.130/"$(basename "${iso_path}")"
 	fi
 	if [[ "${DISTRIBUTION}" == "leap"* ]] && [[ ${CI_CLUSTER} == "huawei" ]]; then
 		sed -e "s,download.opensuse.org/,mirrors.nju.edu.cn/opensuse/,g" -i /etc/zypp/repos.d/*repo
 	fi
 	"${PKG_MANAGER}" "${YES}" update
+
+	if [ -n "${overwrite_rpm}" ]; then
+		rpm -Uhv "${overwrite_rpm}" --force
+	fi
+
+	if [ "${Provisioner}" == "openchami" ]; then
+		((n_c = num_computes - 1))
+		for j in $(seq 0 "${n_c}"); do
+			echo "Updating /etc/hosts to have koomie_cf compatible entries"
+			echo "${c_ip[$j]} ${c_name[$j]}.localdomain ${c_name[$j]}" >>/etc/hosts
+		done
+	fi
 
 	if [ "${Provisioner}" == "warewulf4" ]; then
 		# warewulf4 only configures SSH keys if there is no
@@ -548,20 +580,21 @@ pre_install_cmds() {
 		setenforce 0
 	fi
 
-	if [ -n "${overwrite_rpm}" ]; then
-		rpm -Uhv "${overwrite_rpm}" --force
-	fi
-	# needed for computes_installed.py test runner
-	loop_command pip3 install xmlrunner
 }
 
 install_doc_rpm() {
-	if [ "${Provisioner}" == "confluent" ] || [ "${Provisioner}" == "warewulf4" ]; then
-		# Those packages are needed but pulled in by warewulf.
-		# For confluent an extra step is needed. Works only on EL9.
-		install_package perl-File-Copy perl-Log-Log4perl perl-Config-IniFiles
+	if [[ "${os_repo}" == "EL_"* ]]; then
+		if [ "${Provisioner}" == "confluent" ] || [ "${Provisioner}" == "warewulf4" ]; then
+			# Those packages are needed but pulled in by warewulf.
+			# For confluent an extra step is needed. Works only on EL9.
+			install_package perl-File-Copy perl-Log-Log4perl perl-Config-IniFiles
+		fi
 	fi
 	install_package docs-ohpc
+
+	if [ -n "${overwrite_rpm}" ]; then
+		rpm -Uhv "${overwrite_rpm}" --force
+	fi
 }
 
 install_package() {
@@ -583,6 +616,7 @@ wait_for_computes() {
 		# shellcheck disable=SC1090
 		. "${inputFile}"
 	fi
+	set -x
 	# Sometimes the compute nodes take longer to appear than the
 	# waittime specified in the recipe.
 	CHECK_COMMAND=(koomie_cf -x "${compute_prefix}\\d+" cat /proc/uptime)
@@ -596,7 +630,7 @@ wait_for_computes() {
 
 	for i in $(seq 90 -1 1); do
 		echo "Waiting for compute nodes to get ready ($i)"
-		if ! "${CHECK_COMMAND[@]}" | grep -E '(down|refused|booting|route|closed|disconnect)'; then
+		if ! "${CHECK_COMMAND[@]}" | grep -E '(down|refused|booting|route|closed|disconnect|authenticity)'; then
 			echo "All compute nodes are ready"
 			not_ready=0
 			break
@@ -650,36 +684,44 @@ wait_for_computes() {
 	if [ "${Provisioner}" == "xcat" ]; then
 		/opt/xcat/bin/updatenode compute -F
 	fi
+	set +x
 }
 
 enable_repo() {
-	local VERSION_MAJOR VERSION_MAJOR_MINOR RELEASE_REPO STAGING_REPO RELEASE_RPM
+	local VERSION_MAJOR_MINOR RELEASE_REPO STAGING_REPO RELEASE_RPM
 	local VERSION_MAJOR_MINOR
 	# is this an update (micro) release?
-	VERSION_MAJOR=$(echo "${Version}" | awk -F. '{print $1}')
 	VERSION_MINOR=$(echo "${Version}" | awk -F. '{print $2}')
 	VERSION_MICRO=$(echo "${Version}" | awk -F. '{print $3}')
 	VERSION_MAJOR_MINOR=$(echo "${Version}" | awk -F. '{print $1"."$2}')
 
-	echo "VERSION_MAJOR=${VERSION_MAJOR}"
-	echo "VERSION_MINOR=${VERSION_MINOR}"
+	# shellcheck disable=SC2153
+	echo "--> VERSION_MAJOR=${VERSION_MAJOR}"
+	echo "--> VERSION_MINOR=${VERSION_MINOR}"
 	if [ -n "${VERSION_MICRO}" ]; then
-		echo "VERSION_MICRO=${VERSION_MICRO}"
+		echo "--> VERSION_MICRO=${VERSION_MICRO}"
 	fi
-	echo "VERSION_MAJOR_MINOR=${VERSION_MAJOR_MINOR}"
+	echo "--> VERSION_MAJOR_MINOR=${VERSION_MAJOR_MINOR}"
 
 	RELEASE_REPO="http://repos.openhpc.community/OpenHPC/${VERSION_MAJOR}"
 	STAGING_REPO="http://repos.openhpc.community/.staging/OpenHPC/${VERSION_MAJOR}"
 	if [[ "${VERSION_MAJOR}" == "2" ]]; then
 		OBS_KEY="https://obs.openhpc.community/projects/OpenHPC/public_key"
 	else
-		OBS_KEY="https://obs.openhpc.community/projects/OpenHPC${VERSION_MAJOR}/public_key"
+		if [[ "${VERSION_MINOR}" != "0" ]]; then
+			OBS_KEY="https://obs.openhpc.community/projects/OpenHPC${VERSION_MAJOR}/public_key"
+		else
+			OBS_KEY="http://obs.openhpc.community:82/OpenHPC${VERSION_MAJOR}:/${VERSION_MAJOR}.0:/Factory/${os_repo}/repodata/repomd.xml.key"
+		fi
 	fi
 	STAGING_REPO_KEY="${STAGING_REPO}/${os_repo}/repodata/repomd.xml.key"
 	RELEASE_REPO_KEY="${RELEASE_REPO}/${os_repo}/repodata/repomd.xml.key"
 
+	echo "--> Importing OBS key (${OBS_KEY})"
 	rpm --import "${OBS_KEY}"
+	echo "--> Importing staging key (${STAGING_REPO_KEY})"
 	rpm --import "${STAGING_REPO_KEY}"
+	echo "--> Importing release key (${RELEASE_REPO_KEY})"
 	rpm --import "${RELEASE_REPO_KEY}"
 
 	if [[ "${Repo}" != "Factory" ]]; then

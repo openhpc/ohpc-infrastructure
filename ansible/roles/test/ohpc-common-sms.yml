@@ -15,7 +15,7 @@
   with_items:
     - user_agent="curl"
   when: >
-    ((distro.startswith("rocky")) or (distro == "almalinux9") or (distro.startswith("openEuler"))) and
+    ((distro.startswith("rocky")) or (distro.startswith("almalinux")) or (distro.startswith("openEuler"))) and
     (cluster == "lenovo")
 
 - name: Replace mirror URL for openeuler
@@ -37,7 +37,7 @@
     mode: "0644"
   with_items:
     - OpenHPC-obs-factory.repo
-  when: distro == "openEuler_22.03"
+  when: distro.startswith("openEuler")
 
 - name: Install obs repository configuration
   ansible.builtin.copy:
@@ -51,6 +51,17 @@
   when: distro == "openEuler_22.03"
 
 - name: Install obs repository configuration
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: /etc/yum.repos.d/
+    owner: root
+    group: root
+    mode: "0644"
+  with_items:
+    - openhpc-OpenHPC-openeuler-24.03_LTS_SP2.repo
+  when: distro == "openEuler_24.03"
+
+- name: Install obs repository configuration
   ansible.builtin.template:
     src: "{{ item }}"
     dest: /etc/yum.repos.d/
@@ -59,7 +70,7 @@
     mode: "0644"
   with_items:
     - OpenHPC-obs-factory.repo
-  when: (distro.startswith("rocky")) or (distro == "almalinux9")
+  when: (distro.startswith("rocky")) or (distro.startswith("almalinux"))
 
 - name: Install obs repository configuration
   ansible.builtin.template:
@@ -71,7 +82,7 @@
   with_items:
     - arm1.repo
   when: >
-    ((distro.startswith("rocky")) or (distro == "almalinux9")) and
+    ((distro.startswith("rocky")) or (distro.startswith("almalinux"))) and
     (cluster == "huawei")
 
 - name: Install obs repository configuration
@@ -91,7 +102,7 @@
     name:
       - epel-release
       - tzdata-java
-  when: (distro.startswith("rocky")) or (distro == "almalinux9")
+  when: (distro.startswith("rocky")) or (distro.startswith("almalinux"))
 
 - name: Install packages
   ansible.builtin.package:
@@ -127,7 +138,7 @@
   with_items:
     - install.sh
     - support_functions.sh
-    - computes_installed.py
+    - computes_installed.bats
     - sms_installed.bats
     - gen_inputs.pl
 
@@ -149,3 +160,4 @@
   with_items:
     - install.sh
     - sms_installed.bats
+    - computes_installed.bats
