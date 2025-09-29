@@ -30,7 +30,7 @@
 {%- endif -%}
 {%- set base = 'openEuler-'~release~'-LTS-'~SP~'-everything/' -%}
 {%- if inventory_hostname_short.startswith('ohpc-lenovo-repo') -%}
-{%- set mirror1_base = 'http://TODO.mirrors.nxthost.com/rocky/'~release~'/' -%}
+{%- set mirror1_base = 'http://ftp.agdsn.de/openeuler/openEuler-'~release~'-LTS-'~SP~'/' -%}
 {%- elif inventory_hostname_short.startswith('ohpc-huawei-repo') -%}
 {%- set mirror1_base = 'http://mirrors.nju.edu.cn/openeuler/openEuler-'~release~'-LTS-'~SP~'/' -%}
 {%- endif -%}
@@ -155,7 +155,8 @@ export http_proxy=http://{{ proxy }}
 	echo "gpgcheck=0" >> /etc/yum.repos.d/DVD.repo
 	echo "gpgcheck=0" >> /etc/yum.repos.d/everythingMirror.repo
 	echo "gpgcheck=0" >> /etc/yum.repos.d/updateMirror.repo
-	sed -i "s,metalink,#metalink,g" -i /etc/yum.repos.d/openEuler.repo
+	sed -i "s,\(metalink\),#\1,g" -i /etc/yum.repos.d/openEuler.repo
+	sed -e "s,\(baseurl=http\)s,\1,g" -i /etc/yum.repos.d/openEuler.repo
 	sed '/Banner/d;/AllowTcpForwarding/d;/AllowAgentForwarding/d;/GatewayPorts/d;/PermitTunnel/d;' -i /etc/ssh/sshd_config
 	sed 's,/usr/libexec/openssh/openssh/sftp-server,/usr/libexec/openssh/sftp-server,g;' -i /etc/ssh/sshd_config
 	{% if inventory_hostname_short.startswith('ohpc-huawei-repo') %}
