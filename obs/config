@@ -41,7 +41,7 @@ mpi-families=["impi-devel","mpich","mvapich2","openmpi","libfabric","ucx"]
 # define patterns for a given arch in which to disable builds
 skip_aarch=["-intel\\b","lustre-client","-impi\\b","-mvapich2\\b","likwid-gnu","likwid-arm1","geopm",
             "intel-compilers-devel","impi-devel","mvapich2","openblas-arm1","cuda-devel"]
-skip_x86  = ["-arm1","gnu15-impi"]
+skip_x86  = ["-arm1"]
 
 # define compiler/MPI families: first entry in list is defined to be parent in OBS
 compiler_families=["gnu15", "intel"]
