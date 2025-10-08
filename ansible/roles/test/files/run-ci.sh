@@ -24,13 +24,14 @@ show_usage() {
 	echo "  -o, --overwrite-rpm <RPM>            Use this RPM to overwrite the default docs-ohpc RPM"
 	echo "  -b, --infiniband                     Use InfiniBand"
 	echo "  -n, --no-upload                      Don't upload test results"
+	echo "      --to-disk                        Provision compute node image to disk"
 	echo "  -h, --help                           Show this help"
 }
 
 TIMEOUT="100"
 
 # Parse command line options using external getopt
-if ! PARSED=$(getopt -o d:v:r:m:p:ig:nbo:h --long distribution:,version:,repository:,rms:,provisioner:,intel,gpu:,no-upload,infiniband,overwrite-rpm:,help -n "$0" -- "$@"); then
+if ! PARSED=$(getopt -o d:v:r:m:p:ig:nbo:h --long distribution:,version:,repository:,rms:,provisioner:,intel,gpu:,no-upload,infiniband,overwrite-rpm:,to-disk,help -n "$0" -- "$@"); then
 	echo "Failed to parse options"
 	show_usage
 	exit 1
@@ -83,6 +84,10 @@ while true; do
 		WITH_GPU="$2"
 		((TIMEOUT += 50))
 		shift 2
+		;;
+	--to-disk)
+		ENABLE_TODISK="true"
+		shift
 		;;
 	-h | --help)
 		show_usage
@@ -440,6 +445,10 @@ fi
 
 if [[ "${WITH_GPU}" == "nvidia" ]]; then
 	echo "export enable_nvidia_gpu_driver=1" >>"${VARS}"
+fi
+
+if [ -n "${ENABLE_TODISK}" ]; then
+	echo "export enable_todisk=1" >>"${VARS}"
 fi
 
 scp "${VARS}" "${SMS}":/root/vars
