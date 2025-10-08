@@ -9,67 +9,91 @@ show_usage() {
 	echo "  $0 [<options>]"
 	echo
 	echo "Options:"
-	echo "  -d <DISTRIBUTION>     Run the CI test on the specified distribution"
-	echo "  -v <VERSION>          Run the CI test on the specified version of OpenHPC"
-	echo "  -r <REPOSITORY>       Run the CI test using the specified repository"
-	echo "                        (Factory, Staging, Release)"
-	echo "  -m <RMS>              Run the CI test using the specified resource manager"
-	echo "                        (openpbs, slurm (default))"
-	echo "  -p <PROVISIONER>      Run the CI test using the specified provisioner"
-	echo "                        (confluent, warewulf (default))"
-	echo "  -i                    Install and run tests using packages built with the"
-	echo "                        Intel compiler"
-	echo "  -g <GPU>              Run the CI test with GPU installation and tests enabled"
-	echo "                        (nvidia, none (default))"
-	echo "  -o <RPM>              Use this RPM to overwrite the default docs-ohpc RPM"
-	echo "  -b                    Use InfiniBand"
-	echo "  -n                    Don't upload test results"
-	echo "  -h                    Show this help"
+	echo "  -d, --distribution <DISTRIBUTION>     Run the CI test on the specified distribution"
+	echo "  -v, --version <VERSION>              Run the CI test on the specified version of OpenHPC"
+	echo "  -r, --repository <REPOSITORY>        Run the CI test using the specified repository"
+	echo "                                       (Factory, Staging, Release)"
+	echo "  -m, --rms <RMS>                      Run the CI test using the specified resource manager"
+	echo "                                       (openpbs, slurm (default))"
+	echo "  -p, --provisioner <PROVISIONER>      Run the CI test using the specified provisioner"
+	echo "                                       (confluent, warewulf (default))"
+	echo "  -i, --intel                          Install and run tests using packages built with the"
+	echo "                                       Intel compiler"
+	echo "  -g, --gpu <GPU>                      Run the CI test with GPU installation and tests enabled"
+	echo "                                       (nvidia, none (default))"
+	echo "  -o, --overwrite-rpm <RPM>            Use this RPM to overwrite the default docs-ohpc RPM"
+	echo "  -b, --infiniband                     Use InfiniBand"
+	echo "  -n, --no-upload                      Don't upload test results"
+	echo "  -h, --help                           Show this help"
 }
 
 TIMEOUT="100"
 
-while getopts "d:v:r:m:p:ig:nbo:h" OPTION; do
-	case $OPTION in
-	d)
-		DISTRIBUTION=$OPTARG
+# Parse command line options using external getopt
+if ! PARSED=$(getopt -o d:v:r:m:p:ig:nbo:h --long distribution:,version:,repository:,rms:,provisioner:,intel,gpu:,no-upload,infiniband,overwrite-rpm:,help -n "$0" -- "$@"); then
+	echo "Failed to parse options"
+	show_usage
+	exit 1
+fi
+
+# Set the parsed options back to the positional parameters
+eval set -- "$PARSED"
+
+# Process the options
+while true; do
+	case "$1" in
+	-d | --distribution)
+		DISTRIBUTION="$2"
+		shift 2
 		;;
-	v)
-		VERSION=$OPTARG
+	-v | --version)
+		VERSION="$2"
+		shift 2
 		;;
-	r)
-		REPO=$OPTARG
+	-r | --repository)
+		REPO="$2"
+		shift 2
 		;;
-	m)
-		RMS=$OPTARG
+	-m | --rms)
+		RMS="$2"
+		shift 2
 		;;
-	p)
-		PROVISIONER=$OPTARG
+	-p | --provisioner)
+		PROVISIONER="$2"
+		shift 2
 		;;
-	i)
+	-i | --intel)
 		WITH_INTEL="true"
 		((TIMEOUT += 50))
+		shift
 		;;
-	b)
+	-b | --infiniband)
 		USE_IB="true"
+		shift
 		;;
-	o)
-		RPM=$OPTARG
+	-o | --overwrite-rpm)
+		RPM="$2"
+		shift 2
 		;;
-	n)
+	-n | --no-upload)
 		UPLOAD="false"
+		shift
 		;;
-	g)
-		WITH_GPU=$OPTARG
+	-g | --gpu)
+		WITH_GPU="$2"
 		((TIMEOUT += 50))
+		shift 2
 		;;
-	h)
+	-h | --help)
 		show_usage
 		exit 0
 		;;
+	--)
+		shift
+		break
+		;;
 	*)
-		echo "Incorrect options provided"
-		show_usage
+		echo "Internal error during option parsing"
 		exit 1
 		;;
 	esac
