@@ -228,7 +228,7 @@ EOF
 			echo "export UCX_NET_DEVICES=eth3"
 		} >>/tmp/user_integration_tests
 	fi
-	if [[ ${CI_CLUSTER} == "huawei" ]] && [[ "${DISTRIBUTION}" == "openEuler_22.03" ]]; then
+	if [[ ${CI_CLUSTER} == "huawei" ]] && [[ "${DISTRIBUTION}" == "openEuler"* ]]; then
 		echo "export UCX_NET_DEVICES=eth0,eth2" >>/tmp/user_integration_tests
 	elif [[ ${CI_CLUSTER} == "huawei" ]]; then
 		echo "export UCX_NET_DEVICES=enp125s0f0" >>/tmp/user_integration_tests
@@ -309,6 +309,12 @@ install_openHPC_cluster() {
 			sed '/export CHROOT/a /usr/bin/cp -vf /etc/yum.repos.d/BaseOS*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
 			# shellcheck disable=SC2016
 			sed '/export CHROOT/a /usr/bin/cp -vf /etc/yum.repos.d/AppStream*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
+			if [[ "${DISTRIBUTION}" == "openEuler"* ]]; then
+				sed "/export CHROOT/a sed -i 's,\\\(metalink\\\),#\\\1,g' \$CHROOT/etc/yum.repos.d/openEuler.repo" -i "${recipeFile}"
+				sed "/export CHROOT/a sed -i 's,\\\(baseurl=http\\\)s,\\\1,g' \$CHROOT/etc/yum.repos.d/openEuler.epo" -i "${recipeFile}"
+				# shellcheck disable=SC2016
+				sed '/export CHROOT/a wwctl profile set --yes nodes -A "selinux=0"' -i "${recipeFile}"
+			fi
 		fi
 	elif [[ $CI_CLUSTER == "lenovo" ]]; then
 		echo "CI Customization: PXE boot selection is not persistent"
@@ -330,6 +336,11 @@ install_openHPC_cluster() {
 		if [ "${Provisioner}" == "openchami" ]; then
 			echo "CI Customization: Switch to http in repository definition"
 			sed -e "s,https://dl,http://dl,g" -i "${recipeFile}"
+			# Switch host to Factory
+			sed -e '/ohpc-release/ s,dnf -y install.*ohpc-release.*rpm,dnf config-manager --add-repo http://obs.openhpc.community:82/OpenHPC4:/4.0:/Factory/EL_10/,g' -i "${recipeFile}"
+			# Switch client to Factory
+			sed -e '/ohpc-release/d' -i "${recipeFile}"
+			sed -e 's,\(cmd: dnf config-manager --set-enabled crb\),\1 ; dnf config-manager --add-repo http://obs.openhpc.community:82/OpenHPC4:/4.0:/Factory/EL_10/; echo  "user_agent=curl" >> /etc/dnf/dnf.conf,g' -i "${recipeFile}"
 		fi
 		if [ "${Provisioner}" == "warewulf4" ]; then
 			echo "CI Customization: Switch to http in repository definition"

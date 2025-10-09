@@ -43,6 +43,7 @@ text
 ipmitool
 -firewalld
 openssl-devel
+policycoreutils-python-utils
 
 {% if type == 'el' %}
 	python3-pip
