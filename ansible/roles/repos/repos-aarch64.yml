@@ -299,6 +299,8 @@
         - move-httpd-logs.sh
         - mk_dist.sh
         - make_repo.sh
+      tags:
+        - install-helper-scripts
 
     - name: Copy public keys
       ansible.builtin.copy:
@@ -309,6 +311,9 @@
         mode: "0644"
       with_items:
         - RPM-GPG-KEY-OpenHPC-3
+        - RPM-GPG-KEY-OpenHPC-4
+      tags:
+        - copy-public-keys
 
     - name: Open /var/log/httpd to be accessible for user ohpc for log analysis
       ansible.builtin.cron:
