@@ -3,14 +3,15 @@
 set -o pipefail
 set -e
 
-DISTROS=("EL_9" "Leap_15" "openEuler_22.03")
+# Version-specific distributions
+DISTROS_V3=("EL_9" "Leap_15" "openEuler_22.03")
+DISTROS_V4=("EL_10" "openEuler_24.03")
 ARCHES=("x86_64" "aarch64")
 
 BASE_REPO_PATH="/repos/.staging/OpenHPC"
 DEST_DIR="/repos/dist/"
 TMPDIR="/repos/.staging/.tmp"
 MAKE_REPO_SH="/home/ohpc/bin/make_repo.sh"
-PUBLIC_KEY="/home/ohpc/RPM-GPG-KEY-OpenHPC-3"
 
 show_usage() {
 	echo "$0: script to create distribution tarballs"
@@ -18,7 +19,7 @@ show_usage() {
 	echo "  $0 [<options>]"
 	echo
 	echo "Options:"
-	echo "  -v <VERSION>   Create distribution tarballs for version <VERSRION>"
+	echo "  -v <VERSION>   Create distribution tarballs for version <VERSION>"
 	echo "  -h             Show this help"
 }
 
@@ -49,6 +50,23 @@ DEST_DIR="${DEST_DIR}/${VERSION}"
 VERSION_MAJOR=$(echo "${VERSION}" | awk -F. '{print $1}')
 VERSION_MINOR=$(echo "${VERSION}" | awk -F. '{print $2}')
 
+# Select distributions based on major version
+case "${VERSION_MAJOR}" in
+3)
+	DISTROS=("${DISTROS_V3[@]}")
+	;;
+4)
+	DISTROS=("${DISTROS_V4[@]}")
+	;;
+*)
+	echo "ERROR: Unsupported major version ${VERSION_MAJOR}. Supported versions: 3, 4"
+	exit 1
+	;;
+esac
+
+# Set version-specific GPG key path
+PUBLIC_KEY="/home/ohpc/RPM-GPG-KEY-OpenHPC-${VERSION_MAJOR}"
+
 if [ ! -d "${DEST_DIR}" ]; then
 	mkdir "${DEST_DIR}"
 fi
@@ -68,12 +86,12 @@ for DISTRO in "${DISTROS[@]}"; do
 	SRC="${BASE_REPO_PATH}/${VERSION_MAJOR}/${DISTRO}"
 	echo "--> Copying base repo contents from ${SRC}"
 	cp -aLl --reflink=auto "${SRC}" "${TMP_DIR}"
-	cat <<EOF >>"${TMP_DIR}/OpenHPC.local.repo"
+	cat <<EOF >"${TMP_DIR}/OpenHPC.local.repo"
 [OpenHPC-local]
 name=OpenHPC-${VERSION_MAJOR} - Base
 baseurl=file://@PATH@/${DISTRO}
 gpgcheck=1
-gpgkey=file://@PATH@/RPM-GPG-KEY-OpenHPC-3
+gpgkey=file://@PATH@/RPM-GPG-KEY-OpenHPC-${VERSION_MAJOR}
 EOF
 
 	if [[ "${VERSION_MINOR}" != "0" ]]; then
@@ -85,7 +103,7 @@ EOF
 name=OpenHPC-${VERSION} - Updates
 baseurl=file://@PATH@/${DISTRO}/updates
 gpgcheck=1
-gpgkey=file://@PATH@/RPM-GPG-KEY-OpenHPC-3
+gpgkey=file://@PATH@/RPM-GPG-KEY-OpenHPC-${VERSION_MAJOR}
 EOF
 		cp -aLl --reflink=auto "${SRC}" "${DEST}"
 	fi
