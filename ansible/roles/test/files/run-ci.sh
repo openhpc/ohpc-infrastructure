@@ -216,7 +216,11 @@ else
 	COMPUTE_HOSTS="ohpc-lenovo-c1, ohpc-lenovo-c2"
 	GATEWAY="10.241.58.129"
 	SMS_INTERNAL="${SMS}"
-	SMS_ETH_INTERNAL="ens2f0"
+	if [[ "${DISTRIBUTION}" == "leap"* ]]; then
+		SMS_ETH_INTERNAL="eth0"
+	else
+		SMS_ETH_INTERNAL="ens2f0"
+	fi
 fi
 
 if [ ! -d "${RESULTS}" ]; then

@@ -55,9 +55,9 @@
 	</storage>
 	<proxy>
 		<enabled config:type="boolean">true</enabled>
-		<https_proxy>http://192.168.1.223:3128</https_proxy>
-		<http_proxy>http://192.168.1.223:3128</http_proxy>
-		<no_proxy>openhpc-oe-jenkins-repo 192.168.1.223</no_proxy>
+		<https_proxy>http://{{ proxy }}</https_proxy>
+		<http_proxy>http://{{ proxy }}</http_proxy>
+		<no_proxy>ohpc-huawei-repo {{ repo }}</no_proxy>
 	</proxy>
 	<software>
 		<packages config:type="list">
@@ -132,7 +132,7 @@ zypper -n update
 mv /etc/login.defs.d/* /root/
 systemctl disable --now firewalld
 mkdir /root/.ssh/
-curl --output-dir /root/.ssh/ --remote-name http://192.168.1.223/authorized_keys
+curl --output /root/.ssh/authorized_keys --remote-name http://{{ repo }}/authorized_keys
 cp /root/.ssh/authorized_keys /root/.ssh/jumper.pub
 ssh-keygen -t rsa -f /root/.ssh/cluster -N '' > /root/keygen.output
 ssh-keygen -t rsa -f /root/.ssh/id_rsa -N '' >> /root/keygen.output
@@ -141,7 +141,7 @@ ssh-keygen -t dsa -f /root/.ssh/id_dsa -N '' >> /root/keygen.output
 cat /root/.ssh/cluster.pub >> /root/.ssh/authorized_keys
 ipmitool chassis bootdev disk
 mkdir -p /root/.cpan/CPAN/
-curl --output-dir /root/.cpan/CPAN/ --remote-name http://192.168.1.223/MyConfig.pm
+curl --output /root/.cpan/CPAN/MyConfig.pm --remote-name http://{{ repo }}/MyConfig.pm
                       ]]>
 				</source>
 			</script>

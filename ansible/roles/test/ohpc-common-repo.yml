@@ -163,8 +163,8 @@
     dest: /var/lib/tftpboot/
     mode: "0644"
   with_items:
-    - "/var/www/html/openSUSE-Leap-15.5-DVD-{{ arch }}-Current/boot/{{ arch }}/initrd"
-    - "/var/www/html/openSUSE-Leap-15.5-DVD-{{ arch }}-Current/boot/{{ arch }}/linux"
+    - "/var/www/html/openSUSE-Leap-15.5-DVD-{{ arch }}-Current/boot/{{ arch }}/loader/initrd"
+    - "/var/www/html/openSUSE-Leap-15.5-DVD-{{ arch }}-Current/boot/{{ arch }}/loader/linux"
   when: distro == "leap15.5"
 
 - name: Setup tftp booting for leap15.3

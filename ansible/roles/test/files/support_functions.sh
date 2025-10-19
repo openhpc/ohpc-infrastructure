@@ -146,6 +146,9 @@ run_root_level_tests() {
 		if [[ "${DISTRIBUTION}" == "leap15.3" ]]; then
 			sed -e "s,-Sg,-Sng,g" -i /home/ohpc-test/tests/admin/clustershell
 		fi
+		if [[ "${DISTRIBUTION}" == "leap15.5" ]]; then
+			sed -e "s,3.4,3.2a,g" -i /home/ohpc-test/tests/dev-tools/easybuild/EasyBuild
+		fi
 	fi
 
 	if [ "x${USER_TEST_OPTIONS}" != "x" ]; then
@@ -352,9 +355,6 @@ install_openHPC_cluster() {
 			echo "CI Customization: Use OpenHPC repository files from host"
 			# shellcheck disable=SC2016
 			sed '/export CHROOT/a /usr/bin/cp -vf /etc/yum.repos.d/OpenHPC*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
-		fi
-		if [ "${Provisioner}" == "warewulf" ] && [ "${PKG_MANAGER}" == "zypper" ]; then
-			sed -e "s,install nhc-ohpc,install nhc-ohpc attr,g" -i "${recipeFile}"
 		fi
 		if [ "${enable_ib}" -eq 1 ] || [ "${Provisioner}" == "warewulf" ]; then
 			echo "CI Customization: Install opensm on compute node"
@@ -649,14 +649,15 @@ wait_for_computes() {
 		((retry_counter += 1))
 		if [ "${retry_counter}" -gt "${retry_counter_max}" ]; then
 			retry_counter=0
-			if [[ $CI_CLUSTER == "lenovo" ]]; then
-				((n_c = num_computes - 1))
-				for j in $(seq 0 "${n_c}"); do
-					echo "Telling BMC ${c_bmc[$j]} to try another reboot"
+			((n_c = num_computes - 1))
+			for j in $(seq 0 "${n_c}"); do
+				echo "Telling BMC ${c_bmc[$j]} to try another reboot"
+				if [[ $CI_CLUSTER == "lenovo" ]]; then
 					ipmitool -E -I lanplus -H "${c_bmc[$j]}" -U "${bmc_username}" -P "${bmc_password}" chassis bootdev pxe options=efiboot
-					ipmitool -E -I lanplus -H "${c_bmc[$j]}" -U "${bmc_username}" -P "${bmc_password}" power reset
-				done
-			fi
+				fi
+				ipmitool -E -I lanplus -H "${c_bmc[$j]}" -U "${bmc_username}" -P "${bmc_password}" power off
+				ipmitool -E -I lanplus -H "${c_bmc[$j]}" -U "${bmc_username}" -P "${bmc_password}" power on
+			done
 		fi
 		local_sleep "${waittime}"
 	done

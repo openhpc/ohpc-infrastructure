@@ -37,7 +37,7 @@ eth_provision=ens2f0
 eth_provision=eth2
 {% endif %}
 {% if distro.startswith('leap') %}
-eth_provision=eth2
+eth_provision=eth0
 {% endif %}
 
 ohpc-lenovo-sms_ip=10.241.58.134
