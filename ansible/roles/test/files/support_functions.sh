@@ -315,8 +315,6 @@ install_openHPC_cluster() {
 			if [[ "${DISTRIBUTION}" == "openEuler"* ]]; then
 				sed "/export CHROOT/a sed -i 's,\\\(metalink\\\),#\\\1,g' \$CHROOT/etc/yum.repos.d/openEuler.repo" -i "${recipeFile}"
 				sed "/export CHROOT/a sed -i 's,\\\(baseurl=http\\\)s,\\\1,g' \$CHROOT/etc/yum.repos.d/openEuler.epo" -i "${recipeFile}"
-				# shellcheck disable=SC2016
-				sed '/export CHROOT/a wwctl profile set --yes nodes -A "selinux=0"' -i "${recipeFile}"
 			fi
 		fi
 	elif [[ $CI_CLUSTER == "lenovo" ]]; then
@@ -339,11 +337,23 @@ install_openHPC_cluster() {
 		if [ "${Provisioner}" == "openchami" ]; then
 			echo "CI Customization: Switch to http in repository definition"
 			sed -e "s,https://dl,http://dl,g" -i "${recipeFile}"
-			# Switch host to Factory
-			sed -e '/ohpc-release/ s,dnf -y install.*ohpc-release.*rpm,dnf config-manager --add-repo http://obs.openhpc.community:82/OpenHPC4:/4.0:/Factory/EL_10/,g' -i "${recipeFile}"
-			# Switch client to Factory
-			sed -e '/ohpc-release/d' -i "${recipeFile}"
-			sed -e 's,\(cmd: dnf config-manager --set-enabled crb\),\1 ; dnf config-manager --add-repo http://obs.openhpc.community:82/OpenHPC4:/4.0:/Factory/EL_10/; echo  "user_agent=curl" >> /etc/dnf/dnf.conf,g' -i "${recipeFile}"
+			local VERSION_MAJOR_MINOR
+			VERSION_MINOR=$(echo "${Version}" | awk -F. '{print $2}')
+			VERSION_MICRO=$(echo "${Version}" | awk -F. '{print $3}')
+			if [[ "${Repo}" == "Factory" ]] && [[ "${VERSION_MINOR}" == "0" ]] && [ -z "${VERSION_MICRO}" ]; then
+				# Switch host to Factory
+				# shellcheck disable=SC2153
+				sed -e "/ohpc-release/ s,dnf -y install.*ohpc-release.*rpm,dnf config-manager --add-repo http://obs.openhpc.community:82/OpenHPC${VERSION_MAJOR}:/${Version}:/Factory/${os_repo}/,g" -i "${recipeFile}"
+				# Switch client to Factory
+				sed -e '/ohpc-release/d' -i "${recipeFile}"
+				sed -e "s,\(cmd: dnf config-manager --set-enabled crb\),\1 ; dnf config-manager --add-repo http://obs.openhpc.community:82/OpenHPC${VERSION_MAJOR}:/${Version}:/Factory/${os_repo}/; echo user_agent=curl >> /etc/dnf/dnf.conf,g" -i "${recipeFile}"
+			elif [[ "${Repo}" == "Staging" ]]; then
+				# Switch host to Staging
+				sed -e "ohpc-release/ s,dnf -y install.*ohpc-release.*rpm,dnf config-manager --add-repo http://repos.openhpc.community/.staging/OpenHPC/${VERSION_MAJOR}/${os_repo}/,g" -i "${recipeFile}"
+				# Switch client to Staging
+				sed -e '/ohpc-release/d' -i "${recipeFile}"
+				sed -e "s,\(cmd: dnf config-manager --set-enabled crb\),\1 ; dnf config-manager --add-repo http://repos.openhpc.community/.staging/OpenHPC/${VERSION_MAJOR}/${os_repo}/; echo user_agent=curl >> /etc/dnf/dnf.conf,g" -i "${recipeFile}"
+			fi
 		fi
 		if [ "${Provisioner}" == "warewulf4" ]; then
 			echo "CI Customization: Switch to http in repository definition"

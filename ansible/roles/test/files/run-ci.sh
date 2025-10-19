@@ -429,6 +429,9 @@ fi
 if [[ "${DISTRIBUTION}" == "openEuler"* ]] && [[ "${SMS}" == "ohpc-lenovo-sms" ]]; then
 	echo "export YUM_MIRROR_BASE=http://repo.huaweicloud.com/openeuler/" >>"${VARS}"
 fi
+if [[ "${DISTRIBUTION}" == "openEuler"* ]]; then
+	echo "export enable_clustershell=0" >>"${VARS}"
+fi
 
 if [ -n "${USE_IB}" ]; then
 	{
