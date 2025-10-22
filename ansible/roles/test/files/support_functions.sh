@@ -307,7 +307,7 @@ install_openHPC_cluster() {
 			echo -e "[registries.insecure]\nregistries = ['ohpc-huawei-repo']" >/root/.config/containers/registries.conf
 			echo "CI Customization: Use OpenHPC repository files from host"
 			# shellcheck disable=SC2016
-			sed '/export CHROOT/a /usr/bin/cp -vf /etc/yum.repos.d/OpenHPC*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
+			sed '/Add OpenHPC base components to compute image/i /usr/bin/cp -vf /etc/yum.repos.d/OpenHPC*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
 			# shellcheck disable=SC2016
 			sed '/export CHROOT/a /usr/bin/cp -vf /etc/yum.repos.d/BaseOS*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
 			# shellcheck disable=SC2016
@@ -364,7 +364,7 @@ install_openHPC_cluster() {
 			sed '/export CHROOT/a echo  "user_agent=curl" >> $CHROOT/etc/dnf/dnf.conf' -i "${recipeFile}"
 			echo "CI Customization: Use OpenHPC repository files from host"
 			# shellcheck disable=SC2016
-			sed '/export CHROOT/a /usr/bin/cp -vf /etc/yum.repos.d/OpenHPC*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
+			sed '/Add OpenHPC base components to compute image/i /usr/bin/cp -vf /etc/yum.repos.d/OpenHPC*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
 		fi
 		if [ "${enable_ib}" -eq 1 ] || [ "${Provisioner}" == "warewulf" ]; then
 			echo "CI Customization: Install opensm on compute node"
