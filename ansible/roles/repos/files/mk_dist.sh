@@ -153,7 +153,7 @@ EOF
 		fi
 
 		# add README
-		cat <<EOF >>"${TMP_DIR}/README"
+		cat <<EOF >"${TMP_DIR}/README"
 Many sites may find it useful or necessary to maintain a local copy of the
 OpenHPC repositories. To facilitate this need, we provide downloadable tar
 archives -- one containing a repository of binary packages as well as any
