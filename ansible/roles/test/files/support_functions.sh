@@ -146,6 +146,9 @@ run_root_level_tests() {
 		if [[ "${DISTRIBUTION}" == "leap15.3" ]]; then
 			sed -e "s,-Sg,-Sng,g" -i /home/ohpc-test/tests/admin/clustershell
 		fi
+		if [[ "${DISTRIBUTION}" == "leap15.5" ]]; then
+			sed -e "s,3.4,3.2a,g" -i /home/ohpc-test/tests/dev-tools/easybuild/EasyBuild
+		fi
 	fi
 
 	if [ "x${USER_TEST_OPTIONS}" != "x" ]; then
@@ -304,7 +307,7 @@ install_openHPC_cluster() {
 			echo -e "[registries.insecure]\nregistries = ['ohpc-huawei-repo']" >/root/.config/containers/registries.conf
 			echo "CI Customization: Use OpenHPC repository files from host"
 			# shellcheck disable=SC2016
-			sed '/export CHROOT/a /usr/bin/cp -vf /etc/yum.repos.d/OpenHPC*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
+			sed '/Add OpenHPC base components to compute image/i /usr/bin/cp -vf /etc/yum.repos.d/OpenHPC*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
 			# shellcheck disable=SC2016
 			sed '/export CHROOT/a /usr/bin/cp -vf /etc/yum.repos.d/BaseOS*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
 			# shellcheck disable=SC2016
@@ -312,8 +315,6 @@ install_openHPC_cluster() {
 			if [[ "${DISTRIBUTION}" == "openEuler"* ]]; then
 				sed "/export CHROOT/a sed -i 's,\\\(metalink\\\),#\\\1,g' \$CHROOT/etc/yum.repos.d/openEuler.repo" -i "${recipeFile}"
 				sed "/export CHROOT/a sed -i 's,\\\(baseurl=http\\\)s,\\\1,g' \$CHROOT/etc/yum.repos.d/openEuler.epo" -i "${recipeFile}"
-				# shellcheck disable=SC2016
-				sed '/export CHROOT/a wwctl profile set --yes nodes -A "selinux=0"' -i "${recipeFile}"
 			fi
 		fi
 	elif [[ $CI_CLUSTER == "lenovo" ]]; then
@@ -336,11 +337,23 @@ install_openHPC_cluster() {
 		if [ "${Provisioner}" == "openchami" ]; then
 			echo "CI Customization: Switch to http in repository definition"
 			sed -e "s,https://dl,http://dl,g" -i "${recipeFile}"
-			# Switch host to Factory
-			sed -e '/ohpc-release/ s,dnf -y install.*ohpc-release.*rpm,dnf config-manager --add-repo http://obs.openhpc.community:82/OpenHPC4:/4.0:/Factory/EL_10/,g' -i "${recipeFile}"
-			# Switch client to Factory
-			sed -e '/ohpc-release/d' -i "${recipeFile}"
-			sed -e 's,\(cmd: dnf config-manager --set-enabled crb\),\1 ; dnf config-manager --add-repo http://obs.openhpc.community:82/OpenHPC4:/4.0:/Factory/EL_10/; echo  "user_agent=curl" >> /etc/dnf/dnf.conf,g' -i "${recipeFile}"
+			local VERSION_MAJOR_MINOR
+			VERSION_MINOR=$(echo "${Version}" | awk -F. '{print $2}')
+			VERSION_MICRO=$(echo "${Version}" | awk -F. '{print $3}')
+			if [[ "${Repo}" == "Factory" ]] && [[ "${VERSION_MINOR}" == "0" ]] && [ -z "${VERSION_MICRO}" ]; then
+				# Switch host to Factory
+				# shellcheck disable=SC2153
+				sed -e "/ohpc-release/ s,dnf -y install.*ohpc-release.*rpm,dnf config-manager --add-repo http://obs.openhpc.community:82/OpenHPC${VERSION_MAJOR}:/${Version}:/Factory/${os_repo}/,g" -i "${recipeFile}"
+				# Switch client to Factory
+				sed -e '/ohpc-release/d' -i "${recipeFile}"
+				sed -e "s,\(cmd: dnf config-manager --set-enabled crb\),\1 ; dnf config-manager --add-repo http://obs.openhpc.community:82/OpenHPC${VERSION_MAJOR}:/${Version}:/Factory/${os_repo}/; echo user_agent=curl >> /etc/dnf/dnf.conf,g" -i "${recipeFile}"
+			elif [[ "${Repo}" == "Staging" ]]; then
+				# Switch host to Staging
+				sed -e "ohpc-release/ s,dnf -y install.*ohpc-release.*rpm,dnf config-manager --add-repo http://repos.openhpc.community/.staging/OpenHPC/${VERSION_MAJOR}/${os_repo}/,g" -i "${recipeFile}"
+				# Switch client to Staging
+				sed -e '/ohpc-release/d' -i "${recipeFile}"
+				sed -e "s,\(cmd: dnf config-manager --set-enabled crb\),\1 ; dnf config-manager --add-repo http://repos.openhpc.community/.staging/OpenHPC/${VERSION_MAJOR}/${os_repo}/; echo user_agent=curl >> /etc/dnf/dnf.conf,g" -i "${recipeFile}"
+			fi
 		fi
 		if [ "${Provisioner}" == "warewulf4" ]; then
 			echo "CI Customization: Switch to http in repository definition"
@@ -351,10 +364,7 @@ install_openHPC_cluster() {
 			sed '/export CHROOT/a echo  "user_agent=curl" >> $CHROOT/etc/dnf/dnf.conf' -i "${recipeFile}"
 			echo "CI Customization: Use OpenHPC repository files from host"
 			# shellcheck disable=SC2016
-			sed '/export CHROOT/a /usr/bin/cp -vf /etc/yum.repos.d/OpenHPC*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
-		fi
-		if [ "${Provisioner}" == "warewulf" ] && [ "${PKG_MANAGER}" == "zypper" ]; then
-			sed -e "s,install nhc-ohpc,install nhc-ohpc attr,g" -i "${recipeFile}"
+			sed '/Add OpenHPC base components to compute image/i /usr/bin/cp -vf /etc/yum.repos.d/OpenHPC*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
 		fi
 		if [ "${enable_ib}" -eq 1 ] || [ "${Provisioner}" == "warewulf" ]; then
 			echo "CI Customization: Install opensm on compute node"
@@ -649,14 +659,15 @@ wait_for_computes() {
 		((retry_counter += 1))
 		if [ "${retry_counter}" -gt "${retry_counter_max}" ]; then
 			retry_counter=0
-			if [[ $CI_CLUSTER == "lenovo" ]]; then
-				((n_c = num_computes - 1))
-				for j in $(seq 0 "${n_c}"); do
-					echo "Telling BMC ${c_bmc[$j]} to try another reboot"
+			((n_c = num_computes - 1))
+			for j in $(seq 0 "${n_c}"); do
+				echo "Telling BMC ${c_bmc[$j]} to try another reboot"
+				if [[ $CI_CLUSTER == "lenovo" ]]; then
 					ipmitool -E -I lanplus -H "${c_bmc[$j]}" -U "${bmc_username}" -P "${bmc_password}" chassis bootdev pxe options=efiboot
-					ipmitool -E -I lanplus -H "${c_bmc[$j]}" -U "${bmc_username}" -P "${bmc_password}" power reset
-				done
-			fi
+				fi
+				ipmitool -E -I lanplus -H "${c_bmc[$j]}" -U "${bmc_username}" -P "${bmc_password}" power off
+				ipmitool -E -I lanplus -H "${c_bmc[$j]}" -U "${bmc_username}" -P "${bmc_password}" power on
+			done
 		fi
 		local_sleep "${waittime}"
 	done

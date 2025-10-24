@@ -55,8 +55,9 @@
 	</storage>
 	<proxy>
 		<enabled config:type="boolean">true</enabled>
-		<https_proxy>http://10.241.58.130:3128</https_proxy>
-		<http_proxy>http://10.241.58.130:3128</http_proxy>
+		<https_proxy>http://{{ proxy }}</https_proxy>
+		<http_proxy>http://{{ proxy }}</http_proxy>
+		<no_proxy>ohpc-huawei-repo {{ repo }}</no_proxy>
 	</proxy>
 	<software>
 		<packages config:type="list">
@@ -66,6 +67,7 @@
 			<package>rsync</package>
 			<package>iputils</package>
 			<package>ipmitool</package>
+			<package>libopenssl-devel</package>
 			<package>openssh</package>
 			<package>openssh-server</package>
 		</packages>
@@ -90,19 +92,35 @@
 	<networking t="map">
 		<dns t="map">
 			<dhcp_hostname t="boolean">false</dhcp_hostname>
-			<hostname>openhpc-lenovo-jenkins-sms</hostname>
+{% if inventory_hostname_short.startswith('ohpc-lenovo-repo') %}
+			<hostname>ohpc-lenovo-sms</hostname>
+{% elif inventory_hostname_short.startswith('ohpc-huawei-repo') %}
+			<hostname>ohpc-huawei-sms</hostname>
+{% endif %}
 			<resolv_conf_policy>auto</resolv_conf_policy>
 			<nameservers config:type="list">
+{% if inventory_hostname_short.startswith('ohpc-lenovo-repo') %}
 				<nameserver>1.1.1.1</nameserver>
+{% elif inventory_hostname_short.startswith('ohpc-huawei-repo') %}
+				<nameserver>8.8.8.8</nameserver>
+{% endif %}
 			</nameservers>
 		</dns>
 		<interfaces t="list">
 			<interface t="map">
 				<bootproto>static</bootproto>
+{% if inventory_hostname_short.startswith('ohpc-lenovo-repo') %}
 				<ipaddr>10.241.58.134</ipaddr>
+{% elif inventory_hostname_short.startswith('ohpc-huawei-repo') %}
+				<ipaddr>175.200.16.11</ipaddr>
+{% endif %}
 				<mtu>0</mtu>
 				<name>eth0</name>
+{% if inventory_hostname_short.startswith('ohpc-lenovo-repo') %}
 				<prefixlen>28</prefixlen>
+{% elif inventory_hostname_short.startswith('ohpc-huawei-repo') %}
+				<prefixlen>16</prefixlen>
+{% endif %}
 				<startmode>hotplug</startmode>
 			</interface>
 		</interfaces>
@@ -114,7 +132,11 @@
 				<route>
 					<destination>default</destination>
 					<device>eth0</device>
+{% if inventory_hostname_short.startswith('ohpc-lenovo-repo') %}
 					<gateway>10.241.58.129</gateway>
+{% elif inventory_hostname_short.startswith('ohpc-huawei-repo') %}
+					<gateway>175.200.0.1</gateway>
+{% endif %}
 				</route>
 			</routes>
 			<ipv4_forward t="boolean">false</ipv4_forward>
@@ -131,7 +153,7 @@ zypper -n update
 mv /etc/login.defs.d/* /root/
 systemctl disable --now firewalld
 mkdir /root/.ssh/
-curl --output /root/.ssh/authorized_keys --remote-name http://10.241.58.130/authorized_keys
+curl --output /root/.ssh/authorized_keys --remote-name http://{{ repo }}/authorized_keys
 cp /root/.ssh/authorized_keys /root/.ssh/jumper.pub
 ssh-keygen -t rsa -f /root/.ssh/cluster -N '' > /root/keygen.output
 ssh-keygen -t rsa -f /root/.ssh/id_rsa -N '' >> /root/keygen.output
@@ -140,7 +162,7 @@ ssh-keygen -t dsa -f /root/.ssh/id_dsa -N '' >> /root/keygen.output
 cat /root/.ssh/cluster.pub >> /root/.ssh/authorized_keys
 ipmitool chassis bootdev disk
 mkdir -p /root/.cpan/CPAN/
-curl --output /root/.cpan/CPAN/MyConfig.pm --remote-name http://10.241.58.130/MyConfig.pm
+curl --output /root/.cpan/CPAN/MyConfig.pm --remote-name http://{{ repo }}/MyConfig.pm
                       ]]>
 				</source>
 			</script>
@@ -150,7 +172,7 @@ curl --output /root/.cpan/CPAN/MyConfig.pm --remote-name http://10.241.58.130/My
 				<source>
 					<![CDATA[
 systemctl enable sshd
-                      ]]>
+			]]>
 				</source>
 			</script>
 		</init-scripts>

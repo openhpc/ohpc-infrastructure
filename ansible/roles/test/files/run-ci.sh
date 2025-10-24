@@ -216,7 +216,11 @@ else
 	COMPUTE_HOSTS="ohpc-lenovo-c1, ohpc-lenovo-c2"
 	GATEWAY="10.241.58.129"
 	SMS_INTERNAL="${SMS}"
-	SMS_ETH_INTERNAL="ens2f0"
+	if [[ "${DISTRIBUTION}" == "leap"* ]]; then
+		SMS_ETH_INTERNAL="eth0"
+	else
+		SMS_ETH_INTERNAL="ens2f0"
+	fi
 fi
 
 if [ ! -d "${RESULTS}" ]; then
@@ -333,15 +337,12 @@ USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-tau"
 USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-extrae"
 USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-mfem"
 USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-scipy"
+USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-opencoarrays"
 
 if [[ "${VERSION_MAJOR}" == "2" ]]; then
 	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --with-mpi-families='mpich openmpi4'"
 else
 	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --with-mpi-families='mpich openmpi5'"
-fi
-
-if [[ "${VERSION_MAJOR}" == "4" ]]; then
-	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-opencoarrays"
 fi
 
 if [[ "${CI_CLUSTER}" == "huawei" ]]; then
@@ -424,6 +425,9 @@ if [[ "${DISTRIBUTION}" == "rocky"* ]] && [[ "${SMS}" == "ohpc-huawei-sms" ]]; t
 fi
 if [[ "${DISTRIBUTION}" == "openEuler"* ]] && [[ "${SMS}" == "ohpc-lenovo-sms" ]]; then
 	echo "export YUM_MIRROR_BASE=http://repo.huaweicloud.com/openeuler/" >>"${VARS}"
+fi
+if [[ "${DISTRIBUTION}" == "openEuler"* ]]; then
+	echo "export enable_clustershell=0" >>"${VARS}"
 fi
 
 if [ -n "${USE_IB}" ]; then

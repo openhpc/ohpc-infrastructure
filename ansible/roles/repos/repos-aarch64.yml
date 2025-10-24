@@ -299,6 +299,8 @@
         - move-httpd-logs.sh
         - mk_dist.sh
         - make_repo.sh
+      tags:
+        - install-helper-scripts
 
     - name: Copy public keys
       ansible.builtin.copy:
@@ -309,6 +311,9 @@
         mode: "0644"
       with_items:
         - RPM-GPG-KEY-OpenHPC-3
+        - RPM-GPG-KEY-OpenHPC-4
+      tags:
+        - copy-public-keys
 
     - name: Open /var/log/httpd to be accessible for user ohpc for log analysis
       ansible.builtin.cron:
@@ -328,7 +333,7 @@
       ansible.builtin.git:
         repo: https://github.com/openhpc/ohpc-log-analyzer.git
         dest: /home/ohpc/ohpc-log-analyzer.git
-        version: 1154ba673ee5eb02f3fc8634b5900fe881a07cf8
+        version: 4d2ab27d6eff2f28f8be27540ed9182fb8ba2934
       become: true
       become_user: ohpc
       register: ohpc_log_analyzer_downloaded
