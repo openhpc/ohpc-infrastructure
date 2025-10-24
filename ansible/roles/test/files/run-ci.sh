@@ -337,15 +337,12 @@ USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-tau"
 USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-extrae"
 USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-mfem"
 USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-scipy"
+USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-opencoarrays"
 
 if [[ "${VERSION_MAJOR}" == "2" ]]; then
 	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --with-mpi-families='mpich openmpi4'"
 else
 	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --with-mpi-families='mpich openmpi5'"
-fi
-
-if [[ "${VERSION_MAJOR}" == "4" ]]; then
-	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-opencoarrays"
 fi
 
 if [[ "${CI_CLUSTER}" == "huawei" ]]; then
