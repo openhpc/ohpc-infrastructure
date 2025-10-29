@@ -129,7 +129,12 @@ services --enabled="chronyd"
 
 rootpw --iscrypted {{ root_password_crypted }}
 
+{% if type == 'openeuler' and inventory_hostname_short.startswith('ohpc-lenovo-repo') %}
+# the network card firmware requires a real reboot
+reboot
+{% else %}
 reboot --kexec
+{% endif %}
 
 %post
 set -x
@@ -153,6 +158,10 @@ export http_proxy=http://{{ proxy }}
 	{% endif %}
 	/usr/bin/crb enable
 {% elif type == 'openeuler' %}
+	# the openeuler 22.03 kernel cannot handle zstd compressed firmware, but openeuler ships it that way
+	zstd -d /usr/lib/firmware/qed/qed_init_values_zipped-8.42.2.0.bin.zst || true
+	dracut --force --kver $(rpm -q --queryformat '%{version}-%{release}.%{arch}' kernel)
+
 	echo "gpgcheck=0" >> /etc/yum.repos.d/DVD.repo
 	echo "gpgcheck=0" >> /etc/yum.repos.d/everythingMirror.repo
 	echo "gpgcheck=0" >> /etc/yum.repos.d/updateMirror.repo

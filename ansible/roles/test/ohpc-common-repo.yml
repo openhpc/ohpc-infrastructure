@@ -5,8 +5,8 @@
     dest: "{{ item }}"
     state: directory
   with_items:
-    - "/var/www/html/openSUSE-Leap-15.3-DVD-{{ arch }}-Media"
-    - "/var/www/html/openSUSE-Leap-15.5-DVD-{{ arch }}-Media"
+    - "/var/www/html/openSUSE-Leap-15.3-DVD-{{ arch }}-Current"
+    - "/var/www/html/openSUSE-Leap-15.5-DVD-{{ arch }}-Current"
     - /var/www/html/openEuler-22.03-LTS-SP3-everything
     - /var/www/html/openEuler-24.03-LTS-SP2-everything
     - /var/www/html/AlmaLinux-10-latest
@@ -101,7 +101,6 @@
     opts: defaults,ro
     state: mounted
     fstype: iso9660
-  when: inventory_hostname_short.startswith('ohpc-lenovo-repo')
 
 - name: Setup tftp booting
   ansible.builtin.copy:
@@ -163,8 +162,8 @@
     dest: /var/lib/tftpboot/
     mode: "0644"
   with_items:
-    - "/var/www/html/openSUSE-Leap-15.5-DVD-{{ arch }}-Current/boot/{{ arch }}/loader/initrd"
-    - "/var/www/html/openSUSE-Leap-15.5-DVD-{{ arch }}-Current/boot/{{ arch }}/loader/linux"
+    - "/var/www/html/openSUSE-Leap-15.5-DVD-{{ arch }}-Current/boot/{{ arch }}/{%- if arch == 'x86_64' -%}loader/{%- endif -%}initrd"
+    - "/var/www/html/openSUSE-Leap-15.5-DVD-{{ arch }}-Current/boot/{{ arch }}/{%- if arch == 'x86_64' -%}loader/{%- endif -%}linux"
   when: distro == "leap15.5"
 
 - name: Setup tftp booting for leap15.3
@@ -187,7 +186,7 @@
 
 - name: Copy autoyast for "{{ distro }}"
   ansible.builtin.template:
-    src: "{{ distro }}-autoyast.{{ cluster }}"
+    src: "{{ distro }}-autoyast"
     dest: "/var/www/html/{{ distro }}-autoyast"
     mode: "0644"
   when: distro.startswith("leap15")

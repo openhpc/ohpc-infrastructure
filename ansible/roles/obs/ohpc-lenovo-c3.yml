@@ -26,7 +26,7 @@
     - name: Import ohpc-lenovo-common.yml
       ansible.builtin.import_tasks: ../test/ohpc-lenovo-common.yml
 
-    - name: Create OBS directories
+    - name: Create OBS directories before mounting
       ansible.builtin.file:
         dest: "{{ item }}"
         mode: "0755"
@@ -52,7 +52,7 @@
         - /etc/systemd/system/obsworker-podman.service.d
         - /etc/systemd/system/openvpn-client@obs.service.d
 
-    - name: Install packages
+    - name: Install packages (first epel-release)
       ansible.builtin.package:
         state: present
         name:

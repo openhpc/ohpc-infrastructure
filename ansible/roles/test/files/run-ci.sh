@@ -209,7 +209,11 @@ if [[ "${SMS}" == "ohpc-huawei-sms" ]]; then
 	((TIMEOUT += 100))
 	GATEWAY="175.200.16.14"
 	SMS_INTERNAL="${SMS}"
-	SMS_ETH_INTERNAL="enp189s0f0"
+	if [[ "${DISTRIBUTION}" == "leap"* ]]; then
+		SMS_ETH_INTERNAL="eth0"
+	else
+		SMS_ETH_INTERNAL="enp189s0f0"
+	fi
 else
 	TEST_ARCH=$(uname -m)
 	CI_CLUSTER=lenovo
@@ -349,6 +353,10 @@ if [[ "${CI_CLUSTER}" == "huawei" ]]; then
 	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-spack --disable-easybuild"
 fi
 
+if [[ "${CI_CLUSTER}" == "huawei" ]] && [[ "${DISTRIBUTION}" == "openEuler_22.03" ]] && [[ "${RMS}" == "openpbs" ]]; then
+	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-hypre"
+fi
+
 print_overview
 
 # Save old history
@@ -407,10 +415,10 @@ if [[ "${PROVISIONER}" == "confluent" ]]; then
 	} >>"${VARS}"
 
 	if [[ "${DISTRIBUTION}" == "rocky"* ]]; then
-		echo "export iso_path=/root/Rocky-9.4-x86_64-dvd.iso" >>"${VARS}"
+		echo "export iso_path=/root/Rocky-9-latest-x86_64-dvd.iso" >>"${VARS}"
 	fi
 	if [[ "${DISTRIBUTION}" == "almalinux"* ]]; then
-		echo "export iso_path=/root/AlmaLinux-9.5-x86_64-dvd.iso" >>"${VARS}"
+		echo "export iso_path=/root/AlmaLinux-9-latest-x86_64-dvd.iso" >>"${VARS}"
 	fi
 	if [[ "${DISTRIBUTION}" == "almalinux10" ]]; then
 		echo "export iso_path=/root/AlmaLinux-10.0-x86_64-dvd.iso" >>"${VARS}"

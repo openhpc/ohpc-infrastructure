@@ -85,7 +85,11 @@
 		<add_on_others t="list">
 			<listentry t="map">
 				<alias>leap</alias>
+{% if inventory_hostname_short.startswith('ohpc-lenovo-repo') %}
 				<media_url>http://download.opensuse.org/distribution/leap/15.5/repo/oss/</media_url>
+{% elif inventory_hostname_short.startswith('ohpc-huawei-repo') %}
+				<media_url>http://mirrors.nju.edu.cn/opensuse/distribution/leap/15.5/repo/oss/</media_url>
+{% endif %}
 			</listentry>
 		</add_on_others>
 	</add-on>
@@ -138,6 +142,12 @@
 					<gateway>175.200.0.1</gateway>
 {% endif %}
 				</route>
+{% if inventory_hostname_short.startswith('ohpc-huawei-repo') %}
+				<route>
+					<destination>150.50.0.0/16</destination>
+					<gateway>175.200.16.14</gateway>
+				</route>
+{% endif %}
 			</routes>
 			<ipv4_forward t="boolean">false</ipv4_forward>
 			<ipv6_forward t="boolean">false</ipv6_forward>
