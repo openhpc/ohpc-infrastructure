@@ -42,7 +42,7 @@
       ansible.builtin.user:
         name: rhel
 
-    - name: Create directories
+    - name: Create directories before mounting
       ansible.builtin.file:
         dest: "{{ item }}"
         mode: "0755"
@@ -95,7 +95,7 @@
         state: mounted
         fstype: none
 
-    - name: Create directories
+    - name: Create directories after mounting
       ansible.builtin.file:
         dest: "/data{{ item }}"
         mode: "0755"
@@ -184,19 +184,19 @@
         setype: httpd_sys_content_t
         state: present
 
-    - name: Allow apache to modify files in /stats
+    - name: Allow apache to modify files in /results
       community.general.sefcontext:
         target: '/results(/.*)?'
         setype: httpd_sys_content_t
         state: present
 
-    - name: Allow apache to modify files in /stats
+    - name: Allow apache to modify files in /repos
       community.general.sefcontext:
         target: '/repos(/.*)?'
         setype: public_content_t
         state: present
 
-    - name: Allow apache to modify files in /stats
+    - name: Allow apache to modify files in /repos/repositories
       community.general.sefcontext:
         target: '/rhel/repositories(/.*)?'
         setype: httpd_sys_content_t

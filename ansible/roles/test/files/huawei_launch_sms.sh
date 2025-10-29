@@ -57,8 +57,14 @@ ssh "${BOOT_SERVER}" systemctl start kea-dhcp4
 echo -n "----> Switching boot device to PXE: "
 export IPMI_PASSWORD=${SMS_IPMI_PASSWORD}
 /usr/bin/ipmitool -C 3 -E -I lanplus -H "${BMC}" -U root chassis bootdev pxe
-echo -n "----> Rebooting ${TARGET}: "
-/usr/bin/ipmitool -C 3 -E -I lanplus -H "${BMC}" -U root chassis power reset
+echo -n "----> Power Off ${TARGET}: "
+/usr/bin/ipmitool -C 3 -E -I lanplus -H "${BMC}" -U root chassis power off
+for i in $(seq 5 -1 1); do
+	echo "-----> ${i}"
+	sleep 1
+done
+echo -n "----> Power On ${TARGET}: "
+/usr/bin/ipmitool -C 3 -E -I lanplus -H "${BMC}" -U root chassis power on
 echo "----> done"
 
 echo "--> Waiting for ${TARGET} to finish installation"

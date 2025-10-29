@@ -28,9 +28,9 @@ internal_network=175.200.0.0
 {% if distro.startswith('rocky') or distro.startswith('almalinux') %}
 eth_provision=enp189s0f0
 {% elif distro.startswith('openEuler') %}
-eth_provision=eth2
+eth_provision=eth0
 {% elif distro.startswith('leap') %}
-eth_provision=eth2
+eth_provision=eth0
 {% endif %}
 
 

@@ -34,7 +34,7 @@
         - /etc/systemd/system/obsworker-podman.service.d
         - /etc/systemd/system/openvpn-client@obs.service.d
 
-    - name: Install packages
+    - name: Install packages (epel-release first)
       ansible.builtin.package:
         state: present
         name:

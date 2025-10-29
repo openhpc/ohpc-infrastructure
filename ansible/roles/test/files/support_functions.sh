@@ -151,7 +151,7 @@ run_root_level_tests() {
 		fi
 	fi
 
-	if [ "x${USER_TEST_OPTIONS}" != "x" ]; then
+	if [ "${USER_TEST_OPTIONS}" != "" ]; then
 		echo " "
 		echo "adding ${USER_TEST_OPTIONS} to root tests"
 		echo " "
@@ -193,7 +193,7 @@ run_user_level_tests() {
 		config_opts="$config_opts --with-compiler-families='gnu12 arm1'"
 	fi
 
-	if [ "x${USER_TEST_OPTIONS}" != "x" ]; then
+	if [ "${USER_TEST_OPTIONS}" != "" ]; then
 		echo " "
 		echo "adding ${USER_TEST_OPTIONS} to user tests"
 		echo " "
@@ -294,7 +294,12 @@ install_openHPC_cluster() {
 		if [ "${Provisioner}" == "warewulf" ]; then
 			echo "CI Customization: console=tty0 breaks the compute nodes"
 			sed '/dnf -y install ohpc-warewulf/a sed -e "s,# \\(database chunk size\\),\\1,g" -i /etc/warewulf/database.conf' -i "${recipeFile}"
-			sed '/dnf -y install ohpc-warewulf/a sed -e "s,console=tty0,,g" -i /usr/share/perl5/vendor_perl/Warewulf/Provision/Pxe.pm' -i "${recipeFile}"
+			if [[ "${DISTRIBUTION}" == "leap"* ]]; then
+				sed '/dnf -y install ohpc-warewulf/a sed -e "s,console=tty0,,g" -i /usr/lib/perl5/vendor_perl/*/Warewulf/Provision/Pxe.pm' -i "${recipeFile}"
+			else
+				sed '/dnf -y install ohpc-warewulf/a sed -e "s,console=tty0,,g" -i /usr/share/perl5/vendor_perl/Warewulf/Provision/Pxe.pm' -i "${recipeFile}"
+			fi
+
 		fi
 		if [ "${Provisioner}" == "warewulf4" ]; then
 			echo "CI Customization: Switch to http in repository definition"
@@ -666,6 +671,7 @@ wait_for_computes() {
 					ipmitool -E -I lanplus -H "${c_bmc[$j]}" -U "${bmc_username}" -P "${bmc_password}" chassis bootdev pxe options=efiboot
 				fi
 				ipmitool -E -I lanplus -H "${c_bmc[$j]}" -U "${bmc_username}" -P "${bmc_password}" power off
+				local_sleep 5
 				ipmitool -E -I lanplus -H "${c_bmc[$j]}" -U "${bmc_username}" -P "${bmc_password}" power on
 			done
 		fi
@@ -730,11 +736,7 @@ enable_repo() {
 	if [[ "${VERSION_MAJOR}" == "2" ]]; then
 		OBS_KEY="https://obs.openhpc.community/projects/OpenHPC/public_key"
 	else
-		if [[ "${VERSION_MINOR}" != "0" ]]; then
-			OBS_KEY="https://obs.openhpc.community/projects/OpenHPC${VERSION_MAJOR}/public_key"
-		else
-			OBS_KEY="http://obs.openhpc.community:82/OpenHPC${VERSION_MAJOR}:/${VERSION_MAJOR}.0:/Factory/${os_repo}/repodata/repomd.xml.key"
-		fi
+		OBS_KEY="http://obs.openhpc.community:82/OpenHPC${VERSION_MAJOR}:/${VERSION_MAJOR}.0:/Factory/${os_repo}/repodata/repomd.xml.key"
 	fi
 	STAGING_REPO_KEY="${STAGING_REPO}/${os_repo}/repodata/repomd.xml.key"
 	RELEASE_REPO_KEY="${RELEASE_REPO}/${os_repo}/repodata/repomd.xml.key"
