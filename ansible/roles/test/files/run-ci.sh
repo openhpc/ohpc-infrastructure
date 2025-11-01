@@ -278,11 +278,74 @@ cleanup() {
 	touch "${OUT}/${RESULT}"
 	END=$(date +%s)
 	((DURATION = END - START))
+
+	# Enhanced INFO file with comprehensive metadata
 	{
+		echo "# OpenHPC Test Run Information"
+		echo "# Generated at $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+		echo ""
+		echo "# Test Results Summary"
 		echo "DURATION=${DURATION}"
 		echo "FAILED=${FAILED:-0}"
 		echo "PASSED=${PASSED:-0}"
 		echo "SKIPPED=${SKIPPED:-0}"
+		echo "START_TIME=${START}"
+		echo "END_TIME=${END}"
+		echo ""
+		echo "# Test Configuration"
+		echo "DISTRIBUTION=${DISTRIBUTION}"
+		echo "VERSION=${VERSION}"
+		echo "ARCHITECTURE=${TEST_ARCH}"
+		echo "RESOURCE_MANAGER=${RMS}"
+		echo "PROVISIONER=${PROVISIONER}"
+		echo "REPOSITORY=${REPO}"
+		echo "CI_CLUSTER=${CI_CLUSTER}"
+		echo "WITH_INTEL=${WITH_INTEL:-false}"
+		echo "WITH_GPU=${WITH_GPU}"
+		echo "USE_INFINIBAND=${USE_IB:-false}"
+		echo "TIMEOUT_MINUTES=${TIMEOUT}"
+		echo ""
+		echo "# System Information"
+		echo "SMS_HOST=${SMS}"
+		echo "GATEWAY=${GATEWAY}"
+		echo "COMPUTE_HOSTS=\"${COMPUTE_HOSTS}\""
+		echo "SMS_ETH_INTERNAL=${SMS_ETH_INTERNAL}"
+		echo ""
+		echo "# Test Options"
+		echo "USER_TEST_OPTIONS=\"${USER_TEST_OPTIONS}\""
+		echo "ENABLE_TODISK=${ENABLE_TODISK:-false}"
+		echo ""
+		echo "# Results"
+		echo "RESULT_STATUS=${RESULT}"
+		echo "LAST_JOB_ID=${LAST_JOB:-unknown}"
+
+		# Add error categorization if test failed
+		if [ "${RESULT}" == "FAIL" ] && [ -f "${OUT}/console.out" ]; then
+			echo ""
+			echo "# Error Analysis"
+
+			# Count different types of errors from console output
+			COMPILE_ERRORS=$(grep -c -i "compilation.*failed\|make.*error\|gcc.*error\|error.*compiling" "${OUT}/console.out" 2>/dev/null || echo "0")
+			TIMEOUT_ERRORS=$(grep -c -i "timeout\|timed out" "${OUT}/console.out" 2>/dev/null || echo "0")
+			NETWORK_ERRORS=$(grep -c -i "network.*error\|connection.*failed\|network.*unreachable" "${OUT}/console.out" 2>/dev/null || echo "0")
+			PERMISSION_ERRORS=$(grep -c -i "permission denied\|access denied\|insufficient.*permission" "${OUT}/console.out" 2>/dev/null || echo "0")
+
+			echo "COMPILE_ERRORS=${COMPILE_ERRORS}"
+			echo "TIMEOUT_ERRORS=${TIMEOUT_ERRORS}"
+			echo "NETWORK_ERRORS=${NETWORK_ERRORS}"
+			echo "PERMISSION_ERRORS=${PERMISSION_ERRORS}"
+		fi
+
+		# Add performance metrics
+		echo ""
+		echo "# Performance Metrics"
+		echo "TESTS_PER_MINUTE=$(((PASSED + FAILED + SKIPPED) * 60 / (DURATION > 0 ? DURATION : 1)))"
+		echo "AVERAGE_TEST_DURATION=$((DURATION / (PASSED + FAILED + SKIPPED > 0 ? PASSED + FAILED + SKIPPED : 1)))"
+
+		# Add configuration hash for tracking identical configurations
+		CONFIG_HASH=$(echo "${DISTRIBUTION}-${VERSION}-${TEST_ARCH}-${RMS}-${PROVISIONER}-${WITH_INTEL:-false}-${WITH_GPU}-${USE_IB:-false}" | sha256sum | cut -d' ' -f1 | head -c 8)
+		echo "CONFIG_HASH=${CONFIG_HASH}"
+
 	} >>"$OUT/INFO"
 	if [ -z "${UPLOAD}" ]; then
 		if [ ! -d "${RESULTS}/${VERSION_MAJOR}" ]; then

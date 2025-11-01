@@ -177,6 +177,8 @@
         - welcome.conf
         - ssl.conf
       register: httpd_conf
+      tags:
+        - httpd-conf
 
     - name: Allow apache to modify files in /stats
       community.general.sefcontext:
@@ -258,6 +260,9 @@
         - test_error.png
         - test_ok.png
         - test_warning.png
+        - test-results.js
+      tags:
+        - install-http-files
 
     - name: Install /results HEADER.tmpl
       ansible.builtin.copy:
@@ -266,6 +271,8 @@
         owner: root
         group: root
         mode: "0644"
+      tags:
+        - install-http-files
 
     - name: Install rsyncd.conf
       ansible.builtin.copy:

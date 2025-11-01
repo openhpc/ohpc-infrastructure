@@ -1,8 +1,114 @@
 <!DOCTYPE html>
-<html>
-        <head>
-                <title>OpenHPC @@VERSION@@ Test Results</title>
-                <link rel="stylesheet" type="text/css" href="/.files/styles.css"/>
-        </head>
-        <body><h1>OpenHPC @@VERSION@@ Test Results</h1>
+<html lang="en">
+<head>
+        <meta charset="UTF-8">
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="OpenHPC @@VERSION@@ automated test results and CI status">
+        <title>OpenHPC @@VERSION@@ Test Results</title>
+        <link rel="stylesheet" type="text/css" href="/.files/styles.css"/>
+        <link rel="icon" type="image/x-icon" href="/.files/favicon.ico">
+</head>
+<body>
+        <div class="container">
+                <h1>&#129514; OpenHPC @@VERSION@@ Test Results</h1>
+
+<!-- DETAILED_VIEW_START -->
+                <!-- Navigation breadcrumb -->
+                <nav class="breadcrumb">
+                        <a href="../" class="breadcrumb-link">&#8592; Back to OpenHPC @@MAJOR_VERSION@@ Overview</a>
+                </nav>
+                <!-- Summary Statistics -->
+                <div class="summary-stats">
+                        <div class="stat-card">
+                                <div class="stat-number" id="total-tests">0</div>
+                                <div class="stat-label">&#128202; Total Test Configurations</div>
+                        </div>
+                        <div class="stat-card">
+                                <div class="stat-number" id="total-runtime">0h</div>
+                                <div class="stat-label">&#9201; Total Runtime</div>
+                        </div>
+                        <div class="stat-card">
+                                <div class="stat-number" id="pass-rate">0%</div>
+                                <div class="stat-label">&#9989; Overall Pass Rate</div>
+                        </div>
+                        <div class="stat-card">
+                                <div class="stat-number" id="latest-tests">0</div>
+                                <div class="stat-label">&#128260; Latest Test Runs</div>
+                        </div>
+                </div>
+
+                <!-- Filter Controls -->
+                <div class="filter-controls">
+                        <div class="filter-row">
+                                <div class="filter-group">
+                                        <label for="filter-distribution">&#128039; Distribution</label>
+                                        <select id="filter-distribution">
+                                                <option value="">All Distributions</option>
+                                        </select>
+                                </div>
+                                <div class="filter-group">
+                                        <label for="filter-provisioner">&#128295; Provisioner</label>
+                                        <select id="filter-provisioner">
+                                                <option value="">All Provisioners</option>
+                                        </select>
+                                </div>
+                                <div class="filter-group">
+                                        <label for="filter-rms">&#9881; Resource Manager</label>
+                                        <select id="filter-rms">
+                                                <option value="">All Resource Managers</option>
+                                        </select>
+                                </div>
+                                <div class="filter-group">
+                                        <label for="filter-status">&#127919; Status</label>
+                                        <select id="filter-status">
+                                                <option value="">All Statuses</option>
+                                                <option value="pass">&#9989; Pass Only</option>
+                                                <option value="fail">&#10060; Fail Only</option>
+                                                <option value="warning">&#9888; Warning Only</option>
+                                        </select>
+                                </div>
+                        </div>
+                        <div class="filter-row">
+                                <div class="filter-group">
+                                        <label for="filter-architecture">&#127959; Architecture</label>
+                                        <select id="filter-architecture">
+                                                <option value="">All Architectures</option>
+                                        </select>
+                                </div>
+                                <div class="filter-group">
+                                        <label for="filter-network">&#127760; Network</label>
+                                        <select id="filter-network">
+                                                <option value="">All Network Types</option>
+                                        </select>
+                                </div>
+                                <div class="filter-group">
+                                        <label for="filter-compiler">&#128296; Compiler</label>
+                                        <select id="filter-compiler">
+                                                <option value="">All Compilers</option>
+                                        </select>
+                                </div>
+                                <div class="filter-group">
+                                        <label for="search-test">&#128269; Search Tests</label>
+                                        <input type="text" id="search-test" placeholder="Search test names...">
+                                </div>
+                        </div>
+                </div>
+
+                <!-- Test Results Table -->
+                <div class="table-container">
+                        <table id="results-table">
+                                <thead>
+                                        <tr>
+                                                <th class="sortable" data-sort="test">&#128295; Test Configuration</th>
+                                                <th class="sortable" data-sort="status">&#128200; Status</th>
+                                                <th class="sortable" data-sort="duration">&#9200; Duration</th>
+                                                <th class="sortable" data-sort="passed">&#9989; Passed</th>
+                                                <th class="sortable" data-sort="failed">&#10060; Failed</th>
+                                                <th class="sortable" data-sort="date">&#128197; Last Run</th>
+                                        </tr>
+                                </thead>
+                                <tbody>
+                                        <!-- Table content will be populated by update_results.sh -->
+<!-- DETAILED_VIEW_END -->
 <!-- END HEADER MARKER -->
