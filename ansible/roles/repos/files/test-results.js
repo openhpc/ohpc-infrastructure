@@ -93,6 +93,7 @@ class TestResultsManager {
             // Extract individual test case counts from table cells
             const passedCount = parseInt(cells[3]?.getAttribute('data-passed') || cells[3]?.textContent || '0', 10);
             const failedCount = parseInt(cells[4]?.getAttribute('data-failed') || cells[4]?.textContent || '0', 10);
+            const skippedCount = parseInt(cells[5]?.getAttribute('data-skipped') || cells[5]?.textContent || '0', 10);
 
             return {
                 element: row,
@@ -102,7 +103,8 @@ class TestResultsManager {
                 config,
                 timestamp: this.extractTimestamp(testName),
                 passedCount,
-                failedCount
+                failedCount,
+                skippedCount
             };
         }).filter(item => item !== null);
     }
@@ -195,7 +197,8 @@ class TestResultsManager {
         // Calculate test case level statistics (same as shell script)
         const totalPassedCases = this.testData.reduce((sum, test) => sum + test.passedCount, 0);
         const totalFailedCases = this.testData.reduce((sum, test) => sum + test.failedCount, 0);
-        const totalTestCases = totalPassedCases + totalFailedCases;
+        const totalSkippedCases = this.testData.reduce((sum, test) => sum + test.skippedCount, 0);
+        const totalTestCases = totalPassedCases + totalFailedCases + totalSkippedCases;
 
         // Use same pass rate calculation as shell script: (TOTAL_PASSED * 100) / (TOTAL_PASSED + TOTAL_FAILED)
         const passRate = totalTestCases > 0 ? Math.round((totalPassedCases * 100) / totalTestCases) : 0;
@@ -205,7 +208,10 @@ class TestResultsManager {
         const totalTestsElement = document.getElementById('total-tests');
         const totalRuntimeElement = document.getElementById('total-runtime');
         const passRateElement = document.getElementById('pass-rate');
-        const latestTestsElement = document.getElementById('latest-tests');
+        const totalTestCasesElement = document.getElementById('total-test-cases');
+        const passedTestsElement = document.getElementById('passed-tests');
+        const failedTestsElement = document.getElementById('failed-tests');
+        const skippedTestsElement = document.getElementById('skipped-tests');
 
         // Only update if the elements still have default values (0, 0h, 0%, etc.)
         if (totalTestsElement && totalTestsElement.textContent === '0') {
@@ -214,8 +220,17 @@ class TestResultsManager {
         if (passRateElement && passRateElement.textContent === '0%') {
             this.updateElement('pass-rate', `${passRate}%`);
         }
-        if (latestTestsElement && latestTestsElement.textContent === '0') {
-            this.updateElement('latest-tests', this.testData.filter(t => t.testName.includes('LATEST')).length);
+        if (totalTestCasesElement && totalTestCasesElement.textContent === '0') {
+            this.updateElement('total-test-cases', totalTestCases);
+        }
+        if (passedTestsElement && passedTestsElement.textContent === '0') {
+            this.updateElement('passed-tests', totalPassedCases);
+        }
+        if (failedTestsElement && failedTestsElement.textContent === '0') {
+            this.updateElement('failed-tests', totalFailedCases);
+        }
+        if (skippedTestsElement && skippedTestsElement.textContent === '0') {
+            this.updateElement('skipped-tests', totalSkippedCases);
         }
         if (totalRuntimeElement && totalRuntimeElement.textContent === '0h') {
             this.updateElement('total-runtime', '0h'); // Keep as placeholder - shell script provides accurate runtime
@@ -359,6 +374,23 @@ class TestResultsManager {
                         aVal = a.status;
                         bVal = b.status;
                         break;
+                    case 'duration':
+                        // Sort by duration value (numeric)
+                        aVal = parseInt(a.element.querySelector('td[data-duration]')?.getAttribute('data-duration') || '0', 10);
+                        bVal = parseInt(b.element.querySelector('td[data-duration]')?.getAttribute('data-duration') || '0', 10);
+                        break;
+                    case 'passed':
+                        aVal = a.passedCount;
+                        bVal = b.passedCount;
+                        break;
+                    case 'failed':
+                        aVal = a.failedCount;
+                        bVal = b.failedCount;
+                        break;
+                    case 'skipped':
+                        aVal = a.skippedCount;
+                        bVal = b.skippedCount;
+                        break;
                     case 'date':
                         aVal = a.timestamp;
                         bVal = b.timestamp;
@@ -414,13 +446,18 @@ class TestResultsManager {
         // Calculate test case level statistics for filtered data (same methodology as shell script)
         const totalPassedCases = filteredData.reduce((sum, test) => sum + test.passedCount, 0);
         const totalFailedCases = filteredData.reduce((sum, test) => sum + test.failedCount, 0);
-        const totalTestCases = totalPassedCases + totalFailedCases;
+        const totalSkippedCases = filteredData.reduce((sum, test) => sum + test.skippedCount, 0);
+        const totalTestCases = totalPassedCases + totalFailedCases + totalSkippedCases;
 
         // Use same pass rate calculation as shell script: (TOTAL_PASSED * 100) / (TOTAL_PASSED + TOTAL_FAILED)
         const passRate = totalTestCases > 0 ? Math.round((totalPassedCases * 100) / totalTestCases) : 0;
 
-        // Update pass rate for filtered results
+        // Update all statistics for filtered results
         this.updateElement('pass-rate', `${passRate}%`);
+        this.updateElement('total-test-cases', totalTestCases);
+        this.updateElement('passed-tests', totalPassedCases);
+        this.updateElement('failed-tests', totalFailedCases);
+        this.updateElement('skipped-tests', totalSkippedCases);
     }
 
     showNoResultsMessage() {
@@ -431,7 +468,7 @@ class TestResultsManager {
         if (!noResultsRow) {
             noResultsRow = document.createElement('tr');
             noResultsRow.className = 'no-results-row';
-            noResultsRow.innerHTML = '<td colspan="6" style="text-align: center; padding: 40px; color: #7f8c8d;">&#128269; No test results match the current filters.</td>';
+            noResultsRow.innerHTML = '<td colspan="7" style="text-align: center; padding: 40px; color: #7f8c8d;">&#128269; No test results match the current filters.</td>';
             tbody.appendChild(noResultsRow);
         }
         noResultsRow.style.display = '';

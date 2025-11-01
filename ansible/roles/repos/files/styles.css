@@ -128,6 +128,31 @@ a:hover, a:active {
         margin-top: 5px;
 }
 
+/* Colored stat cards for test case breakdown */
+.stat-card.stat-success {
+        border-left: 4px solid var(--success-color);
+}
+
+.stat-card.stat-success .stat-number {
+        color: var(--success-color);
+}
+
+.stat-card.stat-danger {
+        border-left: 4px solid var(--danger-color);
+}
+
+.stat-card.stat-danger .stat-number {
+        color: var(--danger-color);
+}
+
+.stat-card.stat-warning {
+        border-left: 4px solid var(--warning-color);
+}
+
+.stat-card.stat-warning .stat-number {
+        color: var(--warning-color);
+}
+
 /* Filter controls */
 .filter-controls {
         background: #f8f9fa;
@@ -243,6 +268,10 @@ th[data-sort="passed"] {
 }
 
 th[data-sort="failed"] {
+        min-width: 90px;
+}
+
+th[data-sort="skipped"] {
         min-width: 90px;
 }
 

@@ -124,13 +124,19 @@ if [ $((TOTAL_PASSED + TOTAL_FAILED)) -gt 0 ]; then
 	PASS_RATE=$(((TOTAL_PASSED * 100) / (TOTAL_PASSED + TOTAL_FAILED)))
 fi
 
+# Calculate total test cases
+TOTAL_TEST_CASES=$((TOTAL_PASSED + TOTAL_FAILED + TOTAL_SKIPPED))
+
 # Store statistics for FOOTER.html generation
 STATS_SCRIPT="<script>
 document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('total-tests').textContent = '${LATEST_COUNT}';
   document.getElementById('total-runtime').textContent = '${TOTAL_HOURS}h';
   document.getElementById('pass-rate').textContent = '${PASS_RATE}%';
-  document.getElementById('latest-tests').textContent = '${LATEST_COUNT}';
+  document.getElementById('total-test-cases').textContent = '${TOTAL_TEST_CASES}';
+  document.getElementById('passed-tests').textContent = '${TOTAL_PASSED}';
+  document.getElementById('failed-tests').textContent = '${TOTAL_FAILED}';
+  document.getElementById('skipped-tests').textContent = '${TOTAL_SKIPPED}';
 });
 </script>"
 
@@ -217,6 +223,7 @@ for latest_link in 0-LATEST*; do
 			echo "  <td data-duration=\"$DURATION\">$duration_formatted</td>"
 			echo "  <td data-passed=\"$PASSED\">$PASSED</td>"
 			echo "  <td data-failed=\"$FAILED\">$FAILED</td>"
+			echo "  <td data-skipped=\"$SKIPPED\">$SKIPPED</td>"
 			echo "  <td data-timestamp=\"$timestamp\">$timestamp</td>"
 			echo "</tr>"
 		} >>HEADER.html

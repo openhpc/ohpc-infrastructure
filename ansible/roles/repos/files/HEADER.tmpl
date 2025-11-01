@@ -33,8 +33,24 @@
                                 <div class="stat-label">&#9989; Overall Pass Rate</div>
                         </div>
                         <div class="stat-card">
-                                <div class="stat-number" id="latest-tests">0</div>
-                                <div class="stat-label">&#128260; Latest Test Runs</div>
+                                <div class="stat-number" id="total-test-cases">0</div>
+                                <div class="stat-label">&#128295; Total Test Cases</div>
+                        </div>
+                </div>
+
+                <!-- Detailed Test Case Breakdown -->
+                <div class="summary-stats">
+                        <div class="stat-card stat-success">
+                                <div class="stat-number" id="passed-tests">0</div>
+                                <div class="stat-label">&#9989; Passed Tests</div>
+                        </div>
+                        <div class="stat-card stat-danger">
+                                <div class="stat-number" id="failed-tests">0</div>
+                                <div class="stat-label">&#10060; Failed Tests</div>
+                        </div>
+                        <div class="stat-card stat-warning">
+                                <div class="stat-number" id="skipped-tests">0</div>
+                                <div class="stat-label">&#9888; Skipped Tests</div>
                         </div>
                 </div>
 
@@ -105,6 +121,7 @@
                                                 <th class="sortable" data-sort="duration">&#9200; Duration</th>
                                                 <th class="sortable" data-sort="passed">&#9989; Passed</th>
                                                 <th class="sortable" data-sort="failed">&#10060; Failed</th>
+                                                <th class="sortable" data-sort="skipped">&#9888; Skipped</th>
                                                 <th class="sortable" data-sort="date">&#128197; Last Run</th>
                                         </tr>
                                 </thead>
