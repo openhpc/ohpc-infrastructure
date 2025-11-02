@@ -1,47 +1,509 @@
+/* Modern CSS for OpenHPC Test Results */
+:root {
+        --primary-color: #2c3e50;
+        --secondary-color: #3498db;
+        --success-color: #27ae60;
+        --warning-color: #f39c12;
+        --danger-color: #e74c3c;
+        --background-color: #f8f9fa;
+        --text-color: #2c3e50;
+        --border-color: #dee2e6;
+        --shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+* {
+        box-sizing: border-box;
+}
+
 body {
-        background: #eee;
-        margin: 33px;
-        color: #333;
-        font: serif;
-        }
+        background: var(--background-color);
+        margin: 0;
+        padding: 20px;
+        color: var(--text-color);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        line-height: 1.6;
+}
+
+.container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+        padding: 30px;
+}
+
 h1 {
-        font: 2.0em sans-serif;
-        }
+        font-size: 2.5em;
+        font-weight: 300;
+        color: var(--primary-color);
+        margin-bottom: 30px;
+        text-align: center;
+        border-bottom: 3px solid var(--secondary-color);
+        padding-bottom: 15px;
+}
+
 h1 a:hover, h1 a:active {
         text-decoration: none;
-        }
+}
+
+/* Breadcrumb navigation */
+.breadcrumb {
+        margin: -10px 0 20px 0;
+        padding: 0;
+}
+
+.breadcrumb-link {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 16px;
+        background: #f8f9fa;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        color: var(--secondary-color);
+        text-decoration: none;
+        font-size: 0.9em;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.breadcrumb-link:hover {
+        background: var(--secondary-color);
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        text-decoration: none;
+}
+
+/* Link styles */
 a:link {
         text-decoration: none;
-        color: #555;
-        }
+        color: var(--secondary-color);
+        transition: color 0.3s ease;
+}
+
 a:visited {
         text-decoration: none;
-        color: #777;
-        }
-a:hover, a:active {
-        text-decoration: underline;
-        color: maroon;
-        }
-pre {
-        font: 0.9em/1.3em "Courier New", Courier;
-        margin: 3px 0;
-        color: #777;
-        }
-pre img {
-        display: inline;
-        }
-img {
-        margin: 3px 0;
-        }
-th.indexcolsize {
-        display: none;
+        color: #7f8c8d;
 }
+
+a:hover, a:active {
+        text-decoration: none;
+        color: var(--primary-color);
+}
+
+/* Summary cards */
+.summary-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin: 30px 0;
+}
+
+.stat-card {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 20px;
+        text-align: center;
+        box-shadow: var(--shadow);
+        transition: transform 0.2s ease;
+}
+
+.stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.stat-number {
+        font-size: 2em;
+        font-weight: bold;
+        color: var(--primary-color);
+}
+
+.stat-label {
+        color: #7f8c8d;
+        font-size: 0.9em;
+        margin-top: 5px;
+}
+
+/* Colored stat cards for test case breakdown */
+.stat-card.stat-success {
+        border-left: 4px solid var(--success-color);
+}
+
+.stat-card.stat-success .stat-number {
+        color: var(--success-color);
+}
+
+.stat-card.stat-danger {
+        border-left: 4px solid var(--danger-color);
+}
+
+.stat-card.stat-danger .stat-number {
+        color: var(--danger-color);
+}
+
+.stat-card.stat-warning {
+        border-left: 4px solid var(--warning-color);
+}
+
+.stat-card.stat-warning .stat-number {
+        color: var(--warning-color);
+}
+
+/* Filter controls */
+.filter-controls {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 20px 0;
+        border: 1px solid var(--border-color);
+}
+
+.filter-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 15px;
+}
+
+.filter-group {
+        display: flex;
+        flex-direction: column;
+}
+
+.filter-group label {
+        font-weight: 600;
+        margin-bottom: 5px;
+        color: var(--text-color);
+}
+
+.filter-group select,
+.filter-group input {
+        padding: 8px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        font-size: 14px;
+        background: white;
+}
+
+.filter-group select:focus,
+.filter-group input:focus {
+        outline: none;
+        border-color: var(--secondary-color);
+        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+/* Table styles */
+table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: var(--shadow);
+        table-layout: auto;
+}
+
+th {
+        background: var(--primary-color);
+        color: white;
+        padding: 15px 12px;
+        text-align: left;
+        font-weight: 600;
+        border-bottom: none;
+        cursor: pointer;
+        user-select: none;
+        transition: background-color 0.2s ease;
+        white-space: nowrap;
+        min-width: fit-content;
+}
+
+th:hover {
+        background: #34495e;
+}
+
+th.sortable::after {
+        content: '\00a0\2195';
+        opacity: 0.5;
+        margin-left: 4px;
+}
+
+th.sort-asc::after {
+        content: '\00a0\2191';
+        opacity: 1;
+        margin-left: 4px;
+}
+
+th.sort-desc::after {
+        content: '\00a0\2193';
+        opacity: 1;
+        margin-left: 4px;
+}
+
+td {
+        padding: 12px;
+        border-bottom: 1px solid var(--border-color);
+        vertical-align: middle;
+}
+
+/* Specific column widths to prevent wrapping */
+th[data-sort="test"] {
+        min-width: 300px;
+}
+
+th[data-sort="status"] {
+        min-width: 120px;
+}
+
+th[data-sort="duration"] {
+        min-width: 100px;
+}
+
+th[data-sort="passed"] {
+        min-width: 90px;
+}
+
+th[data-sort="failed"] {
+        min-width: 90px;
+}
+
+th[data-sort="skipped"] {
+        min-width: 90px;
+}
+
+th[data-sort="date"] {
+        min-width: 140px;
+}
+
+tr:nth-child(even) {
+        background: #f8f9fa;
+}
+
+tr:hover {
+        background: #e3f2fd;
+}
+
+/* Status indicators */
+.status-icon {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.9em;
+        font-weight: 500;
+}
+
+.status-pass {
+        background: #d4edda;
+        color: var(--success-color);
+}
+
+.status-fail {
+        background: #f8d7da;
+        color: var(--danger-color);
+}
+
+.status-warning {
+        background: #fff3cd;
+        color: var(--warning-color);
+}
+
+/* Hide Apache directory listing columns we don't need */
+th.indexcolsize,
 td.indexcolsize {
         display: none;
 }
+
 td.indexcoldesc {
         text-align: center;
+        width: 60px;
 }
-td {
-        border-bottom: 1px solid #ddd;
+
+/* Pre-formatted text improvements */
+pre {
+        font: 0.9em/1.4em "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
+        margin: 10px 0;
+        padding: 15px;
+        background: #f8f9fa;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        color: var(--text-color);
+        overflow-x: auto;
+}
+
+pre img {
+        display: inline;
+        vertical-align: middle;
+}
+
+img {
+        margin: 3px 0;
+        max-width: 100%;
+        height: auto;
+}
+
+/* Directory listing styling - match container width */
+body > pre {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 0 0 8px 8px;
+        box-shadow: var(--shadow);
+        padding: 30px 50px;
+}
+
+/* Directory listing table styles (now properly inside container) */
+.container table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 20px 0;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: var(--shadow);
+}
+
+.container table th {
+        background: var(--primary-color);
+        color: white;
+        padding: 12px;
+        text-align: left;
+        font-weight: 600;
+}
+
+.container table td {
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--border-color);
+}
+
+.container table tr:nth-child(even) {
+        background: #f8f9fa;
+}
+
+.container table tr:hover {
+        background: #e3f2fd;
+}
+
+/* For pages without container div (overview pages) - broader compatibility */
+body {
+        background: var(--background-color);
+}
+
+/* Override for pages with container */
+body:has(.container) {
+        background: var(--background-color);
+        padding: 0;
+}
+
+/* Fallback for browsers without :has() support */
+.container ~ * {
+        /* When container exists, reset body background handling */
+}
+
+/* Additional directory listing elements */
+body > h1:not(.container h1) {
+        max-width: 1200px;
+        margin: 0 auto 20px auto;
+        padding: 0 50px 15px 50px;
+        color: var(--primary-color);
+        font-size: 2.5em;
+        font-weight: 300;
+        text-align: center;
+        border-bottom: 3px solid var(--secondary-color);
+        background: white;
+        border-radius: 8px 8px 0 0;
+        box-shadow: var(--shadow);
+}
+
+/* Apache directory listing address/footer */
+body > address {
+        max-width: 1200px;
+        margin: 20px auto 0 auto;
+        padding: 0 20px;
+        text-align: center;
+        font-style: normal;
+        color: #7f8c8d;
+        font-size: 0.9em;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+        .container {
+                padding: 15px;
+                margin: 10px;
+        }
+
+        h1 {
+                font-size: 2em;
+        }
+
+        .filter-row {
+                grid-template-columns: 1fr;
+        }
+
+        table {
+                font-size: 0.9em;
+        }
+
+        th, td {
+                padding: 8px 6px;
+        }
+
+        /* Mobile responsive for directory listings */
+        .container {
+                margin: 10px;
+                padding: 15px 25px;
+        }
+
+        body > pre {
+                margin: 10px;
+                padding: 15px 25px;
+        }
+
+        body > h1:not(.container h1) {
+                margin: 10px auto 15px auto;
+                padding: 0 25px 15px 25px;
+                font-size: 2em;
+        }
+
+        body > address {
+                margin: 15px auto 0 auto;
+                padding: 0 25px;
+        }
+
+        /* Mobile responsive breadcrumb */
+        .breadcrumb-link {
+                font-size: 0.8em;
+                padding: 6px 12px;
+        }
+}
+
+/* Loading states */
+.loading {
+        opacity: 0.6;
+        pointer-events: none;
+}
+
+.loading::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 20px;
+        height: 20px;
+        margin: -10px 0 0 -10px;
+        border: 2px solid var(--border-color);
+        border-top: 2px solid var(--secondary-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
 }

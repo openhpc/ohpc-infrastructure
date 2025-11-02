@@ -1,5 +1,11 @@
 [repos]
 repos.openhpc.community
 
+[repos:vars]
+ansible_python_interpreter=/usr/bin/python3
+
 [repos_aarch64]
 repos.openhpc.community
+
+[repos_aarch64:vars]
+ansible_python_interpreter=/usr/bin/python3
