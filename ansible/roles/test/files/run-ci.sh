@@ -371,7 +371,7 @@ cleanup() {
 		cd "${DEST_DIR}"
 		ln -sfn "${DEST_NAME}" "0-LATEST-${NAME}"
 		cd - >/dev/null
-		echo rsync -a /results/ ohpc@repos.ohpc.io:/results
+		rsync -a /results/ ohpc@repos.ohpc.io:/results
 		# shellcheck disable=SC2029
 		echo ssh ohpc@repos.ohpc.io /home/ohpc/bin/update_results.sh "${VERSION_MAJOR}" "${VERSION}"
 	fi
