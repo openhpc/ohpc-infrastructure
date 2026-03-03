@@ -171,6 +171,13 @@ inputTemplate=/opt/ohpc/pub/doc/recipes/${os_major}/input.local
 inputFile=/root/ci_ohpc_inputs
 status=0
 
+# For OpenHPC 4, "warewulf" is Warewulf v4 (not v3 as in OHPC 2/3).
+# Normalize Provisioner to "warewulf4" so that all existing conditionals
+# comparing against "warewulf4" are triggered correctly.
+if [[ "${VERSION_MAJOR}" == "4" ]] && [[ "${Provisioner}" == "warewulf" ]]; then
+	Provisioner="warewulf4"
+fi
+
 enable_repo
 
 install_doc_rpm
