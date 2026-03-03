@@ -25,13 +25,14 @@ show_usage() {
 	echo "  -b, --infiniband                     Use InfiniBand"
 	echo "  -n, --no-upload                      Don't upload test results"
 	echo "      --to-disk                        Provision compute node image to disk"
+	echo "      --install-only-baseos            Install only base OS without OpenHPC cluster"
 	echo "  -h, --help                           Show this help"
 }
 
 TIMEOUT="100"
 
 # Parse command line options using external getopt
-if ! PARSED=$(getopt -o d:v:r:m:p:ig:nbo:h --long distribution:,version:,repository:,rms:,provisioner:,intel,gpu:,no-upload,infiniband,overwrite-rpm:,to-disk,help -n "$0" -- "$@"); then
+if ! PARSED=$(getopt -o d:v:r:m:p:ig:nbo:h --long distribution:,version:,repository:,rms:,provisioner:,intel,gpu:,no-upload,infiniband,overwrite-rpm:,to-disk,install-only-baseos,help -n "$0" -- "$@"); then
 	echo "Failed to parse options"
 	show_usage
 	exit 1
@@ -87,6 +88,10 @@ while true; do
 		;;
 	--to-disk)
 		ENABLE_TODISK="true"
+		shift
+		;;
+	--install-only-baseos)
+		INSTALL_ONLY_BASEOS="true"
 		shift
 		;;
 	-h | --help)
@@ -452,6 +457,18 @@ echo "export IPMI_PASSWORD=${SMS_IPMI_PASSWORD}" >>"${VARS}"
 
 set -x
 
+# Set control variables based on --install-only-baseos flag
+if [ -n "${INSTALL_ONLY_BASEOS}" ]; then
+	INSTALL_CLUSTER="false"
+	ROOT_LEVEL_TESTS="false"
+	USER_LEVEL_TESTS="false"
+	UPLOAD="false"
+else
+	INSTALL_CLUSTER="true"
+	ROOT_LEVEL_TESTS="true"
+	USER_LEVEL_TESTS="true"
+fi
+
 {
 	echo "export DISTRIBUTION=${DISTRIBUTION}"
 	echo "export Version=${VERSION}"
@@ -468,6 +485,9 @@ set -x
 	echo "export dns_servers=1.1.1.1"
 	echo "export ipv4_gateway=${GATEWAY}"
 	echo "export sms_eth_internal=${SMS_ETH_INTERNAL}"
+	echo "export InstallCluster=${INSTALL_CLUSTER}"
+	echo "export RootLevelTests=${ROOT_LEVEL_TESTS}"
+	echo "export UserLevelTests=${USER_LEVEL_TESTS}"
 } >>"${VARS}"
 
 if [[ "${PROVISIONER}" == "confluent" ]]; then
@@ -542,17 +562,19 @@ echo "Finished install.sh on ${SMS} with timeout ${TIMEOUT}m at $(date -u +"%Y-%
 
 rm -f "${VARS}"
 
-ssh "${SMS}" "mkdir -p /home/ohpc-test/tests; cp *log.xml /home/ohpc-test/tests; cd /home/ohpc-test; find . -name '*log.xml' -print0 | tar -cf - --null -T -" >"${OUT}"/test-results.tar
+if [ -z "${INSTALL_ONLY_BASEOS}" ]; then
+	ssh "${SMS}" "mkdir -p /home/ohpc-test/tests; cp *log.xml /home/ohpc-test/tests; cd /home/ohpc-test; find . -name '*log.xml' -print0 | tar -cf - --null -T -" >"${OUT}"/test-results.tar
 
-if [[ "${RMS}" == "slurm" ]]; then
-	CMD="scontrol show job | grep JobId"
-else
-	CMD="qstat -x"
+	if [[ "${RMS}" == "slurm" ]]; then
+		CMD="scontrol show job | grep JobId"
+	else
+		CMD="qstat -x"
+	fi
+
+	# shellcheck disable=SC2029
+	LAST_JOB=$(ssh "${SMS}" "${CMD}" | tail -1 | cut -d\  -f1)
+
+	echo "Last job ID: ${LAST_JOB}" | tee -a "${LOG}"
 fi
-
-# shellcheck disable=SC2029
-LAST_JOB=$(ssh "${SMS}" "${CMD}" | tail -1 | cut -d\  -f1)
-
-echo "Last job ID: ${LAST_JOB}" | tee -a "${LOG}"
 
 cleanup
