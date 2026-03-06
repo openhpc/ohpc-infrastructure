@@ -616,7 +616,31 @@ install_doc_rpm() {
 			install_package perl-File-Copy perl-Log-Log4perl perl-Config-IniFiles
 		fi
 	fi
-	install_package docs-ohpc
+
+	# Starting with OpenHPC 4.1, docs-ohpc is only built for EL_10.
+	# When using the Factory repository on other distributions,
+	# download the noarch RPM from the EL_10 Factory repository
+	# and install it locally.
+	if [[ "${Repo}" == "Factory" ]] && [[ "${os_repo}" != "EL_10" ]] &&
+		{ [[ "${VERSION_MAJOR}" -eq 4 && "${VERSION_MINOR}" -ge 1 ]] ||
+			[[ "${VERSION_MAJOR}" -gt 4 ]]; }; then
+		local EL10_REPO_URL
+		EL10_REPO_URL="http://obs.openhpc.community:82/OpenHPC${VERSION_MAJOR}:/${Version}:/Factory/EL_10/"
+		echo "docs-ohpc is only built for EL_10, downloading from ${EL10_REPO_URL}"
+		local DOCS_TMPDIR
+		DOCS_TMPDIR=$(mktemp -d)
+		loop_command dnf download -y \
+			--repofrompath="ohpc-el10,${EL10_REPO_URL}" \
+			--repo=ohpc-el10 --disablerepo='*' \
+			--downloaddir="${DOCS_TMPDIR}" \
+			--setopt="ohpc-el10.gpgcheck=0" \
+			docs-ohpc
+		"${PKG_MANAGER}" "${YES}" install "${DOCS_TMPDIR}"/docs-ohpc*.rpm ||
+			ERROR "Unable to install docs-ohpc"
+		rm -rf "${DOCS_TMPDIR}"
+	else
+		install_package docs-ohpc
+	fi
 
 	if [ -n "${overwrite_rpm}" ]; then
 		rpm -Uhv "${overwrite_rpm}" --force
