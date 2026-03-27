@@ -326,18 +326,19 @@ install_openHPC_cluster() {
 		echo "CI Customization: PXE boot selection is not persistent"
 		sed -e 's,ipmitool,ipmitool -E -I lanplus -H ${c_bmc[$i]} -U ${bmc_username} -P ${bmc_password} chassis bootdev pxe options=efiboot; ipmitool,g' -i "${recipeFile}"
 		if [ "${PKG_MANAGER}" == "dnf" ]; then
+			echo "CI Customization: Switch to curl as dnf user agent"
 			# shellcheck disable=SC2016
-			sed -e 's,/etc/yum.repos.d$,/etc/yum.repos.d; echo -e "[main]\nuser_agent=curl" > $CHROOT/etc/dnf/dnf.conf,g' -i "${recipeFile}"
+			sed '/ohpc_proxy:head/s echo -e "[main]\nuser_agent=curl" >> $CHROOT/etc/dnf/dnf.conf,g' -i "${recipeFile}"
 		fi
 		if [ "${Provisioner}" == "confluent" ]; then
 			echo "CI Customization: Switch to http in repository definition"
-			sed '/excludedocs/a nodersync /etc/yum.repos.d/ compute:/etc/yum.repos.d/' -i "${recipeFile}"
-			sed '/excludedocs/a nodersync /etc/dnf/dnf.conf compute:/etc/dnf/dnf.conf' -i "${recipeFile}"
-			sed '/excludedocs/a nodersync /etc/profile.d/proxy.sh compute:/etc/profile.d/proxy.sh' -i "${recipeFile}"
+			sed '/Add additional packages to compute image/a nodersync /etc/yum.repos.d/ compute:/etc/yum.repos.d/' -i "${recipeFile}"
+			sed '/ohpc_proxy:compute/a nodersync /etc/dnf/dnf.conf compute:/etc/dnf/dnf.conf' -i "${recipeFile}"
+			sed '/ohpc_proxy:compute/a nodersync /etc/profile.d/proxy.sh compute:/etc/profile.d/proxy.sh' -i "${recipeFile}"
 			echo "CI Customization: Switch to text mode installer (nouveau crashes otherwise)"
 			local PROFILE
 			PROFILE=$(grep "nodedeploy -n compute" "${recipeFile}" | cut -d\  -f 5)
-			sed "/nodesetboot compute network/a sed -e 's,\\\\(initrd=distribution\\\\),\\\\1 modprobe.blacklist=nouveau,g' -i /var/lib/confluent/public/os/${PROFILE}/boot.ipxe" -i "${recipeFile}"
+			sed "/nodesetboot compute network/a sed -e 's;\\\\(initrd=distribution\\\\);\\\\1 modprobe.blacklist=nouveau,mlx5_ib,mlx5_core,mlx5_fwctl,mlxfw;g' -i /var/lib/confluent/public/os/${PROFILE}/boot.ipxe" -i "${recipeFile}"
 		fi
 		if [ "${Provisioner}" == "openchami" ]; then
 			echo "CI Customization: Switch to http in repository definition"
@@ -437,7 +438,9 @@ post_install_cmds() {
 		local_sleep 1
 		/opt/xcat/bin/updatenode compute -F
 	elif [ "${Provisioner}" == "openchami" ]; then
+		sed -e "/UserKnownHostsFile/d" -i /root/.ssh/config
 		pdcp -w "${compute_prefix}"[1-"${num_computes}"] /etc/passwd /etc/passwd
+		pdsh -w "${compute_prefix}[1-${num_computes}]" "sudo sed -i '/^account[[:space:]]\+required[[:space:]]\+pam_unix.so/ { /broken_shadow/! s/$/ broken_shadow/ }' /etc/pam.d/password-auth"
 	elif [ "${Provisioner}" == "confluent" ]; then
 		local_sleep 1
 		/opt/confluent/bin/nodeapply -F compute
@@ -631,7 +634,7 @@ install_doc_rpm() {
 		DOCS_TMPDIR=$(mktemp -d)
 		loop_command dnf download -y \
 			--repofrompath="ohpc-el10,${EL10_REPO_URL}" \
-			--repo=ohpc-el10 --disablerepo='*' \
+			--disablerepo='*' \
 			--downloaddir="${DOCS_TMPDIR}" \
 			--setopt="ohpc-el10.gpgcheck=0" \
 			docs-ohpc
@@ -680,6 +683,7 @@ wait_for_computes() {
 
 	for i in $(seq 90 -1 1); do
 		echo "Waiting for compute nodes to get ready ($i)"
+		koomie_cf -x "${compute_prefix}\\d+" cat /proc/uptime
 		if ! "${CHECK_COMMAND[@]}" | grep -E '(down|password|refused|booting|route|closed|disconnect|authenticity)'; then
 			echo "All compute nodes are ready"
 			not_ready=0
@@ -711,7 +715,7 @@ wait_for_computes() {
 		pdsh -w "${compute_prefix}"[1-"${num_computes}"] systemctl disable --now firewalld
 		if [ "${enable_ib}" -eq 0 ]; then
 			# Disable IB
-			pdsh -w "${compute_prefix}"[1-"${num_computes}"] rmmod mlx5_ib mlx5_core
+			pdsh -w "${compute_prefix}"[1-"${num_computes}"] rmmod mlx5_ib mlx5_core mlx5_fwctl mlxfw
 		fi
 	fi
 
@@ -720,6 +724,16 @@ wait_for_computes() {
 		local_sleep 10
 		# Mount all NFS. That sometimes fails.
 		pdsh -w "${compute_prefix}"[1-"${num_computes}"] mount -t nfs -a
+	elif [ "${Provisioner}" == "warewulf" ]; then
+		wwsh file sync
+		local_sleep 10
+	elif [ "${Provisioner}" == "xcat" ]; then
+		/opt/xcat/bin/updatenode compute -F
+	elif [ "${Provisioner}" == "confluent" ]; then
+		/opt/confluent/bin/nodeshell compute setenforce 0
+	elif [ "${Provisioner}" == "openchami" ]; then
+		sed -e "/UserKnownHostsFile/d" -i /root/.ssh/config
+		pdsh -w "${compute_prefix}[1-${num_computes}]" "sudo sed -i '/^account[[:space:]]\+required[[:space:]]\+pam_unix.so/ { /broken_shadow/! s/$/ broken_shadow/ }' /etc/pam.d/password-auth"
 	fi
 
 	if [ "${RMS}" == "slurm" ]; then
@@ -728,14 +742,6 @@ wait_for_computes() {
 		scontrol update nodename="${compute_prefix}"[1-"${num_computes}"] state=idle
 	fi
 
-	if [ "${Provisioner}" == "warewulf" ]; then
-		wwsh file sync
-		local_sleep 10
-	fi
-
-	if [ "${Provisioner}" == "xcat" ]; then
-		/opt/xcat/bin/updatenode compute -F
-	fi
 	set +x
 }
 

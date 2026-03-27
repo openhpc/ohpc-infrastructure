@@ -389,6 +389,8 @@ cleanup() {
 	echo "--> Last job ID:       ${LAST_JOB}"
 	echo -n "--> CI run time:       "
 	date -d@"${DURATION}" -u +%H:%M:%S
+	echo -n "--> CI logs:           "
+	echo "${DEST_DIR}/${DEST_NAME}"
 	echo -n "--> CI run result:     "
 	if [ "${RESULT}" == "PASS" ]; then
 		echo "PASS"
@@ -497,8 +499,11 @@ if [[ "${PROVISIONER}" == "confluent" ]]; then
 		echo "export dns_domain=local"
 	} >>"${VARS}"
 
-	if [[ "${DISTRIBUTION}" == "rocky"* ]]; then
+	if [[ "${DISTRIBUTION}" == "rocky9" ]]; then
 		echo "export iso_path=/root/Rocky-9-latest-x86_64-dvd.iso" >>"${VARS}"
+	fi
+	if [[ "${DISTRIBUTION}" == "rocky10" ]]; then
+		echo "export iso_path=/root/Rocky-10.1-x86_64-dvd1.iso" >>"${VARS}"
 	fi
 	if [[ "${DISTRIBUTION}" == "almalinux"* ]]; then
 		echo "export iso_path=/root/AlmaLinux-9-latest-x86_64-dvd.iso" >>"${VARS}"
