@@ -12,13 +12,13 @@ shellcheck-lint:
 	@echo "Running 'shellcheck' on all shell scripts"
 	shellcheck \
 		-o quote-safe-variables,deprecate-which,avoid-nullary-conditions \
-		$$(find . -name *sh) \
+		$$(find . -name *\.sh) \
 		ansible/roles/test/files/*.bats
 
 shfmt-lint:
 	@echo "Running 'shfmt' on all shell scripts"
 	shfmt -w -d \
-		$$(find . -name *sh) \
+		$$(find . -name *\.sh) \
 		ansible/roles/test/files/*.bats
 
 ansible-lint:

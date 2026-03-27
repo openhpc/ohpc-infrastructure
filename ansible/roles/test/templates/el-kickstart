@@ -30,7 +30,7 @@
 {%- endif -%}
 {%- set base = 'openEuler-'~release~'-LTS-'~SP~'-everything/' -%}
 {%- if inventory_hostname_short.startswith('ohpc-lenovo-repo') -%}
-{%- set mirror1_base = 'http://ftp.agdsn.de/openeuler/openEuler-'~release~'-LTS-'~SP~'/' -%}
+{%- set mirror1_base = 'http://mirrors.dotsrc.org/openeuler/openEuler-'~release~'-LTS-'~SP~'/' -%}
 {%- elif inventory_hostname_short.startswith('ohpc-huawei-repo') -%}
 {%- set mirror1_base = 'http://mirrors.nju.edu.cn/openeuler/openEuler-'~release~'-LTS-'~SP~'/' -%}
 {%- endif -%}
