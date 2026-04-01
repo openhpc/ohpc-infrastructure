@@ -330,10 +330,10 @@ cleanup() {
 			echo "# Error Analysis"
 
 			# Count different types of errors from console output
-			COMPILE_ERRORS=$(grep -c -i "compilation.*failed\|make.*error\|gcc.*error\|error.*compiling" "${OUT}/console.out" 2>/dev/null || echo "0")
-			TIMEOUT_ERRORS=$(grep -c -i "timeout\|timed out" "${OUT}/console.out" 2>/dev/null || echo "0")
-			NETWORK_ERRORS=$(grep -c -i "network.*error\|connection.*failed\|network.*unreachable" "${OUT}/console.out" 2>/dev/null || echo "0")
-			PERMISSION_ERRORS=$(grep -c -i "permission denied\|access denied\|insufficient.*permission" "${OUT}/console.out" 2>/dev/null || echo "0")
+			COMPILE_ERRORS=$(grep -c -i "compilation.*failed\|make.*error\|gcc.*error\|error.*compiling" "${OUT}/console.out" 2>/dev/null || true)
+			TIMEOUT_ERRORS=$(grep -c -i "timeout\|timed out" "${OUT}/console.out" 2>/dev/null || true)
+			NETWORK_ERRORS=$(grep -c -i "network.*error\|connection.*failed\|network.*unreachable" "${OUT}/console.out" 2>/dev/null || true)
+			PERMISSION_ERRORS=$(grep -c -i "permission denied\|access denied\|insufficient.*permission" "${OUT}/console.out" 2>/dev/null || true)
 
 			echo "COMPILE_ERRORS=${COMPILE_ERRORS}"
 			echo "TIMEOUT_ERRORS=${TIMEOUT_ERRORS}"
