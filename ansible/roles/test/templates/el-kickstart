@@ -136,10 +136,19 @@ reboot
 reboot --kexec
 {% endif %}
 
+%pre-install
+# Fetch fake URLs on the repo server to track installation progress.
+# Each curl call creates an httpd access log entry, so tailing the log
+# on {{ repo }} shows which kickstart step is currently executing.
+curl -so /dev/null http://{{ repo }}/kickstart-progress/pre-install || true
+%end
+
 %post
 set -x
 export https_proxy=http://{{ proxy }}
 export http_proxy=http://{{ proxy }}
+
+curl -so /dev/null http://{{ repo }}/kickstart-progress/post-started || true
 
 {% if type == 'el' %}
 	echo "gpgcheck=0" >> /etc/yum.repos.d/BaseOS.repo
@@ -148,6 +157,7 @@ export http_proxy=http://{{ proxy }}
 	echo "gpgcheck=0" >> /etc/yum.repos.d/AppStreamMirror1.repo
 	echo "gpgcheck=0" >> /etc/yum.repos.d/BaseOSMirror2.repo
 	echo "gpgcheck=0" >> /etc/yum.repos.d/AppStreamMirror2.repo
+	curl -so /dev/null http://{{ repo }}/kickstart-progress/epel-install || true
 	dnf -y install epel-release
 	{% if inventory_hostname_short.startswith('ohpc-huawei-repo') %}
 		cat /etc/NetworkManager/system-connections/enp189s0f0.nmconnection | \
@@ -157,8 +167,10 @@ export http_proxy=http://{{ proxy }}
 		chmod 600 /etc/NetworkManager/system-connections/enp189s0f0.nmconnection
 	{% endif %}
 	/usr/bin/crb enable
+	curl -so /dev/null http://{{ repo }}/kickstart-progress/repos-configured || true
 {% elif type == 'openeuler' %}
 	# the openeuler 22.03 kernel cannot handle zstd compressed firmware, but openeuler ships it that way
+	curl -so /dev/null http://{{ repo }}/kickstart-progress/firmware-fix || true
 	zstd -d /usr/lib/firmware/qed/qed_init_values_zipped-8.42.2.0.bin.zst || true
 	dracut --force --kver $(rpm -q --queryformat '%{version}-%{release}.%{arch}' kernel)
 
@@ -174,18 +186,24 @@ cat > /etc/sysconfig/network-scripts/route-enp189s0f0 <<EOF
 150.50.0.0/16 via 175.200.16.14
 EOF
 	{% endif %}
+	curl -so /dev/null http://{{ repo }}/kickstart-progress/repos-configured || true
 {% endif %}
 
+curl -so /dev/null http://{{ repo }}/kickstart-progress/dnf-upgrade || true
 dnf -y upgrade
+curl -so /dev/null http://{{ repo }}/kickstart-progress/dnf-upgrade-done || true
 mkdir -p /root/.ssh/
 curl --output-dir /root/.ssh/ --remote-name http://{{ repo }}/authorized_keys
 cp /root/.ssh/authorized_keys /root/.ssh/jumper.pub
+curl -so /dev/null http://{{ repo }}/kickstart-progress/ssh-keygen || true
 ssh-keygen -t rsa -f /root/.ssh/cluster -N '' > /root/keygen.output
 ssh-keygen -t rsa -f /root/.ssh/id_rsa -N '' >> /root/keygen.output
 ssh-keygen -t ed25519 -f /root/.ssh/id_ed25519 -N '' >> /root/keygen.output
 ssh-keygen -t dsa -f /root/.ssh/id_dsa -N '' >> /root/keygen.output
 cat /root/.ssh/cluster.pub >> /root/.ssh/authorized_keys
+curl -so /dev/null http://{{ repo }}/kickstart-progress/bootdev-disk || true
 ipmitool chassis bootdev disk
 mkdir -p /root/.cpan/CPAN/
 curl --output-dir /root/.cpan/CPAN/ --remote-name http://{{ repo }}/MyConfig.pm
+curl -so /dev/null http://{{ repo }}/kickstart-progress/post-complete || true
 %end
