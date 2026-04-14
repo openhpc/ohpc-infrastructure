@@ -500,6 +500,9 @@ post_install_cmds() {
 	if [ "${RMS}" == "slurm" ]; then
 		install_package slurm-sview-ohpc
 	fi
+	if [[ "${Architecture}" == "x86_64" ]]; then
+		install_package ohpc-gnu15-mvapich2-parallel-libs
+	fi
 	# shellcheck disable=SC2153
 	if [[ "${VERSION_MAJOR}" == "2" ]]; then
 		# The other release branches have switched to bats native junit results
