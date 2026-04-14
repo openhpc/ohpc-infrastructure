@@ -473,8 +473,8 @@ class ohpc_obs_tool(object):
                 return group
         if not found:
             ERROR(
-                "package %s not associated with any groups, "
-                + "please check config" % package
+                ("package %s not associated with any groups, " + "please check config")
+                % package
             )
 
     # update dryrun option
@@ -582,7 +582,7 @@ class ohpc_obs_tool(object):
                     contents = filehandle.read()
                     filehandle.close()
         else:
-            ERROR("Unable to read _service file template" % self.serviceFile)
+            ERROR("Unable to read _service file template: %s" % self.serviceFile)
 
         # verify we have a group definition for the parent package
         if parent:
@@ -774,7 +774,7 @@ class ohpc_obs_tool(object):
                     contents = filehandle.read()
                     filehandle.close()
             else:
-                ERROR("Unable to read _link file template" % linkFile)
+                ERROR("Unable to read _link file template: %s" % linkFile)
 
             # create package specific _link file
 
@@ -977,8 +977,11 @@ def main():
             # compiler family)
             if compiler not in Defcompilers:
                 ERROR(
-                    "requested compiler %s is not one"
-                    + " of known compiler families; double check config file" % compiler
+                    (
+                        "requested compiler %s is not one"
+                        + " of known compiler families; double check config file"
+                    )
+                    % compiler
                 )
 
             if compiler == obs.getParentCompiler():
