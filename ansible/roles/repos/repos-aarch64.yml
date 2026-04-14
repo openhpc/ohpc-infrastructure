@@ -30,6 +30,7 @@
           - ShellCheck
           - openssl-devel
           - moreutils
+          - inotify-tools
 
     - name: Include fail2ban.yml
       ansible.builtin.include_tasks: ../common/fail2ban.yml
@@ -306,8 +307,33 @@
         - move-httpd-logs.sh
         - mk_dist.sh
         - make_repo.sh
+        - update-results-watcher.sh
       tags:
         - install-helper-scripts
+        - update-results-watcher
+
+    - name: Install update-results-watcher service
+      ansible.builtin.copy:
+        src: update-results-watcher.service
+        dest: /etc/systemd/system/update-results-watcher.service
+        owner: root
+        group: root
+        mode: "0644"
+      register: results_watcher_service
+      notify:
+        - Systemd daemon-reload
+      tags:
+        - update-results-watcher
+
+    - name: Enable update-results-watcher service
+      ansible.builtin.systemd_service:
+        name: update-results-watcher
+        state: started
+        enabled: true
+      when: results_watcher_service.changed
+      tags:
+        - skip_ansible_lint
+        - update-results-watcher
 
     - name: Copy public keys
       ansible.builtin.copy:

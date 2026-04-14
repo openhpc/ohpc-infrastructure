@@ -1,0 +1,12 @@
+[Unit]
+Description=Watch /results for changes and update result pages
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/home/ohpc/bin/update-results-watcher.sh
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
