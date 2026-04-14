@@ -395,7 +395,7 @@ install_openHPC_cluster() {
 
 	export OHPC_INPUT_LOCAL="${inputFile}"
 
-	bash -x "${recipeFile}"
+	bash -x "${recipeFile}" || ERROR "Failed to run: ${recipeFile}"
 
 	if [ "${Provisioner}" == "confluent" ]; then
 		# Activate latest updates and reboot
