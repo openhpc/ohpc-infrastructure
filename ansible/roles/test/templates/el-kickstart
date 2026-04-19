@@ -30,10 +30,11 @@
 {%- endif -%}
 {%- set base = 'openEuler-'~release~'-LTS-'~SP~'-everything/' -%}
 {%- if inventory_hostname_short.startswith('ohpc-lenovo-repo') -%}
-{%- set mirror1_base = 'http://mirrors.dotsrc.org/openeuler/openEuler-'~release~'-LTS-'~SP~'/' -%}
+{%- set mirror1 = 'http://mirror.accum.se/mirror/openeuler.org/' -%}
 {%- elif inventory_hostname_short.startswith('ohpc-huawei-repo') -%}
-{%- set mirror1_base = 'http://mirrors.nju.edu.cn/openeuler/openEuler-'~release~'-LTS-'~SP~'/' -%}
+{%- set mirror1 = 'http://mirrors.nju.edu.cn/openeuler/' -%}
 {%- endif -%}
+{%- set mirror1_base = mirror1~'/openEuler-'~release~'-LTS-'~SP~'/' -%}
 {%- endif -%}
 
 text
@@ -179,6 +180,9 @@ curl -so /dev/null http://{{ repo }}/kickstart-progress/post-started-{{ distro }
 	echo "gpgcheck=0" >> /etc/yum.repos.d/updateMirror.repo
 	sed -i "s,\(metalink\),#\1,g" -i /etc/yum.repos.d/openEuler.repo
 	sed -e "s,\(baseurl=http\)s,\1,g" -i /etc/yum.repos.d/openEuler.repo
+
+	sed -i "s@http://repo.openeuler.org/@{{ mirror1 }}@g" /etc/yum.repos.d/openEuler.repo
+
 	sed '/Banner/d;/AllowTcpForwarding/d;/AllowAgentForwarding/d;/GatewayPorts/d;/PermitTunnel/d;' -i /etc/ssh/sshd_config
 	sed 's,/usr/libexec/openssh/openssh/sftp-server,/usr/libexec/openssh/sftp-server,g;' -i /etc/ssh/sshd_config
 	{% if inventory_hostname_short.startswith('ohpc-huawei-repo') %}
