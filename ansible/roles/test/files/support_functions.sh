@@ -718,7 +718,9 @@ wait_for_computes() {
 		pdsh -w "${compute_prefix}"[1-"${num_computes}"] systemctl disable --now firewalld
 		if [ "${enable_ib}" -eq 0 ]; then
 			# Disable IB
-			pdsh -w "${compute_prefix}"[1-"${num_computes}"] rmmod mlx5_ib mlx5_core mlx5_fwctl mlxfw
+			pdsh -w "${compute_prefix}"[1-"${num_computes}"] rmmod mlx5_ib mlx5_core mlx5_fwctl mlxfw rdma_cm ib_ipoib rpcrdma ib_srpt iw_cm ib_iser ib_umad ib_isert rdma_ucm ib_uverbs qedr ib_cm ib_core
+			pdsh -w "${compute_prefix}"[1-"${num_computes}"] rmmod mlx5_ib mlx5_core mlx5_fwctl mlxfw rdma_cm ib_ipoib rpcrdma ib_srpt iw_cm ib_iser ib_umad ib_isert rdma_ucm ib_uverbs qedr ib_cm ib_core
+			pdsh -w "${compute_prefix}"[1-"${num_computes}"] rmmod mlx5_ib mlx5_core mlx5_fwctl mlxfw rdma_cm ib_ipoib rpcrdma ib_srpt iw_cm ib_iser ib_umad ib_isert rdma_ucm ib_uverbs qedr ib_cm ib_core
 		fi
 	fi
 
