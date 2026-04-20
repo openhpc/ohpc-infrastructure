@@ -17,6 +17,7 @@ log_msg() {
 
 EXEC_CMDS=false
 DEPS_ONLY=false
+SYNC_DEP_RELEASE=false
 START=$(date +%s)
 
 show_usage() {
@@ -30,13 +31,17 @@ show_usage() {
 	echo "  -n <VERSION>          Sync repository for upcoming <VERSION>"
 	echo "  -p <VERSION>          Use <VERSION> as previous version"
 	echo "  -d                    Dependencies only - sync only from Dep:Release, skip Factory"
+	echo "  -r                    Sync Dep:Release repository (automatic for .0 releases)"
 	echo "  -h                    Show this help"
 }
 
-while getopts "hedn:p:" OPTION; do
+while getopts "herdn:p:" OPTION; do
 	case ${OPTION} in
 	e)
 		EXEC_CMDS=true
+		;;
+	r)
+		SYNC_DEP_RELEASE=true
 		;;
 	d)
 		DEPS_ONLY=true
@@ -108,15 +113,33 @@ MICRO_VERSION=$(echo "${NEXT_VERSION}" | cut -d '.' -f3)
 # Set version-specific signing key
 PUBKEY="/home/ohpc/RPM-GPG-KEY-OpenHPC-${MAJOR_VERSION}"
 
+# Automatically enable Dep:Release sync for .0 releases
+if [[ "$MINOR_DIGIT" == "0" ]] && [ -z "${MICRO_VERSION}" ]; then
+	SYNC_DEP_RELEASE=true
+fi
+
+# Determine the repository directory for the previous version.
+# A .0 release (e.g. 4.0) lives in the root /repos/OpenHPC/<major>/,
+# while update releases live in /repos/OpenHPC/<major>/update.<version>/.
+PREV_MICRO_VERSION=$(echo "${PREVIOUS_VERSION}" | cut -d '.' -f3)
+PREV_MINOR_DIGIT=$(echo "${PREVIOUS_VERSION}" | cut -d '.' -f2)
+if [[ "$PREV_MINOR_DIGIT" == "0" ]] && [ -z "${PREV_MICRO_VERSION}" ]; then
+	PREVIOUS_REPO_DIR="/repos/OpenHPC/${MAJOR_VERSION}"
+else
+	PREVIOUS_REPO_DIR="/repos/OpenHPC/${MAJOR_VERSION}/update.${PREVIOUS_VERSION}"
+fi
+
 log_msg "Starting reposync.sh with the following configuration:"
 log_msg "  REPO: $REPO"
 log_msg "  MAJOR_VERSION: $MAJOR_VERSION"
 log_msg "  MINOR_VERSION: $MINOR_VERSION"
 log_msg "  MICRO_VERSION: $MICRO_VERSION"
 log_msg "  PREVIOUS_VERSION: $PREVIOUS_VERSION"
+log_msg "  PREVIOUS_REPO_DIR: $PREVIOUS_REPO_DIR"
 log_msg "  PUBKEY: $PUBKEY"
 log_msg "  EXEC_CMDS: $EXEC_CMDS"
 log_msg "  DEPS_ONLY: $DEPS_ONLY"
+log_msg "  SYNC_DEP_RELEASE: $SYNC_DEP_RELEASE"
 
 # Set OBS top-level project directory
 PROJECT_TOP="OpenHPC"
@@ -124,32 +147,38 @@ if [[ "$MAJOR_VERSION" -ge 3 ]]; then
 	PROJECT_TOP="OpenHPC${MAJOR_VERSION}"
 fi
 
-# First, sync from Dep:Release repository
-log_msg "Starting Dep:Release repository sync..."
-DEP_RELEASE_PATH="${PROJECT_TOP}/4.x:/Dep:/Release/"
+dep_change=0
 
-# Determine destination for Dep:Release sync
-if [[ "$MINOR_DIGIT" == "0" ]] && [ -z "${MICRO_VERSION}" ]; then
-	DEP_DESTINATION="$REPO_DIR/OpenHPC/$MAJOR_VERSION/"
+if ${SYNC_DEP_RELEASE}; then
+	# Sync from Dep:Release repository
+	log_msg "Starting Dep:Release repository sync..."
+	DEP_RELEASE_PATH="${PROJECT_TOP}/4.x:/Dep:/Release/"
+
+	# Determine destination for Dep:Release sync
+	if [[ "$MINOR_DIGIT" == "0" ]] && [ -z "${MICRO_VERSION}" ]; then
+		DEP_DESTINATION="$REPO_DIR/OpenHPC/$MAJOR_VERSION/"
+	else
+		DEP_DESTINATION="$REPO_DIR/OpenHPC/$MAJOR_VERSION/update.${NEXT_VERSION}"
+	fi
+
+	if [ ! -d "$DEP_DESTINATION" ]; then
+		mkdir -p "$DEP_DESTINATION"
+	fi
+
+	echo "----> syncing Dep:Release files to $DEP_DESTINATION"
+
+	cmd="rsync ${RSYNC_COMMON_FLAGS} rsync://${REPO}/${DEP_RELEASE_PATH} $DEP_DESTINATION"
+
+	if do_cmd "$cmd"; then
+		dep_change=0
+	else
+		dep_change=1
+	fi
+
+	log_msg "Dep:Release sync completed (status: $dep_change)"
 else
-	DEP_DESTINATION="$REPO_DIR/OpenHPC/$MAJOR_VERSION/update.${NEXT_VERSION}"
+	log_msg "Skipping Dep:Release sync (non-.0 release, use -r to enable)"
 fi
-
-if [ ! -d "$DEP_DESTINATION" ]; then
-	mkdir -p "$DEP_DESTINATION"
-fi
-
-echo "----> syncing Dep:Release files to $DEP_DESTINATION"
-
-cmd="rsync ${RSYNC_COMMON_FLAGS} rsync://${REPO}/${DEP_RELEASE_PATH} $DEP_DESTINATION"
-
-if do_cmd "$cmd"; then
-	dep_change=0
-else
-	dep_change=1
-fi
-
-log_msg "Dep:Release sync completed (status: $dep_change)"
 
 # base version
 if [[ "$MINOR_DIGIT" == "0" ]] && [ -z "${MICRO_VERSION}" ]; then
@@ -238,8 +267,8 @@ else
 				# cache list of newly updated packages using array instead of string
 				PREVIOUS_RPMS=(*.rpm)
 
-				echo "------> ln /repos/OpenHPC/$MAJOR_VERSION/update.${PREVIOUS_VERSION}/$dir/*.rpm ."
-				for oldrpm in /repos/OpenHPC/"${MAJOR_VERSION}"/update."${PREVIOUS_VERSION}"/"${dir}"/*.rpm; do
+				echo "------> ln ${PREVIOUS_REPO_DIR}/$dir/*.rpm ."
+				for oldrpm in "${PREVIOUS_REPO_DIR}"/"${dir}"/*.rpm; do
 					if [[ "${oldrpm}" == *"*.rpm" ]]; then
 						continue
 					fi
@@ -293,6 +322,18 @@ else
 		popd >/dev/null
 	fi
 
+fi
+
+# Starting with OpenHPC 4.1, docs-ohpc is only built for EL_10.
+# Copy the noarch RPM to openEuler trees so it is available there as well.
+if { [[ "${MAJOR_VERSION}" -eq 4 && "${MINOR_DIGIT}" -ge 1 ]] ||
+	[[ "${MAJOR_VERSION}" -gt 4 ]]; }; then
+	docs_rpms=("${DESTINATION}"/EL_10/noarch/docs-ohpc-*.rpm)
+	if [[ ${#docs_rpms[@]} -gt 0 && -e "${docs_rpms[0]}" ]] &&
+		[[ -d "${DESTINATION}/openEuler_24.03/noarch" ]]; then
+		log_msg "Copying docs-ohpc from EL_10/noarch to openEuler_24.03/noarch"
+		cp -al "${docs_rpms[@]}" "${DESTINATION}/openEuler_24.03/noarch/"
+	fi
 fi
 
 if [ "${change}" -eq 1 ]; then
