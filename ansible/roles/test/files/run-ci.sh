@@ -553,6 +553,12 @@ if [ -n "${ENABLE_TODISK}" ]; then
 	echo "export enable_todisk=1" >>"${VARS}"
 fi
 
+# Pre-stage EasyBuild source tarballs to avoid mirror failures
+if [ -d /var/www/html/easybuild ]; then
+	echo "Uploading pre-downloaded EasyBuild sources to ${SMS}"
+	rsync -a /var/www/html/easybuild "${SMS}":/tmp/
+fi
+
 scp "${VARS}" "${SMS}":/root/vars
 scp /root/.bash_history "${SMS}":
 

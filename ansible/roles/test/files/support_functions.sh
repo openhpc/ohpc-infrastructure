@@ -527,6 +527,21 @@ post_install_cmds() {
 		echo "Syncing time on compute nodes"
 		pdsh -w "${compute_prefix}"[1-"${num_computes}"] "chronyc -m 'burst 3/3' 'makestep 0.1 3'"
 	fi
+
+	# Pre-stage EasyBuild source tarballs to avoid download failures
+	# when upstream mirrors are unstable
+	if [ -d /tmp/easybuild ]; then
+		local EB_VERSION
+		EB_VERSION=$(rpm -q --queryformat '%{version}' EasyBuild-ohpc 2>/dev/null)
+		if [ -n "${EB_VERSION}" ]; then
+			local EB_SOURCEPATH
+			EB_SOURCEPATH="/opt/ohpc/pub/libs/easybuild/${EB_VERSION}/easybuild/easyconfigs"
+			echo "Pre-staging EasyBuild source tarballs to ${EB_SOURCEPATH}"
+			cp -a /tmp/easybuild/* "${EB_SOURCEPATH}/"
+		else
+			echo "WARNING: Could not determine EasyBuild version, skipping source pre-staging"
+		fi
+	fi
 }
 
 gen_localized_inputs() {
