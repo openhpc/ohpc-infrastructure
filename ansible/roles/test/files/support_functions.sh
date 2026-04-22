@@ -328,7 +328,7 @@ install_openHPC_cluster() {
 		if [ "${PKG_MANAGER}" == "dnf" ]; then
 			echo "CI Customization: Switch to curl as dnf user agent"
 			# shellcheck disable=SC2016
-			sed '/ohpc_proxy:head/s echo -e "[main]\nuser_agent=curl" >> $CHROOT/etc/dnf/dnf.conf,g' -i "${recipeFile}"
+			sed '/ohpc_proxy:head/a echo -e "[main]\\nuser_agent=curl" >> $CHROOT/etc/dnf/dnf.conf' -i "${recipeFile}"
 		fi
 		if [ "${Provisioner}" == "confluent" ]; then
 			echo "CI Customization: Switch to http in repository definition"
@@ -341,6 +341,10 @@ install_openHPC_cluster() {
 			sed "/nodesetboot compute network/a sed -e 's;\\\\(initrd=distribution\\\\);\\\\1 modprobe.blacklist=nouveau,mlx5_ib,mlx5_core,mlx5_fwctl,mlxfw;g' -i /var/lib/confluent/public/os/${PROFILE}/boot.ipxe" -i "${recipeFile}"
 		fi
 		if [ "${Provisioner}" == "openchami" ]; then
+			echo "CI Customization: Switch to curl as dnf user agent"
+			sed -e "/DRACUT LOG/,/loglevel:/{/loglevel:/a\\
+  - cmd: 'echo -e \"[main]\\\\nuser_agent=curl\" >> /etc/dnf/dnf.conf'
+}" -i "${recipeFile}"
 			echo "CI Customization: Switch to http in repository definition"
 			sed -e "s,https://dl,http://dl,g" -i "${recipeFile}"
 			local VERSION_MAJOR_MINOR
@@ -354,11 +358,24 @@ install_openHPC_cluster() {
 				sed -e '/ohpc-release/d' -i "${recipeFile}"
 				sed -e "s,\(cmd: dnf config-manager --set-enabled crb\),\1 ; dnf config-manager --add-repo http://obs.openhpc.community:82/OpenHPC${VERSION_MAJOR}:/${Version}:/Factory/${os_repo}/; echo user_agent=curl >> /etc/dnf/dnf.conf,g" -i "${recipeFile}"
 			elif [[ "${Repo}" == "Staging" ]]; then
-				# Switch host to Staging
-				sed -e "ohpc-release/ s,dnf -y install.*ohpc-release.*rpm,dnf config-manager --add-repo http://repos.openhpc.community/.staging/OpenHPC/${VERSION_MAJOR}/${os_repo}/,g" -i "${recipeFile}"
-				# Switch client to Staging
-				sed -e '/ohpc-release/d' -i "${recipeFile}"
-				sed -e "s,\(cmd: dnf config-manager --set-enabled crb\),\1 ; dnf config-manager --add-repo http://repos.openhpc.community/.staging/OpenHPC/${VERSION_MAJOR}/${os_repo}/; echo user_agent=curl >> /etc/dnf/dnf.conf,g" -i "${recipeFile}"
+				if [[ "${VERSION_MINOR}" == "0" ]] && [ -z "${VERSION_MICRO}" ]; then
+					# Switch host and client RPM URLs to Staging
+					sed -e "/x86_64/ s,repos.openhpc.community/OpenHPC/,repos.openhpc.community/.staging/OpenHPC/,g" -i "${recipeFile}"
+					# Add Staging repo for client
+					sed -e "/gpg:.*RPM-GPG-KEY-OpenHPC/a\\
+  - alias: 'OpenHPC-staging'\\
+    url: 'http://repos.openhpc.community/.staging/OpenHPC/${VERSION_MAJOR}/${os_repo}'\\
+    gpg: 'file:///etc/pki/rpm-gpg/RPM-GPG-KEY-OpenHPC-${VERSION_MAJOR}'" -i "${recipeFile}"
+				else
+					# Add Staging repos for client (base + updates)
+					sed -e "/gpg:.*RPM-GPG-KEY-OpenHPC/a\\
+  - alias: 'OpenHPC-staging'\\
+    url: 'http://repos.openhpc.community/.staging/OpenHPC/${VERSION_MAJOR}/${os_repo}'\\
+    gpg: 'file:///etc/pki/rpm-gpg/RPM-GPG-KEY-OpenHPC-${VERSION_MAJOR}'\\
+  - alias: 'OpenHPC-staging-updates'\\
+    url: 'http://repos.openhpc.community/.staging/OpenHPC/${VERSION_MAJOR}/updates/${os_repo}'\\
+    gpg: 'file:///etc/pki/rpm-gpg/RPM-GPG-KEY-OpenHPC-${VERSION_MAJOR}'" -i "${recipeFile}"
+				fi
 			fi
 		fi
 		if [ "${Provisioner}" == "warewulf4" ]; then
