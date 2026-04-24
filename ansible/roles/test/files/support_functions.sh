@@ -461,21 +461,19 @@ post_install_cmds() {
 	elif [ "${Provisioner}" == "confluent" ]; then
 		local_sleep 1
 		/opt/confluent/bin/nodeapply -F compute
-		# The test to check for same kernel on SMS and compute
-		# does not work with confluent.
-		# shellcheck disable=SC2016
-		sed -e 's,assert_equal $kernel $sms_kernel,/bin/true,g' -i /home/ohpc-test/tests/bos/computes
 	elif [ "${Provisioner}" == "warewulf4" ]; then
 		wwctl overlay build
 		local_sleep 10
-		# The test to check for same kernel on SMS and compute
-		# does not work with warewulf4 because the image
-		# will not automatically boot the latest installed kernel.
-		# shellcheck disable=SC2016
-		sed -e 's,assert_equal $kernel $sms_kernel,/bin/true,g' -i /home/ohpc-test/tests/bos/computes
 	else
 		ERROR "Unknown provisioner type -> ${Provisioner}"
 	fi
+
+	# Disable the test that checks for matching kernels on SMS and compute
+	# nodes. OpenHPC no longer ships kernel modules, so the kernel version
+	# match is no longer necessary. This test can probably be removed
+	# entirely from the test suite.
+	# shellcheck disable=SC2016
+	sed -e 's,assert_equal $kernel $sms_kernel,/bin/true,g' -i /home/ohpc-test/tests/bos/computes
 
 	# confirm we have the ohpc-test user...the wwgetfiles above could
 	# potentially have failed if it was already spawned from crontab. So,
@@ -644,6 +642,14 @@ pre_install_cmds() {
 		setenforce 0
 	fi
 
+	# Ensure compute nodes are powered on before provisioning. Some
+	# recipes use "ipmitool power reset" which fails if the node is
+	# already powered off.
+	((n_c = num_computes - 1))
+	for j in $(seq 0 "${n_c}"); do
+		echo "Telling BMC ${c_bmc[$j]} to power on"
+		ipmitool -E -I lanplus -H "${c_bmc[$j]}" -U "${bmc_username}" -P "${bmc_password}" power on
+	done
 }
 
 install_doc_rpm() {
