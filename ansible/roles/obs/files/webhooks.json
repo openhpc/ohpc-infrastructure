@@ -1,0 +1,28 @@
+{
+    "obs_api": "https://obs.openhpc.community",
+    "branches": {
+        "3.x": {
+            "project": "OpenHPC3"
+        },
+        "4.x": {
+            "project": "OpenHPC4"
+        }
+    },
+    "default_compiler": "gnu15",
+    "default_mpi": "openmpi5",
+    "compiler_dependent": [
+        "hdf5", "likwid", "mpich", "mvapich2", "numpy",
+        "ocr", "openmpi", "pdtoolkit", "python", "R",
+        "openblas", "gsl", "metis", "superlu", "scotch",
+        "plasma", "gotcha", "cubew", "cubelib", "opari2"
+    ],
+    "mpi_dependent": [
+        "adios2", "geopm", "imb", "lmod-defaults", "mpi4py",
+        "netcdf", "netcdf-cxx", "netcdf-fortran", "phdf5",
+        "pnetcdf", "scalasca", "scorep", "sionlib", "tau",
+        "dimemas", "extrae", "omb", "opencoarrays",
+        "superlu_dist", "otf2", "fftw", "scalapack", "mumps",
+        "ptscotch", "boost", "hypre", "trilinos", "petsc",
+        "slepc", "mfem"
+    ]
+}

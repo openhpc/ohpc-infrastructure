@@ -31,11 +31,14 @@ ansible-lint:
 		ansible/roles/common/handlers.yml \
 		ansible/roles/repos/repos-aarch64.yml \
 		ansible/roles/obs/ohpc-lenovo-c3.yml \
-		ansible/roles/obs/ohpc-lenovo-repo.yml
+		ansible/roles/obs/ohpc-lenovo-repo.yml \
+		ansible/roles/obs/obs-server.yml
 
 ruff-lint:
 	@echo "Running 'ruff' on selected Python files"
 	ruff check \
-		obs/obs_config.py
+		obs/obs_config.py \
+		ansible/roles/obs/files/webhooks.py
 	ruff format --diff \
-		obs/obs_config.py
+		obs/obs_config.py \
+		ansible/roles/obs/files/webhooks.py
