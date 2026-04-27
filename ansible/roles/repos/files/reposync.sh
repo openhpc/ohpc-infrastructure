@@ -110,8 +110,8 @@ MINOR_VERSION=$(echo "${NEXT_VERSION}" | cut -d '.' -f1,2)
 MINOR_DIGIT=$(echo "${NEXT_VERSION}" | cut -d '.' -f2)
 MICRO_VERSION=$(echo "${NEXT_VERSION}" | cut -d '.' -f3)
 
-# Set version-specific signing key
-PUBKEY="/home/ohpc/RPM-GPG-KEY-OpenHPC-${MAJOR_VERSION}"
+# Signing key used for all versions
+PUBKEY="/home/ohpc/ohpc.key"
 
 # Automatically enable Dep:Release sync for .0 releases
 if [[ "$MINOR_DIGIT" == "0" ]] && [ -z "${MICRO_VERSION}" ]; then
