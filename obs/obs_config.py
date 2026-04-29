@@ -178,7 +178,7 @@ class ohpc_obs_tool(object):
                         )
                         for pkg in pkgs_to_skip:
                             try:
-                                self.skip_on_distro[pkg].extend(distro_to_skip)
+                                self.skip_on_distro[pkg].append(distro_to_skip)
                             except KeyError:
                                 self.skip_on_distro[pkg] = [distro_to_skip]
 
