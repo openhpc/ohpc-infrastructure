@@ -407,6 +407,14 @@ install_openHPC_cluster() {
 	echo "DISTRIBUTION = $DISTRIBUTION"
 	echo "CI_CLUSTER = $CI_CLUSTER"
 
+	if [ "${PKG_MANAGER}" == "dnf" ]; then
+		echo "CI Customization: Speed up dnf and reduce log noise"
+		echo "max_parallel_downloads=10" >>/etc/dnf/dnf.conf
+		echo "debuglevel=1" >>/etc/dnf/dnf.conf
+		# shellcheck disable=SC2016
+		sed 's|#<<< ohpc_proxy:compute >>>#|echo "max_parallel_downloads=10" >> $CHROOT/etc/dnf/dnf.conf\necho "debuglevel=1" >> $CHROOT/etc/dnf/dnf.conf|' -i "${recipeFile}"
+	fi
+
 	if [ "${EnableArmCompiler}" == "true" ]; then
 		# enable local ARM1 repository
 		sed -e "s,install arm1-compilers-devel-ohpc,install --enablerepo=ARM1 arm1-compilers-devel-ohpc,g" -i "${recipeFile}"
