@@ -222,6 +222,10 @@ export SINGULARITY_TMPDIR=/var/tmp
 export FI_PROVIDER=sockets
 EOF
 
+	if [[ "${VERSION_MAJOR}" -lt 4 ]]; then
+		echo "export PATH=/opt/ohpc/pub/utils/autotools/bin:\$PATH" >>/tmp/user_integration_tests
+	fi
+
 	if [[ ${CI_CLUSTER} == "linaro" ]]; then
 		{
 			echo "export FI_PROVIDER=\"tcp;ofi_rxm\""
