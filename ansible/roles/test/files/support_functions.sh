@@ -222,6 +222,7 @@ export SINGULARITY_TMPDIR=/var/tmp
 export FI_PROVIDER=sockets
 EOF
 
+	# shellcheck disable=SC2153
 	if [[ "${VERSION_MAJOR}" -lt 4 ]]; then
 		echo "export PATH=/opt/ohpc/pub/utils/autotools/bin:\$PATH" >>/tmp/user_integration_tests
 	fi

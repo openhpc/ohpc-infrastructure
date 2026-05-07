@@ -17,7 +17,7 @@
         path: /etc/chrony.conf
         state: present
         line: 'server 175.200.16.14'
-      register: chrony_changed
+      register: test_chrony_changed
 
     - name: Allow time jumps
       ansible.builtin.lineinfile:

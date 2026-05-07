@@ -177,7 +177,7 @@
         - results.conf
         - welcome.conf
         - ssl.conf
-      register: httpd_conf
+      register: repos_httpd_conf
       tags:
         - httpd-conf
 
@@ -236,7 +236,7 @@
       with_items:
         - certbot-renewal.service
         - certbot-renewal.timer
-      register: certbot_timer
+      register: repos_certbot_timer
       notify:
         - Systemd daemon-reload
 
@@ -245,7 +245,7 @@
         name: certbot-renewal.timer
         state: started
         enabled: true
-      when: certbot_timer.changed
+      when: repos_certbot_timer.changed
       tags:
         - skip_ansible_lint
 
@@ -282,14 +282,14 @@
         owner: root
         group: root
         mode: "0644"
-      register: rsyncd_conf
+      register: repos_rsyncd_conf
 
     - name: Enable rsyncd
       ansible.builtin.systemd_service:
         name: rsyncd
         state: started
         enabled: true
-      when: rsyncd_conf.changed
+      when: repos_rsyncd_conf.changed
       tags:
         - skip_ansible_lint
 
@@ -319,7 +319,7 @@
         owner: root
         group: root
         mode: "0644"
-      register: results_watcher_service
+      register: repos_results_watcher_service
       notify:
         - Systemd daemon-reload
       tags:
@@ -330,7 +330,7 @@
         name: update-results-watcher
         state: started
         enabled: true
-      when: results_watcher_service.changed
+      when: repos_results_watcher_service.changed
       tags:
         - skip_ansible_lint
         - update-results-watcher
@@ -369,7 +369,7 @@
         version: 4d2ab27d6eff2f28f8be27540ed9182fb8ba2934
       become: true
       become_user: ohpc
-      register: ohpc_log_analyzer_downloaded
+      register: repos_ohpc_log_analyzer_downloaded
 
     - name: Build ohpc-log-analyzer
       ansible.builtin.command: "cargo build --release"
@@ -378,7 +378,7 @@
       become: true
       become_user: ohpc
       register: ohpc_log_analyzer_built
-      when: ohpc_log_analyzer_downloaded.changed
+      when: repos_ohpc_log_analyzer_downloaded.changed
       tags:
         - skip_ansible_lint
 
