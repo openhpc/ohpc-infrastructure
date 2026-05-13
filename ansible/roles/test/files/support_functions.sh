@@ -334,6 +334,8 @@ install_openHPC_cluster() {
 			echo "CI Customization: Switch to curl as dnf user agent"
 			# shellcheck disable=SC2016
 			sed '/ohpc_proxy:head/a echo -e "[main]\\nuser_agent=curl" >> $CHROOT/etc/dnf/dnf.conf' -i "${recipeFile}"
+			# shellcheck disable=SC2016
+			sed '/ohpc_proxy:compute/a echo -e "[main]\\nuser_agent=curl" >> $CHROOT/etc/dnf/dnf.conf' -i "${recipeFile}"
 		fi
 		if [ "${Provisioner}" == "confluent" ]; then
 			echo "CI Customization: Switch to http in repository definition"
