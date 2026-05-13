@@ -367,7 +367,13 @@ install_openHPC_cluster() {
 				else
 					# Add Factory repo for host
 					# shellcheck disable=SC2153
-					sed -e "/ohpc-release/a dnf config-manager --add-repo http://obs.openhpc.community:82/OpenHPC${VERSION_MAJOR}:/${Version}:/Factory/${os_repo}/" -i "${recipeFile}"
+					sed -e "/^ *-.*ohpc-release/!{/ohpc-release/a dnf config-manager --add-repo http://obs.openhpc.community:82/OpenHPC${VERSION_MAJOR}:/${Version}:/Factory/${os_repo}/
+}" -i "${recipeFile}"
+					# Add Factory repo for client
+					sed -e "/gpg:.*RPM-GPG-KEY-OpenHPC/a\\
+  - alias: 'OpenHPC-Factory'\\
+    url: 'http://obs.openhpc.community:82/OpenHPC${VERSION_MAJOR}:/${Version}:/Factory/${os_repo}/'\\
+    gpg: 'http://obs.openhpc.community:82/OpenHPC${VERSION_MAJOR}:/${Version}:/Factory/${os_repo}/repodata/repomd.xml.key'" -i "${recipeFile}"
 				fi
 				# Add Factory repo for client
 				sed -e "s,\(cmd: dnf config-manager --set-enabled crb\),\1 ; dnf config-manager --add-repo http://obs.openhpc.community:82/OpenHPC${VERSION_MAJOR}:/${Version}:/Factory/${os_repo}/; echo user_agent=curl >> /etc/dnf/dnf.conf,g" -i "${recipeFile}"
