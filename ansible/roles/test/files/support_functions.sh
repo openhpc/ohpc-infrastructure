@@ -355,12 +355,19 @@ install_openHPC_cluster() {
 			local VERSION_MAJOR_MINOR
 			VERSION_MINOR=$(echo "${Version}" | awk -F. '{print $2}')
 			VERSION_MICRO=$(echo "${Version}" | awk -F. '{print $3}')
-			if [[ "${Repo}" == "Factory" ]] && [[ "${VERSION_MINOR}" == "0" ]] && [ -z "${VERSION_MICRO}" ]; then
-				# Switch host to Factory
-				# shellcheck disable=SC2153
-				sed -e "/ohpc-release/ s,dnf -y install.*ohpc-release.*rpm,dnf config-manager --add-repo http://obs.openhpc.community:82/OpenHPC${VERSION_MAJOR}:/${Version}:/Factory/${os_repo}/,g" -i "${recipeFile}"
-				# Switch client to Factory
-				sed -e '/ohpc-release/d' -i "${recipeFile}"
+			if [[ "${Repo}" == "Factory" ]]; then
+				if [[ "${VERSION_MINOR}" == "0" ]] && [ -z "${VERSION_MICRO}" ]; then
+					# Switch host to Factory
+					# shellcheck disable=SC2153
+					sed -e "/ohpc-release/ s,dnf -y install.*ohpc-release.*rpm,dnf config-manager --add-repo http://obs.openhpc.community:82/OpenHPC${VERSION_MAJOR}:/${Version}:/Factory/${os_repo}/,g" -i "${recipeFile}"
+					# Switch client to Factory
+					sed -e '/ohpc-release/d' -i "${recipeFile}"
+				else
+					# Add Factory repo for host
+					# shellcheck disable=SC2153
+					sed -e "/ohpc-release/a dnf config-manager --add-repo http://obs.openhpc.community:82/OpenHPC${VERSION_MAJOR}:/${Version}:/Factory/${os_repo}/" -i "${recipeFile}"
+				fi
+				# Add Factory repo for client
 				sed -e "s,\(cmd: dnf config-manager --set-enabled crb\),\1 ; dnf config-manager --add-repo http://obs.openhpc.community:82/OpenHPC${VERSION_MAJOR}:/${Version}:/Factory/${os_repo}/; echo user_agent=curl >> /etc/dnf/dnf.conf,g" -i "${recipeFile}"
 			elif [[ "${Repo}" == "Staging" ]]; then
 				if [[ "${VERSION_MINOR}" == "0" ]] && [ -z "${VERSION_MICRO}" ]; then
