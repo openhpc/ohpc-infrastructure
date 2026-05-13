@@ -178,6 +178,10 @@ if [[ "${VERSION_MAJOR}" != "2" ]] && [[ "${Provisioner}" == "warewulf" ]]; then
 	Provisioner="warewulf4"
 fi
 
+if [[ "${VERSION_MAJOR}" != "2" ]] && [[ "${Provisioner}" == "warewulf3" ]]; then
+	Provisioner="warewulf"
+fi
+
 enable_repo
 
 install_doc_rpm
