@@ -689,26 +689,47 @@ install_doc_rpm() {
 	fi
 
 	# Starting with OpenHPC 4.1, docs-ohpc is only built for EL_10.
+	# Starting with OpenHPC 3.1, docs-ohpc is only built for EL_9.
 	# When using the Factory repository on other distributions,
-	# download the noarch RPM from the EL_10 Factory repository
+	# download the noarch RPM from the appropriate Factory repository
 	# and install it locally.
-	if [[ "${Repo}" == "Factory" ]] && [[ "${os_repo}" != "EL_10" ]] &&
-		{ [[ "${VERSION_MAJOR}" -eq 4 && "${VERSION_MINOR}" -ge 1 ]] ||
-			[[ "${VERSION_MAJOR}" -gt 4 ]]; }; then
-		local EL10_REPO_URL
-		EL10_REPO_URL="http://obs.openhpc.community:82/OpenHPC${VERSION_MAJOR}:/${Version}:/Factory/EL_10/"
-		echo "docs-ohpc is only built for EL_10, downloading from ${EL10_REPO_URL}"
-		local DOCS_TMPDIR
-		DOCS_TMPDIR=$(mktemp -d)
-		loop_command dnf download -y \
-			--repofrompath="ohpc-el10,${EL10_REPO_URL}" \
-			--disablerepo='*' \
-			--downloaddir="${DOCS_TMPDIR}" \
-			--setopt="ohpc-el10.gpgcheck=0" \
-			docs-ohpc
-		"${PKG_MANAGER}" "${YES}" install "${DOCS_TMPDIR}"/docs-ohpc*.rpm ||
-			ERROR "Unable to install docs-ohpc"
-		rm -rf "${DOCS_TMPDIR}"
+	local DOCS_EL=""
+	if [[ "${Repo}" == "Factory" ]]; then
+		if [[ "${os_repo}" != "EL_10" ]] &&
+			{ [[ "${VERSION_MAJOR}" -eq 4 && "${VERSION_MINOR}" -ge 1 ]] ||
+				[[ "${VERSION_MAJOR}" -gt 4 ]]; }; then
+			DOCS_EL="EL_10"
+		elif [[ "${os_repo}" != "EL_9" ]] &&
+			[[ "${VERSION_MAJOR}" -eq 3 && "${VERSION_MINOR}" -ge 1 ]]; then
+			DOCS_EL="EL_9"
+		fi
+	fi
+
+	if [[ -n "${DOCS_EL}" ]]; then
+		local DOCS_REPO_URL
+		DOCS_REPO_URL="http://obs.openhpc.community:82/OpenHPC${VERSION_MAJOR}:/${Version}:/Factory/${DOCS_EL}/"
+		echo "docs-ohpc is only built for ${DOCS_EL}, downloading from ${DOCS_REPO_URL}"
+		if [[ "${DISTRIBUTION}" == "leap"* ]]; then
+			zypper --non-interactive addrepo \
+				--no-gpgcheck "${DOCS_REPO_URL}" ohpc-docs-temp
+			loop_command zypper --non-interactive refresh ohpc-docs-temp
+			zypper --non-interactive --no-gpg-checks install \
+				--from ohpc-docs-temp docs-ohpc ||
+				ERROR "Unable to install docs-ohpc"
+			zypper --non-interactive removerepo ohpc-docs-temp
+		else
+			local DOCS_TMPDIR
+			DOCS_TMPDIR=$(mktemp -d)
+			loop_command dnf download -y \
+				--repofrompath="ohpc-docs-temp,${DOCS_REPO_URL}" \
+				--disablerepo='*' \
+				--downloaddir="${DOCS_TMPDIR}" \
+				--setopt="ohpc-docs-temp.gpgcheck=0" \
+				docs-ohpc
+			"${PKG_MANAGER}" "${YES}" install "${DOCS_TMPDIR}"/docs-ohpc*.rpm ||
+				ERROR "Unable to install docs-ohpc"
+			rm -rf "${DOCS_TMPDIR}"
+		fi
 	else
 		install_package docs-ohpc
 	fi
