@@ -154,25 +154,44 @@
 		</routing>
 	</networking>
 	<scripts>
+		<pre-scripts config:type="list">
+			<script>
+				<source>
+					<![CDATA[
+# Fetch fake URLs on the repo server to track installation progress.
+# Each curl call creates an httpd access log entry, so tailing the log
+# on {{ repo }} shows which autoyast step is currently executing.
+curl -so /dev/null http://{{ repo }}/autoyast-progress/pre-install-leap15.5 || true
+					]]>
+				</source>
+			</script>
+		</pre-scripts>
 		<post-scripts config:type="list">
 			<script>
 				<source>
 					<![CDATA[
+curl -so /dev/null http://{{ repo }}/autoyast-progress/post-started-leap15.5 || true
 systemctl stop sshd
+curl -so /dev/null http://{{ repo }}/autoyast-progress/zypper-update-leap15.5 || true
 zypper -n update
+curl -so /dev/null http://{{ repo }}/autoyast-progress/zypper-update-done-leap15.5 || true
 mv /etc/login.defs.d/* /root/
 systemctl disable --now firewalld
+curl -so /dev/null http://{{ repo }}/autoyast-progress/repos-configured-leap15.5 || true
 mkdir /root/.ssh/
 curl --output /root/.ssh/authorized_keys --remote-name http://{{ repo }}/authorized_keys
 cp /root/.ssh/authorized_keys /root/.ssh/jumper.pub
+curl -so /dev/null http://{{ repo }}/autoyast-progress/ssh-keygen-leap15.5 || true
 ssh-keygen -t rsa -f /root/.ssh/cluster -N '' > /root/keygen.output
 ssh-keygen -t rsa -f /root/.ssh/id_rsa -N '' >> /root/keygen.output
 ssh-keygen -t ed25519 -f /root/.ssh/id_ed25519 -N '' >> /root/keygen.output
 ssh-keygen -t dsa -f /root/.ssh/id_dsa -N '' >> /root/keygen.output
 cat /root/.ssh/cluster.pub >> /root/.ssh/authorized_keys
+curl -so /dev/null http://{{ repo }}/autoyast-progress/bootdev-disk-leap15.5 || true
 ipmitool chassis bootdev disk
 mkdir -p /root/.cpan/CPAN/
 curl --output /root/.cpan/CPAN/MyConfig.pm --remote-name http://{{ repo }}/MyConfig.pm
+curl -so /dev/null http://{{ repo }}/autoyast-progress/post-complete-leap15.5 || true
                       ]]>
 				</source>
 			</script>
