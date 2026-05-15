@@ -172,6 +172,10 @@ curl -so /dev/null http://{{ repo }}/autoyast-progress/pre-install-leap15.5 || t
 					<![CDATA[
 curl -so /dev/null http://{{ repo }}/autoyast-progress/post-started-leap15.5 || true
 systemctl stop sshd
+# Metalink causes zypper to use partial/range downloads which
+# breaks caching in the squid proxy.
+mkdir -p /etc/zypp
+echo "download.use_metalink = false" >> /etc/zypp/zypp.conf
 curl -so /dev/null http://{{ repo }}/autoyast-progress/zypper-update-leap15.5 || true
 zypper -n update
 curl -so /dev/null http://{{ repo }}/autoyast-progress/zypper-update-done-leap15.5 || true
@@ -200,6 +204,7 @@ curl -so /dev/null http://{{ repo }}/autoyast-progress/post-complete-leap15.5 ||
 			<script>
 				<source>
 					<![CDATA[
+curl -so /dev/null http://{{ repo }}/autoyast-progress/init-scripts-leap15.5 || true
 systemctl enable sshd
 			]]>
 				</source>
