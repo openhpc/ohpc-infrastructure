@@ -429,6 +429,16 @@ install_openHPC_cluster() {
 		sed 's|#<<< ohpc_proxy:compute >>>#|echo "max_parallel_downloads=10" >> $CHROOT/etc/dnf/dnf.conf\necho "debuglevel=1" >> $CHROOT/etc/dnf/dnf.conf|' -i "${recipeFile}"
 	fi
 
+	if [ "${PKG_MANAGER}" == "zypper" ]; then
+		# Metalink causes zypper to use partial/range downloads which
+		# breaks caching in the squid proxy.
+		echo "CI Customization: Speed up zypper and disable metalink"
+		echo "download.max_concurrent_connections = 10" >>/etc/zypp/zypp.conf
+		echo "download.use_metalink = false" >>/etc/zypp/zypp.conf
+		# shellcheck disable=SC2016
+		sed 's|#<<< ohpc_proxy:compute >>>#|echo "download.max_concurrent_connections = 10" >> $CHROOT/etc/zypp/zypp.conf\necho "download.use_metalink = false" >> $CHROOT/etc/zypp/zypp.conf|' -i "${recipeFile}"
+	fi
+
 	if [ "${EnableArmCompiler}" == "true" ]; then
 		# enable local ARM1 repository
 		sed -e "s,install arm1-compilers-devel-ohpc,install --enablerepo=ARM1 arm1-compilers-devel-ohpc,g" -i "${recipeFile}"
