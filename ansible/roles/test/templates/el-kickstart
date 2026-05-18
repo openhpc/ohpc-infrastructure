@@ -31,6 +31,7 @@
 {%- set base = 'openEuler-'~release~'-LTS-'~SP~'-everything/' -%}
 {%- if inventory_hostname_short.startswith('ohpc-lenovo-repo') -%}
 {%- set mirror1 = 'http://mirror.accum.se/mirror/openeuler.org/' -%}
+{%- set mirror1 = 'http://mirrors.dotsrc.org/openeuler/' -%}
 {%- elif inventory_hostname_short.startswith('ohpc-huawei-repo') -%}
 {%- set mirror1 = 'http://mirrors.nju.edu.cn/openeuler/' -%}
 {%- endif -%}

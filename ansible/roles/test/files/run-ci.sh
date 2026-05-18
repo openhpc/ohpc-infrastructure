@@ -415,7 +415,7 @@ USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-opencoarrays"
 
 if [[ "${VERSION_MAJOR}" == "2" ]]; then
 	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --with-mpi-families='mpich openmpi4'"
-elif [[ "${TEST_ARCH}" == "x86_64" ]] && [[ "${VERSION_MAJOR}" == "4" ]]; then
+elif [[ "${TEST_ARCH}" == "x86_64" ]] && [[ "${VERSION_MAJOR}" != "2" ]]; then
 	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --with-mpi-families='mpich mvapich2 openmpi5'"
 else
 	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --with-mpi-families='mpich openmpi5'"
@@ -523,6 +523,10 @@ if [[ "${DISTRIBUTION}" == "rocky"* ]] && [[ "${SMS}" == "ohpc-huawei-sms" ]]; t
 fi
 if [[ "${DISTRIBUTION}" == "openEuler"* ]] && [[ "${SMS}" == "ohpc-lenovo-sms" ]]; then
 	echo "export YUM_MIRROR_BASE=http://repo.huaweicloud.com/openeuler/" >>"${VARS}"
+	echo "export YUM_MIRROR_BASE=http://mirrors.dotsrc.org/openeuler/" >>"${VARS}"
+fi
+if [[ "${DISTRIBUTION}" == "rocky"* ]] && [[ "${SMS}" == "ohpc-lenovo-sms" ]]; then
+	echo "export YUM_MIRROR_BASE=http://download.rockylinux.org/pub/rocky/" >>"${VARS}"
 fi
 if [[ "${DISTRIBUTION}" == "openEuler"* ]]; then
 	echo "export enable_clustershell=0" >>"${VARS}"
