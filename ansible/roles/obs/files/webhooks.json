@@ -1,6 +1,9 @@
 {
     "obs_api": "https://obs.openhpc.community",
     "branches": {
+        "2.x": {
+            "project": "OpenHPC"
+        },
         "3.x": {
             "project": "OpenHPC3"
         },
