@@ -397,6 +397,10 @@ install_openHPC_cluster() {
 				fi
 			fi
 		fi
+		if [ "${Provisioner}" == "warewulf" ]; then
+			# shellcheck disable=SC2016
+			sed 's|#<<< ohpc_proxy:compute >>>#|rm -vf $CHROOT/etc/yum.repos.d/openEuler.repo|' -i "${recipeFile}"
+		fi
 		if [ "${Provisioner}" == "warewulf4" ]; then
 			echo "CI Customization: Switch to http in repository definition"
 			sed "/export CHROOT/a sed -i '/\\\/metalink?/ s/$/\\\&protocol=http/g' \$CHROOT/etc/yum.repos.d/*repo" -i "${recipeFile}"
@@ -817,6 +821,10 @@ wait_for_computes() {
 		pdsh -w "${compute_prefix}"[1-"${num_computes}"] systemctl disable --now firewalld
 		if [ "${enable_ib}" -eq 0 ]; then
 			# Disable IB
+			printf "blacklist %s\n" mlx5_ib mlx5_core mlx5_fwctl mlxfw rdma_cm ib_ipoib rpcrdma ib_srpt iw_cm ib_iser ib_umad ib_isert rdma_ucm ib_uverbs qedr ib_cm ib_core >/etc/modprobe.d/disable-ib.conf
+			rmmod mlx5_ib mlx5_core mlx5_fwctl mlxfw rdma_cm ib_ipoib rpcrdma ib_srpt iw_cm ib_iser ib_umad ib_isert rdma_ucm ib_uverbs qedr ib_cm ib_core || true
+			rmmod mlx5_ib mlx5_core mlx5_fwctl mlxfw rdma_cm ib_ipoib rpcrdma ib_srpt iw_cm ib_iser ib_umad ib_isert rdma_ucm ib_uverbs qedr ib_cm ib_core || true
+			rmmod mlx5_ib mlx5_core mlx5_fwctl mlxfw rdma_cm ib_ipoib rpcrdma ib_srpt iw_cm ib_iser ib_umad ib_isert rdma_ucm ib_uverbs qedr ib_cm ib_core || true
 			pdsh -w "${compute_prefix}"[1-"${num_computes}"] 'printf "blacklist %s\n" mlx5_ib mlx5_core mlx5_fwctl mlxfw rdma_cm ib_ipoib rpcrdma ib_srpt iw_cm ib_iser ib_umad ib_isert rdma_ucm ib_uverbs qedr ib_cm ib_core > /etc/modprobe.d/disable-ib.conf'
 			pdsh -w "${compute_prefix}"[1-"${num_computes}"] rmmod mlx5_ib mlx5_core mlx5_fwctl mlxfw rdma_cm ib_ipoib rpcrdma ib_srpt iw_cm ib_iser ib_umad ib_isert rdma_ucm ib_uverbs qedr ib_cm ib_core
 			pdsh -w "${compute_prefix}"[1-"${num_computes}"] rmmod mlx5_ib mlx5_core mlx5_fwctl mlxfw rdma_cm ib_ipoib rpcrdma ib_srpt iw_cm ib_iser ib_umad ib_isert rdma_ucm ib_uverbs qedr ib_cm ib_core
