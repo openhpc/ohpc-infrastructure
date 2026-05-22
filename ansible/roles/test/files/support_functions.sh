@@ -336,10 +336,15 @@ install_openHPC_cluster() {
 			sed '/ohpc_proxy:head/a echo -e "[main]\\nuser_agent=curl" >> $CHROOT/etc/dnf/dnf.conf' -i "${recipeFile}"
 			# shellcheck disable=SC2016
 			sed '/ohpc_proxy:compute/a echo -e "[main]\\nuser_agent=curl" >> $CHROOT/etc/dnf/dnf.conf' -i "${recipeFile}"
+			# shellcheck disable=SC2016
+			sed '/CHROOT install epel-release/a echo -e "[main]\\nuser_agent=curl" >> $CHROOT/etc/dnf/dnf.conf' -i "${recipeFile}"
 		fi
 		if [ "${Provisioner}" == "confluent" ]; then
 			echo "CI Customization: Switch to http in repository definition"
 			sed '/Add additional packages to compute image/a nodersync /etc/yum.repos.d/ compute:/etc/yum.repos.d/' -i "${recipeFile}"
+			if [[ "${Repo}" == "Staging" ]]; then
+				sed '/Install compute node base meta-package/a nodersync /etc/yum.repos.d/OpenHPC.repo compute:/etc/yum.repos.d/OpenHPC.repo' -i "${recipeFile}"
+			fi
 			sed '/ohpc_proxy:compute/a nodersync /etc/dnf/dnf.conf compute:/etc/dnf/dnf.conf' -i "${recipeFile}"
 			sed '/ohpc_proxy:compute/a nodersync /etc/profile.d/proxy.sh compute:/etc/profile.d/proxy.sh' -i "${recipeFile}"
 			echo "CI Customization: Switch to text mode installer (nouveau crashes otherwise)"
@@ -431,6 +436,10 @@ install_openHPC_cluster() {
 		echo "debuglevel=1" >>/etc/dnf/dnf.conf
 		# shellcheck disable=SC2016
 		sed 's|#<<< ohpc_proxy:compute >>>#|echo "max_parallel_downloads=10" >> $CHROOT/etc/dnf/dnf.conf\necho "debuglevel=1" >> $CHROOT/etc/dnf/dnf.conf|' -i "${recipeFile}"
+		# shellcheck disable=SC2016
+		sed '/CHROOT install epel-release/a echo "install_weak_deps=1" >> $CHROOT/etc/dnf/dnf.conf' -i "${recipeFile}"
+		# shellcheck disable=SC2016
+		sed '/CHROOT install epel-release/a echo "max_parallel_downloads=10" >> $CHROOT/etc/dnf/dnf.conf\necho "debuglevel=1" >> $CHROOT/etc/dnf/dnf.conf' -i "${recipeFile}"
 	fi
 
 	if [ "${PKG_MANAGER}" == "zypper" ]; then
@@ -559,7 +568,7 @@ post_install_cmds() {
 	if [ "${RMS}" == "slurm" ]; then
 		install_package slurm-sview-ohpc
 	fi
-	if [[ "${Architecture}" == "x86_64" ]]; then
+	if [[ "${Architecture}" == "x86_64" && "${VERSION_MAJOR}" != "2" ]]; then
 		install_package ohpc-gnu15-mvapich2-parallel-libs
 	fi
 	# shellcheck disable=SC2153
