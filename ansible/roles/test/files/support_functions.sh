@@ -336,6 +336,8 @@ install_openHPC_cluster() {
 			sed '/ohpc_proxy:head/a echo -e "[main]\\nuser_agent=curl" >> $CHROOT/etc/dnf/dnf.conf' -i "${recipeFile}"
 			# shellcheck disable=SC2016
 			sed '/ohpc_proxy:compute/a echo -e "[main]\\nuser_agent=curl" >> $CHROOT/etc/dnf/dnf.conf' -i "${recipeFile}"
+			# shellcheck disable=SC2016
+			sed '/CHROOT install epel-release/a echo -e "[main]\\nuser_agent=curl" >> $CHROOT/etc/dnf/dnf.conf' -i "${recipeFile}"
 		fi
 		if [ "${Provisioner}" == "confluent" ]; then
 			echo "CI Customization: Switch to http in repository definition"
@@ -431,6 +433,10 @@ install_openHPC_cluster() {
 		echo "debuglevel=1" >>/etc/dnf/dnf.conf
 		# shellcheck disable=SC2016
 		sed 's|#<<< ohpc_proxy:compute >>>#|echo "max_parallel_downloads=10" >> $CHROOT/etc/dnf/dnf.conf\necho "debuglevel=1" >> $CHROOT/etc/dnf/dnf.conf|' -i "${recipeFile}"
+		# shellcheck disable=SC2016
+		sed '/CHROOT install epel-release/a echo "install_weak_deps=1" >> $CHROOT/etc/dnf/dnf.conf' -i "${recipeFile}"
+		# shellcheck disable=SC2016
+		sed '/CHROOT install epel-release/a echo "max_parallel_downloads=10" >> $CHROOT/etc/dnf/dnf.conf\necho "debuglevel=1" >> $CHROOT/etc/dnf/dnf.conf' -i "${recipeFile}"
 	fi
 
 	if [ "${PKG_MANAGER}" == "zypper" ]; then
