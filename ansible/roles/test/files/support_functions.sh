@@ -342,6 +342,9 @@ install_openHPC_cluster() {
 		if [ "${Provisioner}" == "confluent" ]; then
 			echo "CI Customization: Switch to http in repository definition"
 			sed '/Add additional packages to compute image/a nodersync /etc/yum.repos.d/ compute:/etc/yum.repos.d/' -i "${recipeFile}"
+			if [[ "${Repo}" == "Staging" ]]; then
+				sed '/Install compute node base meta-package/a nodersync /etc/yum.repos.d/OpenHPC.repo compute:/etc/yum.repos.d/OpenHPC.repo' -i "${recipeFile}"
+			fi
 			sed '/ohpc_proxy:compute/a nodersync /etc/dnf/dnf.conf compute:/etc/dnf/dnf.conf' -i "${recipeFile}"
 			sed '/ohpc_proxy:compute/a nodersync /etc/profile.d/proxy.sh compute:/etc/profile.d/proxy.sh' -i "${recipeFile}"
 			echo "CI Customization: Switch to text mode installer (nouveau crashes otherwise)"
