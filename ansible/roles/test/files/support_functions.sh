@@ -565,7 +565,7 @@ post_install_cmds() {
 	if [ "${RMS}" == "slurm" ]; then
 		install_package slurm-sview-ohpc
 	fi
-	if [[ "${Architecture}" == "x86_64" ]]; then
+	if [[ "${Architecture}" == "x86_64" && "${VERSION_MAJOR}" != "2" ]]; then
 		install_package ohpc-gnu15-mvapich2-parallel-libs
 	fi
 	# shellcheck disable=SC2153
