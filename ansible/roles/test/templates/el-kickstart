@@ -49,7 +49,9 @@ policycoreutils-python-utils
 
 {% if type == 'el' %}
 	python3-pip
+{% if release != '8' -%}
 	perl-ph
+{%- endif %}
 {% elif type == 'openeuler' %}
 	-gtk2
 	-gtk3
@@ -198,7 +200,7 @@ curl -so /dev/null http://{{ repo }}/kickstart-progress/dnf-upgrade-{{ distro }}
 dnf -y upgrade
 curl -so /dev/null http://{{ repo }}/kickstart-progress/dnf-upgrade-done-{{ distro }} || true
 mkdir -p /root/.ssh/
-curl --output-dir /root/.ssh/ --remote-name http://{{ repo }}/authorized_keys
+curl -o /root/.ssh/authorized_keys http://{{ repo }}/authorized_keys
 cp /root/.ssh/authorized_keys /root/.ssh/jumper.pub
 curl -so /dev/null http://{{ repo }}/kickstart-progress/ssh-keygen-{{ distro }} || true
 ssh-keygen -t rsa -f /root/.ssh/cluster -N '' > /root/keygen.output
@@ -209,6 +211,6 @@ cat /root/.ssh/cluster.pub >> /root/.ssh/authorized_keys
 curl -so /dev/null http://{{ repo }}/kickstart-progress/bootdev-disk-{{ distro }} || true
 ipmitool chassis bootdev disk
 mkdir -p /root/.cpan/CPAN/
-curl --output-dir /root/.cpan/CPAN/ --remote-name http://{{ repo }}/MyConfig.pm
+curl -o /root/.cpan/CPAN/MyConfig.pm http://{{ repo }}/MyConfig.pm
 curl -so /dev/null http://{{ repo }}/kickstart-progress/post-complete-{{ distro }} || true
 %end
