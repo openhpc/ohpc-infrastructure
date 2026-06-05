@@ -324,9 +324,19 @@ else
 
 fi
 
-# Starting with OpenHPC 4.1, docs-ohpc is only built for EL_10.
-# Copy the noarch RPM to openEuler trees so it is available there as well.
-if { [[ "${MAJOR_VERSION}" -eq 4 && "${MINOR_DIGIT}" -ge 1 ]] ||
+# Starting with OpenHPC 3.5, docs-ohpc is only built for EL.
+# Copy the noarch RPM to other distro trees so it is available everywhere.
+if { [[ "${MAJOR_VERSION}" -eq 3 && "${MINOR_DIGIT}" -ge 5 ]]; }; then
+	docs_rpms=("${DESTINATION}"/EL_9/noarch/docs-ohpc-*.rpm)
+	if [[ ${#docs_rpms[@]} -gt 0 && -e "${docs_rpms[0]}" ]]; then
+		for target_distro in Leap_15 openEuler_22.03; do
+			if [[ -d "${DESTINATION}/${target_distro}/noarch" ]]; then
+				log_msg "Copying docs-ohpc from EL_9/noarch to ${target_distro}/noarch"
+				cp -al "${docs_rpms[@]}" "${DESTINATION}/${target_distro}/noarch/"
+			fi
+		done
+	fi
+elif { [[ "${MAJOR_VERSION}" -eq 4 && "${MINOR_DIGIT}" -ge 1 ]] ||
 	[[ "${MAJOR_VERSION}" -gt 4 ]]; }; then
 	docs_rpms=("${DESTINATION}"/EL_10/noarch/docs-ohpc-*.rpm)
 	if [[ ${#docs_rpms[@]} -gt 0 && -e "${docs_rpms[0]}" ]] &&
