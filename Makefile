@@ -13,13 +13,15 @@ shellcheck-lint:
 	shellcheck \
 		-o quote-safe-variables,deprecate-which,avoid-nullary-conditions \
 		$$(find . -name *\.sh) \
-		ansible/roles/test/files/*.bats
+		ansible/roles/test/files/*.bats \
+		ansible/roles/obs/files/test_copr_bridge.bats
 
 shfmt-lint:
 	@echo "Running 'shfmt' on all shell scripts"
 	shfmt -w -d \
 		$$(find . -name *\.sh) \
-		ansible/roles/test/files/*.bats
+		ansible/roles/test/files/*.bats \
+		ansible/roles/obs/files/test_copr_bridge.bats
 
 ansible-lint:
 	@echo "Running 'ansible-lint' on selected yaml files"
@@ -34,11 +36,18 @@ ansible-lint:
 		ansible/roles/obs/ohpc-lenovo-repo.yml \
 		ansible/roles/obs/obs-server.yml
 
+bats-test:
+	@echo "Running 'bats' tests"
+	bats \
+		ansible/roles/obs/files/test_copr_bridge.bats
+
 ruff-lint:
 	@echo "Running 'ruff' on selected Python files"
 	ruff check \
 		obs/obs_config.py \
+		ansible/roles/obs/files/copr_bridge.py \
 		ansible/roles/obs/files/webhooks.py
 	ruff format --diff \
 		obs/obs_config.py \
+		ansible/roles/obs/files/copr_bridge.py \
 		ansible/roles/obs/files/webhooks.py
