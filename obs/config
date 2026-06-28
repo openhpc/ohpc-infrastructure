@@ -46,19 +46,19 @@ skip_x86  = ["-arm1"]
 # define compiler/MPI families: first entry in list is defined to be parent in OBS
 compiler_families=["gnu15", "intel"]
 mpi_families=["openmpi5","mpich","mvapich2","impi"]
-compiler_dependent = ["!openmpi", "!mpich", "!mvapich2", "!openblas", "!R", "!likwid",
+compiler_dependent = ["!openmpi", "!mpich", "!mvapich2", "!openblas", "R", "!likwid",
                       "!pdtoolkit", "!gsl", "!metis", "!superlu",
                       "!numpy", "!plasma", "!gotcha", "!cubew", "!cubelib", "!opari2"]
 
-standalone = ["docs", "test-suite", "warewulf", "!gnu-compilers", "!ohpc-filesystem",
+standalone = ["docs", "test-suite", "warewulf", "!gnu-compilers", "ohpc-filesystem",
               "!cmake", "!pdsh", "!intel-compilers-devel", "!pmix",
-              "!impi-devel", "!meta-packages", "!easybuild", "!spack", "!hwloc", "!ucx",
+              "!impi-devel", "!meta-packages", "!easybuild", "!spack", "hwloc", "ucx",
               "!conman", "!examples", "!charliecloud", "!magpie", "!mdtoc",
               "!python-Cython", "!prun", "!papi", "nhc", "!losf", "!paraver",
-              "!lmod", "!genders", "!hpc-workspace", "!valgrind", "!slurm", "!cuda-devel"]
+              "lmod", "!genders", "!hpc-workspace", "!valgrind", "!slurm", "!cuda-devel"]
 
-mpi_dependent = ["!otf2", "!sionlib", "!fftw", "!scalapack", "!hdf5",
-		 "!scorep", "!scalasca", "!netcdf", "!netcdf-fortran",
+mpi_dependent = ["otf2", "!sionlib", "!fftw", "!scalapack", "!hdf5",
+		 "scorep", "!scalasca", "!netcdf", "!netcdf-fortran",
 		 "!netcdf-cxx", "!!lmod-defaults", "!geopm", "!mumps", "!omb",
 		 "!boost", "!pnetcdf", "!tau", "!extrae", "!imb", "!scotch",
 		 "!opencoarrays", "!hypre", "!mpi4py", "!dimemas", "!adios2",
