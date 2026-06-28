@@ -38,7 +38,9 @@ ruff-lint:
 	@echo "Running 'ruff' on selected Python files"
 	ruff check \
 		obs/obs_config.py \
+		ansible/roles/obs/files/copr_bridge.py \
 		ansible/roles/obs/files/webhooks.py
 	ruff format --diff \
 		obs/obs_config.py \
+		ansible/roles/obs/files/copr_bridge.py \
 		ansible/roles/obs/files/webhooks.py
