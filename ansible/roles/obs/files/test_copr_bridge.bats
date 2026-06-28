@@ -284,19 +284,19 @@ for name, b in s['builds'].items():
 		--state-file "${STATE_FILE}" \
 		--reset-failed "broken-ohpc-1.0-1.src.rpm"
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"acknowledged"* ]]
+	[[ "$output" == *"Removed"* ]]
 
 	# Verify blocked_on is cleared
 	blocked=$(python3 -c "import json; print(json.load(open('${STATE_FILE}'))['blocked_on'])")
 	[ "$blocked" = "None" ]
 
-	# Verify the entry status is now acknowledged
-	status_val=$(python3 -c "
+	# Verify the entry is removed from builds
+	absent=$(python3 -c "
 import json
 s = json.load(open('${STATE_FILE}'))
-print(s['builds']['broken-ohpc-1.0-1.src.rpm']['status'])
+print('broken-ohpc-1.0-1.src.rpm' not in s['builds'])
 ")
-	[ "$status_val" = "acknowledged" ]
+	[ "$absent" = "True" ]
 
 	# Now a scan should work without error
 	run python3 "${SCRIPT}" \

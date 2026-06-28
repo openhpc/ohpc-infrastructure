@@ -210,7 +210,7 @@ class CoprBridge:
         # Dry-run entries do not count as processed
         if entry.get("reason") == "dry-run":
             return False
-        return entry["status"] in ("succeeded", "skipped", "acknowledged")
+        return entry["status"] in ("succeeded", "skipped")
 
     def submit_build(self, srpm_path):
         """Upload SRPM to COPR and return the build object."""
@@ -486,7 +486,7 @@ class CoprBridge:
             watcher.close()
 
     def reset_failed(self, srpm_name):
-        """Mark a failed SRPM as acknowledged so processing can continue."""
+        """Remove a failed SRPM from state so it will be retried."""
         if srpm_name not in self.state["builds"]:
             ERROR("SRPM '%s' not found in state file" % srpm_name)
 
@@ -497,18 +497,17 @@ class CoprBridge:
                 % (srpm_name, entry["status"])
             )
 
-        entry["original_status"] = entry["status"]
-        entry["status"] = "acknowledged"
-        entry["acknowledged_at"] = now_iso()
+        old_status = entry["status"]
+        del self.state["builds"][srpm_name]
 
         if self.state["blocked_on"] == srpm_name:
             self.state["blocked_on"] = None
 
         self.save_state()
         logging.info(
-            "Reset '%s' from '%s' to 'acknowledged'. Processing can continue.",
+            "Removed '%s' (was '%s') from state. It will be retried on next run.",
             srpm_name,
-            entry["original_status"],
+            old_status,
         )
 
     def setup_signal_handlers(self):
