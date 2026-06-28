@@ -1,0 +1,37 @@
+---
+name: Cleanup Untagged Packages
+
+"on":
+  schedule:
+    # Run every Sunday at 02:00 UTC
+    - cron: '0 2 * * 0'
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Delete untagged copr-bridge images
+        id: cleanup-copr-bridge
+        continue-on-error: true
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: copr-bridge
+          package-type: container
+          min-versions-to-keep: 5
+          delete-only-untagged-versions: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Report cleanup results
+        run: |
+          echo "Cleanup Results:"
+          echo "COPR Bridge container cleanup: ${{ steps.cleanup-copr-bridge.outcome }}"
+
+          if [[ "${{ steps.cleanup-copr-bridge.outcome }}" == "failure" ]]; then
+            echo "Warning: COPR Bridge container cleanup failed - package may not exist yet"
+          fi
+
+          echo "Cleanup workflow completed"
