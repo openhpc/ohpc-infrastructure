@@ -217,11 +217,14 @@ class CoprBridge:
         logging.info("Submitting %s to COPR %s", srpm_path.name, self.copr_project)
 
         try:
+            buildopts = {}
+            if self.chroot:
+                buildopts["chroots"] = [self.chroot]
             build = self.client.build_proxy.create_from_file(
                 ownername=self.ownername,
                 projectname=self.projectname,
-                file_path=str(srpm_path),
-                buildopts={"chroots": [self.chroot]},
+                path=str(srpm_path),
+                buildopts=buildopts if buildopts else None,
             )
             logging.info(
                 "Build submitted: id=%d, url=https://copr.fedorainfracloud.org"
@@ -538,8 +541,7 @@ def main():
     )
     parser.add_argument(
         "--chroot",
-        required=True,
-        help="COPR chroot (e.g. rhel+epel-10-ppc64le)",
+        help="COPR chroot to build for (default: all project chroots)",
         type=str,
     )
     parser.add_argument(
