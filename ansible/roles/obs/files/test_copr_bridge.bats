@@ -226,7 +226,7 @@ for name, b in s['builds'].items():
 "
 }
 
-@test "blocked_on state prevents processing" {
+@test "blocked_on state is auto-reset on next run" {
 	# Create a state file with blocked_on set
 	cat >"${STATE_FILE}" <<-'EOF'
 		{
@@ -251,9 +251,21 @@ for name, b in s['builds'].items():
 		${COMMON_ARGS} \
 		--dry-run \
 		--state-file "${STATE_FILE}"
-	[ "$status" -ne 0 ]
-	[[ "$output" == *"blocked on failed SRPM"* ]]
-	[[ "$output" == *"broken-ohpc-1.0-1.src.rpm"* ]]
+	[ "$status" -eq 0 ]
+	[[ "$output" == *"Auto-resetting previously failed SRPM"* ]]
+	[[ "$output" == *"Scan complete"* ]]
+
+	# Verify blocked_on is cleared in state
+	blocked=$(python3 -c "import json; print(json.load(open('${STATE_FILE}'))['blocked_on'])")
+	[ "$blocked" = "None" ]
+
+	# Verify the failed entry was removed from builds
+	absent=$(python3 -c "
+import json
+s = json.load(open('${STATE_FILE}'))
+print('broken-ohpc-1.0-1.src.rpm' not in s['builds'])
+")
+	[ "$absent" = "True" ]
 }
 
 @test "reset-failed clears blocked_on and allows continuation" {

@@ -356,15 +356,24 @@ class CoprBridge:
         logging.error("Build %s for %s. See: %s", result.state, srpm_name, build_url)
         return False
 
+    def _auto_reset_blocked(self):
+        """If processing is blocked on a failed SRPM, reset it automatically."""
+        blocked = self.state.get("blocked_on")
+        if not blocked:
+            return
+        entry = self.state["builds"].get(blocked)
+        if entry and entry["status"] in ("failed", "canceled"):
+            logging.warning(
+                "Auto-resetting previously failed SRPM '%s' for retry",
+                blocked,
+            )
+            del self.state["builds"][blocked]
+        self.state["blocked_on"] = None
+        self.save_state()
+
     def run_scan(self):
         """Scan mode: process all SRPMs in directory sorted by mtime."""
-        if self.state["blocked_on"]:
-            blocked = self.state["blocked_on"]
-            ERROR(
-                "Processing is blocked on failed SRPM: %s\n"
-                "Fix the issue and run with --reset-failed '%s' to continue."
-                % (blocked, blocked)
-            )
+        self._auto_reset_blocked()
 
         srpms = self.scan_srpms()
         succeeded = 0
@@ -413,13 +422,7 @@ class CoprBridge:
         """Watch mode: initial scan then inotify event loop."""
         # Run initial scan first
         logging.info("Running initial scan before entering watch mode")
-        if self.state["blocked_on"]:
-            blocked = self.state["blocked_on"]
-            ERROR(
-                "Processing is blocked on failed SRPM: %s\n"
-                "Fix the issue and run with --reset-failed '%s' to continue."
-                % (blocked, blocked)
-            )
+        self._auto_reset_blocked()
 
         srpms = self.scan_srpms()
         for srpm_path in srpms:
