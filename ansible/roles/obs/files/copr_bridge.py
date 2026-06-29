@@ -377,9 +377,9 @@ class CoprBridge:
         self._auto_reset_blocked()
 
         srpms = self.scan_srpms()
-        succeeded = 0
-        skipped = 0
-        failed = 0
+        succeeded_names = []
+        skipped_names = []
+        failed_names = []
 
         for srpm_path in srpms:
             if self._shutdown:
@@ -391,7 +391,7 @@ class CoprBridge:
             if self.already_processed(srpm_name):
                 status = self.state["builds"][srpm_name]["status"]
                 logging.debug("Skipping %s (already %s)", srpm_name, status)
-                skipped += 1
+                skipped_names.append(srpm_name)
                 continue
 
             if not self.should_process(srpm_name):
@@ -401,14 +401,14 @@ class CoprBridge:
                     "mtime": srpm_path.stat().st_mtime,
                 }
                 self.save_state()
-                skipped += 1
+                skipped_names.append(srpm_name)
                 continue
 
             ok = self.process_srpm(srpm_path)
             if ok:
-                succeeded += 1
+                succeeded_names.append(srpm_name)
             else:
-                failed += 1
+                failed_names.append(srpm_name)
                 if self.ignore_errors:
                     self.state["blocked_on"] = None
                     self.save_state()
@@ -417,11 +417,23 @@ class CoprBridge:
 
         logging.info(
             "Scan complete: %d succeeded, %d skipped, %d failed (of %d total)",
-            succeeded,
-            skipped,
-            failed,
+            len(succeeded_names),
+            len(skipped_names),
+            len(failed_names),
             len(srpms),
         )
+        if succeeded_names:
+            logging.info("  Succeeded:")
+            for name in succeeded_names:
+                logging.info("    - %s", name)
+        if skipped_names:
+            logging.info("  Skipped:")
+            for name in skipped_names:
+                logging.info("    - %s", name)
+        if failed_names:
+            logging.info("  Failed:")
+            for name in failed_names:
+                logging.info("    - %s", name)
 
     def run_watch(self):
         """Watch mode: initial scan then inotify event loop."""

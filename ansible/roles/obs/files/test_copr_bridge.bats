@@ -455,6 +455,31 @@ print('broken-ohpc-1.0-1.src.rpm' not in s['builds'])
 	[ "$blocked" = "None" ]
 }
 
+@test "scan summary lists SRPM names per category" {
+	run python3 "${SCRIPT}" \
+		--srpm-dir "${TEST_DIR}" \
+		${COMMON_ARGS} \
+		--dry-run \
+		--skip-pattern 'gnu15' \
+		--state-file "${STATE_FILE}"
+	[ "$status" -eq 0 ]
+
+	# Succeeded section should list the 3 non-gnu15 SRPMs
+	[[ "$output" == *"Succeeded:"* ]]
+	[[ "$output" == *"ohpc-filesystem-4.2-420.ohpc.1.1.src.rpm"* ]]
+	[[ "$output" == *"docs-ohpc-4.1.0-420.ohpc.2.2.src.rpm"* ]]
+	[[ "$output" == *"hwloc-ohpc-2.14.0-420.ohpc.2.1.src.rpm"* ]]
+
+	# Skipped section should list the 3 gnu15 SRPMs
+	[[ "$output" == *"Skipped:"* ]]
+	[[ "$output" == *"R-gnu15-ohpc-4.6.1-420.ohpc.1.1.src.rpm"* ]]
+	[[ "$output" == *"otf2-gnu15-mpich-ohpc-3.2-420.ohpc.3.1.src.rpm"* ]]
+	[[ "$output" == *"otf2-gnu15-openmpi5-ohpc-3.2-420.ohpc.2.1.src.rpm"* ]]
+
+	# No failed section expected
+	[[ "$output" != *"Failed:"* ]]
+}
+
 @test "multiple skip patterns can be combined" {
 	run python3 "${SCRIPT}" \
 		--srpm-dir "${TEST_DIR}" \
