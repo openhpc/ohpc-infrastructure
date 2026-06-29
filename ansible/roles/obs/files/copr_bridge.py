@@ -95,6 +95,7 @@ class CoprBridge:
         self.chroot = args.chroot
         self.state_file = args.state_file
         self.dryrun = args.dryrun
+        self.ignore_errors = args.ignore_errors
         self.poll_interval = args.poll_interval
         self.debug = args.debug
 
@@ -408,6 +409,10 @@ class CoprBridge:
                 succeeded += 1
             else:
                 failed += 1
+                if self.ignore_errors:
+                    self.state["blocked_on"] = None
+                    self.save_state()
+                    continue
                 break
 
         logging.info(
@@ -440,6 +445,10 @@ class CoprBridge:
                 self.save_state()
                 continue
             if not self.process_srpm(srpm_path):
+                if self.ignore_errors:
+                    self.state["blocked_on"] = None
+                    self.save_state()
+                    continue
                 ERROR(
                     "Build failed during initial scan. "
                     "Fix and restart with --reset-failed."
@@ -481,6 +490,10 @@ class CoprBridge:
 
                     logging.info("New SRPM detected: %s", srpm_name)
                     if not self.process_srpm(srpm_path):
+                        if self.ignore_errors:
+                            self.state["blocked_on"] = None
+                            self.save_state()
+                            continue
                         ERROR(
                             "Build failed for %s. "
                             "Fix and restart with --reset-failed." % srpm_name
@@ -577,6 +590,12 @@ def main():
         type=str,
     )
     parser.add_argument(
+        "--ignore-errors",
+        dest="ignore_errors",
+        help="skip failed packages and continue with the next one",
+        action="store_true",
+    )
+    parser.add_argument(
         "--dry-run",
         dest="dryrun",
         help="show what would be submitted without actually doing it",
@@ -600,7 +619,7 @@ def main():
         action="store_true",
     )
 
-    parser.set_defaults(dryrun=False)
+    parser.set_defaults(dryrun=False, ignore_errors=False)
     args = parser.parse_args()
 
     def loglevel(debug):

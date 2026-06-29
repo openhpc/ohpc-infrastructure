@@ -414,6 +414,47 @@ print('broken-ohpc-1.0-1.src.rpm' not in s['builds'])
 	[[ "$output" == *"matched skip pattern"* ]]
 }
 
+@test "ignore-errors flag is accepted and documented" {
+	run python3 "${SCRIPT}" --help
+	[ "$status" -eq 0 ]
+	[[ "$output" == *"--ignore-errors"* ]]
+	[[ "$output" == *"skip failed packages"* ]]
+}
+
+@test "ignore-errors clears blocked_on and continues processing" {
+	# Create a state file with blocked_on set
+	cat >"${STATE_FILE}" <<-'EOF'
+		{
+		  "version": 1,
+		  "srpm_dir": "/tmp",
+		  "copr_project": "test/project",
+		  "chroot": "rhel+epel-10-ppc64le",
+		  "builds": {
+		    "broken-ohpc-1.0-1.src.rpm": {
+		      "status": "failed",
+		      "copr_build_id": 99999,
+		      "mtime": 1000000
+		    }
+		  },
+		  "last_succeeded": null,
+		  "blocked_on": "broken-ohpc-1.0-1.src.rpm"
+		}
+	EOF
+
+	run python3 "${SCRIPT}" \
+		--srpm-dir "${TEST_DIR}" \
+		${COMMON_ARGS} \
+		--dry-run \
+		--ignore-errors \
+		--state-file "${STATE_FILE}"
+	[ "$status" -eq 0 ]
+	[[ "$output" == *"Scan complete"* ]]
+
+	# blocked_on must be cleared
+	blocked=$(python3 -c "import json; print(json.load(open('${STATE_FILE}'))['blocked_on'])")
+	[ "$blocked" = "None" ]
+}
+
 @test "multiple skip patterns can be combined" {
 	run python3 "${SCRIPT}" \
 		--srpm-dir "${TEST_DIR}" \
