@@ -480,6 +480,78 @@ print('broken-ohpc-1.0-1.src.rpm' not in s['builds'])
 	[[ "$output" != *"Failed:"* ]]
 }
 
+@test "force-rebuild flag is accepted and documented" {
+	run python3 "${SCRIPT}" --help
+	[ "$status" -eq 0 ]
+	[[ "$output" == *"--force-rebuild"* ]]
+	[[ "$output" == *"rebuild packages even if they already exist"* ]]
+}
+
+@test "already-in-copr entries are skipped on re-run" {
+	# Simulate a prior run that found a package already in COPR
+	cat >"${STATE_FILE}" <<-'EOF'
+		{
+		  "version": 1,
+		  "srpm_dir": "/tmp",
+		  "copr_project": "test/project",
+		  "chroot": "rhel+epel-10-ppc64le",
+		  "builds": {
+		    "ohpc-filesystem-4.2-420.ohpc.1.1.src.rpm": {
+		      "status": "skipped",
+		      "reason": "already-in-copr",
+		      "mtime": 1000000
+		    }
+		  },
+		  "last_succeeded": null,
+		  "blocked_on": null
+		}
+	EOF
+
+	run python3 "${SCRIPT}" \
+		--srpm-dir "${TEST_DIR}" \
+		${COMMON_ARGS} \
+		--dry-run \
+		--state-file "${STATE_FILE}"
+	[ "$status" -eq 0 ]
+
+	# Only 5 of 6 SRPMs should be submitted (the already-in-copr one is skipped)
+	submitted=$(echo "$output" | grep -c '\[dry-run\]')
+	[ "$submitted" -eq 5 ]
+}
+
+@test "force-rebuild reprocesses already-in-copr entries" {
+	# Simulate a prior run that found a package already in COPR
+	cat >"${STATE_FILE}" <<-'EOF'
+		{
+		  "version": 1,
+		  "srpm_dir": "/tmp",
+		  "copr_project": "test/project",
+		  "chroot": "rhel+epel-10-ppc64le",
+		  "builds": {
+		    "ohpc-filesystem-4.2-420.ohpc.1.1.src.rpm": {
+		      "status": "skipped",
+		      "reason": "already-in-copr",
+		      "mtime": 1000000
+		    }
+		  },
+		  "last_succeeded": null,
+		  "blocked_on": null
+		}
+	EOF
+
+	run python3 "${SCRIPT}" \
+		--srpm-dir "${TEST_DIR}" \
+		${COMMON_ARGS} \
+		--dry-run \
+		--force-rebuild \
+		--state-file "${STATE_FILE}"
+	[ "$status" -eq 0 ]
+
+	# All 6 SRPMs should be submitted
+	submitted=$(echo "$output" | grep -c '\[dry-run\]')
+	[ "$submitted" -eq 6 ]
+}
+
 @test "multiple skip patterns can be combined" {
 	run python3 "${SCRIPT}" \
 		--srpm-dir "${TEST_DIR}" \
