@@ -95,6 +95,7 @@ class CoprBridge:
         self.chroot = args.chroot
         self.state_file = args.state_file
         self.dryrun = args.dryrun
+        self.ignore_errors = args.ignore_errors
         self.poll_interval = args.poll_interval
         self.debug = args.debug
 
@@ -356,15 +357,24 @@ class CoprBridge:
         logging.error("Build %s for %s. See: %s", result.state, srpm_name, build_url)
         return False
 
+    def _auto_reset_blocked(self):
+        """If processing is blocked on a failed SRPM, reset it automatically."""
+        blocked = self.state.get("blocked_on")
+        if not blocked:
+            return
+        entry = self.state["builds"].get(blocked)
+        if entry and entry["status"] in ("failed", "canceled"):
+            logging.warning(
+                "Auto-resetting previously failed SRPM '%s' for retry",
+                blocked,
+            )
+            del self.state["builds"][blocked]
+        self.state["blocked_on"] = None
+        self.save_state()
+
     def run_scan(self):
         """Scan mode: process all SRPMs in directory sorted by mtime."""
-        if self.state["blocked_on"]:
-            blocked = self.state["blocked_on"]
-            ERROR(
-                "Processing is blocked on failed SRPM: %s\n"
-                "Fix the issue and run with --reset-failed '%s' to continue."
-                % (blocked, blocked)
-            )
+        self._auto_reset_blocked()
 
         srpms = self.scan_srpms()
         succeeded = 0
@@ -399,6 +409,10 @@ class CoprBridge:
                 succeeded += 1
             else:
                 failed += 1
+                if self.ignore_errors:
+                    self.state["blocked_on"] = None
+                    self.save_state()
+                    continue
                 break
 
         logging.info(
@@ -413,13 +427,7 @@ class CoprBridge:
         """Watch mode: initial scan then inotify event loop."""
         # Run initial scan first
         logging.info("Running initial scan before entering watch mode")
-        if self.state["blocked_on"]:
-            blocked = self.state["blocked_on"]
-            ERROR(
-                "Processing is blocked on failed SRPM: %s\n"
-                "Fix the issue and run with --reset-failed '%s' to continue."
-                % (blocked, blocked)
-            )
+        self._auto_reset_blocked()
 
         srpms = self.scan_srpms()
         for srpm_path in srpms:
@@ -437,6 +445,10 @@ class CoprBridge:
                 self.save_state()
                 continue
             if not self.process_srpm(srpm_path):
+                if self.ignore_errors:
+                    self.state["blocked_on"] = None
+                    self.save_state()
+                    continue
                 ERROR(
                     "Build failed during initial scan. "
                     "Fix and restart with --reset-failed."
@@ -478,6 +490,10 @@ class CoprBridge:
 
                     logging.info("New SRPM detected: %s", srpm_name)
                     if not self.process_srpm(srpm_path):
+                        if self.ignore_errors:
+                            self.state["blocked_on"] = None
+                            self.save_state()
+                            continue
                         ERROR(
                             "Build failed for %s. "
                             "Fix and restart with --reset-failed." % srpm_name
@@ -574,6 +590,12 @@ def main():
         type=str,
     )
     parser.add_argument(
+        "--ignore-errors",
+        dest="ignore_errors",
+        help="skip failed packages and continue with the next one",
+        action="store_true",
+    )
+    parser.add_argument(
         "--dry-run",
         dest="dryrun",
         help="show what would be submitted without actually doing it",
@@ -597,7 +619,7 @@ def main():
         action="store_true",
     )
 
-    parser.set_defaults(dryrun=False)
+    parser.set_defaults(dryrun=False, ignore_errors=False)
     args = parser.parse_args()
 
     def loglevel(debug):
