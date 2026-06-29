@@ -455,6 +455,103 @@ print('broken-ohpc-1.0-1.src.rpm' not in s['builds'])
 	[ "$blocked" = "None" ]
 }
 
+@test "scan summary lists SRPM names per category" {
+	run python3 "${SCRIPT}" \
+		--srpm-dir "${TEST_DIR}" \
+		${COMMON_ARGS} \
+		--dry-run \
+		--skip-pattern 'gnu15' \
+		--state-file "${STATE_FILE}"
+	[ "$status" -eq 0 ]
+
+	# Succeeded section should list the 3 non-gnu15 SRPMs
+	[[ "$output" == *"Succeeded:"* ]]
+	[[ "$output" == *"ohpc-filesystem-4.2-420.ohpc.1.1.src.rpm"* ]]
+	[[ "$output" == *"docs-ohpc-4.1.0-420.ohpc.2.2.src.rpm"* ]]
+	[[ "$output" == *"hwloc-ohpc-2.14.0-420.ohpc.2.1.src.rpm"* ]]
+
+	# Skipped section should list the 3 gnu15 SRPMs
+	[[ "$output" == *"Skipped:"* ]]
+	[[ "$output" == *"R-gnu15-ohpc-4.6.1-420.ohpc.1.1.src.rpm"* ]]
+	[[ "$output" == *"otf2-gnu15-mpich-ohpc-3.2-420.ohpc.3.1.src.rpm"* ]]
+	[[ "$output" == *"otf2-gnu15-openmpi5-ohpc-3.2-420.ohpc.2.1.src.rpm"* ]]
+
+	# No failed section expected
+	[[ "$output" != *"Failed:"* ]]
+}
+
+@test "force-rebuild flag is accepted and documented" {
+	run python3 "${SCRIPT}" --help
+	[ "$status" -eq 0 ]
+	[[ "$output" == *"--force-rebuild"* ]]
+	[[ "$output" == *"rebuild packages even if they already exist"* ]]
+}
+
+@test "already-in-copr entries are skipped on re-run" {
+	# Simulate a prior run that found a package already in COPR
+	cat >"${STATE_FILE}" <<-'EOF'
+		{
+		  "version": 1,
+		  "srpm_dir": "/tmp",
+		  "copr_project": "test/project",
+		  "chroot": "rhel+epel-10-ppc64le",
+		  "builds": {
+		    "ohpc-filesystem-4.2-420.ohpc.1.1.src.rpm": {
+		      "status": "skipped",
+		      "reason": "already-in-copr",
+		      "mtime": 1000000
+		    }
+		  },
+		  "last_succeeded": null,
+		  "blocked_on": null
+		}
+	EOF
+
+	run python3 "${SCRIPT}" \
+		--srpm-dir "${TEST_DIR}" \
+		${COMMON_ARGS} \
+		--dry-run \
+		--state-file "${STATE_FILE}"
+	[ "$status" -eq 0 ]
+
+	# Only 5 of 6 SRPMs should be submitted (the already-in-copr one is skipped)
+	submitted=$(echo "$output" | grep -c '\[dry-run\]')
+	[ "$submitted" -eq 5 ]
+}
+
+@test "force-rebuild reprocesses already-in-copr entries" {
+	# Simulate a prior run that found a package already in COPR
+	cat >"${STATE_FILE}" <<-'EOF'
+		{
+		  "version": 1,
+		  "srpm_dir": "/tmp",
+		  "copr_project": "test/project",
+		  "chroot": "rhel+epel-10-ppc64le",
+		  "builds": {
+		    "ohpc-filesystem-4.2-420.ohpc.1.1.src.rpm": {
+		      "status": "skipped",
+		      "reason": "already-in-copr",
+		      "mtime": 1000000
+		    }
+		  },
+		  "last_succeeded": null,
+		  "blocked_on": null
+		}
+	EOF
+
+	run python3 "${SCRIPT}" \
+		--srpm-dir "${TEST_DIR}" \
+		${COMMON_ARGS} \
+		--dry-run \
+		--force-rebuild \
+		--state-file "${STATE_FILE}"
+	[ "$status" -eq 0 ]
+
+	# All 6 SRPMs should be submitted
+	submitted=$(echo "$output" | grep -c '\[dry-run\]')
+	[ "$submitted" -eq 6 ]
+}
+
 @test "multiple skip patterns can be combined" {
 	run python3 "${SCRIPT}" \
 		--srpm-dir "${TEST_DIR}" \
