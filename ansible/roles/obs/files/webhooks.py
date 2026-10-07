@@ -54,10 +54,10 @@ def _run_osc_raw(*args):
     log.debug("running: %s", " ".join(cmd))
     result = subprocess.run(
         cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        universal_newlines=True,
+        capture_output=True,
+        text=True,
         timeout=120,
+        check=False,
     )
     if result.returncode != 0:
         log.error(
@@ -81,9 +81,7 @@ def _is_project_locked(subproject):
         log.warning("cannot parse meta XML for %s, assuming unlocked", subproject)
         return False
     lock = root.find("lock")
-    if lock is not None and lock.find("enable") is not None:
-        return True
-    return False
+    return bool(lock is not None and lock.find("enable") is not None)
 
 
 def _discover_versions(branches_config):
@@ -133,7 +131,7 @@ def _discover_versions(branches_config):
         # Pick the highest version whose project is not locked
         latest = None
         for _, ver_str in versions:
-            subproj = "%s:%s:Factory" % (project, ver_str)
+            subproj = f"{project}:{ver_str}:Factory"
             if _is_project_locked(subproj):
                 log.info("branch %s: skipping %s (locked)", key, subproj)
                 continue
@@ -164,7 +162,7 @@ def _discover_versions(branches_config):
 
 def _load_config():
     """Load configuration and secret.  Called once on first request."""
-    global _INIT_ERROR, CONFIG, SECRET, OBS_API, BRANCHES
+    global CONFIG, SECRET, OBS_API, BRANCHES
     global DEFAULT_COMPILER, DEFAULT_MPI, COMPILER_DEPENDENT, MPI_DEPENDENT
 
     config_path = os.path.join(_HERE, "webhooks.json")
@@ -233,7 +231,7 @@ try:
     _load_config()
 except Exception:
     _INIT_ERROR = traceback.format_exc()
-    print("webhooks.py: config load failed:\n" + _INIT_ERROR, file=sys.stderr)
+    log.exception("config load failed")
 
 
 # ---------------------------------------------------------------------------
@@ -324,10 +322,10 @@ def _run_osc(*args):
     log.info("running: %s", " ".join(cmd))
     result = subprocess.run(
         cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        universal_newlines=True,
+        capture_output=True,
+        text=True,
         timeout=120,
+        check=False,
     )
     if result.returncode != 0:
         log.error(
