@@ -66,7 +66,7 @@ while true; do
 		;;
 	-i | --intel)
 		WITH_INTEL="true"
-		((TIMEOUT += 50))
+		((TIMEOUT += 150))
 		shift
 		;;
 	-b | --infiniband)
@@ -414,7 +414,7 @@ USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-scipy"
 USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-opencoarrays"
 
 if [[ "${VERSION_MAJOR}" == "2" ]]; then
-	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --with-mpi-families='mpich openmpi4'"
+	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --with-mpi-families='mpich openmpi5'"
 elif [[ "${TEST_ARCH}" == "x86_64" ]] && [[ "${VERSION_MAJOR}" != "2" ]]; then
 	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --with-mpi-families='mpich mvapich2 openmpi5'"
 else
@@ -584,6 +584,9 @@ if [ -z "${INSTALL_ONLY_BASEOS}" ]; then
 
 	if [[ "${RMS}" == "slurm" ]]; then
 		CMD="scontrol show job | grep JobId"
+	elif [[ "${RMS}" == "flux" ]]; then
+		# Flux job IDs aren't sequential; take the total job count instead
+		CMD="flux job stats | jq .job_states.total"
 	else
 		CMD="qstat -x"
 	fi

@@ -569,7 +569,11 @@ post_install_cmds() {
 		install_package slurm-sview-ohpc
 	fi
 	if [[ "${Architecture}" == "x86_64" && "${VERSION_MAJOR}" != "2" ]]; then
-		install_package ohpc-gnu15-mvapich2-parallel-libs
+		install_package ohpc-gnu16-mvapich2-parallel-libs
+	fi
+	if [[ "${VERSION_MAJOR}" == "2" ]]; then
+		# Needed for easybuild test
+		install_package ncurses-devel
 	fi
 	# shellcheck disable=SC2153
 	if [[ "${VERSION_MAJOR}" == "2" ]]; then

@@ -4,7 +4,7 @@
 {%- set base = 'AlmaLinux-'~release~'-latest/' -%}
 {%- if inventory_hostname_short.startswith('ohpc-lenovo-repo') -%}
 {%- set mirror1_base = 'http://mirrors.nxthost.com/almalinux/'~release~'/' -%}
-{%- set mirror2_base = 'http://mirrors.nav.ro/almalinux/'~release~'/' -%}
+{%- set mirror2_base = 'http://mirrors.hosterion.ro/almalinux/'~release~'/' -%}
 {%- elif inventory_hostname_short.startswith('ohpc-huawei-repo') -%}
 {%- set mirror1_base = 'http://mirrors.nju.edu.cn/almalinux/'~release~'/' -%}
 {%- set mirror2_base = 'http://mirrors.zju.edu.cn/almalinux/'~release~'/' -%}
