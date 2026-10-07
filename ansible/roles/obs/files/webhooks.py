@@ -54,10 +54,10 @@ def _run_osc_raw(*args):
     log.debug("running: %s", " ".join(cmd))
     result = subprocess.run(
         cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        universal_newlines=True,
+        capture_output=True,
+        text=True,
         timeout=120,
+        check=False,
     )
     if result.returncode != 0:
         log.error(
@@ -81,9 +81,7 @@ def _is_project_locked(subproject):
         log.warning("cannot parse meta XML for %s, assuming unlocked", subproject)
         return False
     lock = root.find("lock")
-    if lock is not None and lock.find("enable") is not None:
-        return True
-    return False
+    return bool(lock is not None and lock.find("enable") is not None)
 
 
 def _discover_versions(branches_config):
@@ -133,7 +131,7 @@ def _discover_versions(branches_config):
         # Pick the highest version whose project is not locked
         latest = None
         for _, ver_str in versions:
-            subproj = "%s:%s:Factory" % (project, ver_str)
+            subproj = f"{project}:{ver_str}:Factory"
             if _is_project_locked(subproj):
                 log.info("branch %s: skipping %s (locked)", key, subproj)
                 continue
@@ -154,14 +152,17 @@ def _discover_versions(branches_config):
             project,
             latest,
         )
-        result[key] = {"project": project, "version": latest}
+        # Preserve any per-branch overrides (e.g. default_compiler/default_mpi)
+        # that came from the config alongside the discovered version.
+        extra = {k: v for k, v in info.items() if k not in ("project", "version")}
+        result[key] = {"project": project, "version": latest, **extra}
 
     return result
 
 
 def _load_config():
     """Load configuration and secret.  Called once on first request."""
-    global _INIT_ERROR, CONFIG, SECRET, OBS_API, BRANCHES
+    global CONFIG, SECRET, OBS_API, BRANCHES
     global DEFAULT_COMPILER, DEFAULT_MPI, COMPILER_DEPENDENT, MPI_DEPENDENT
 
     config_path = os.path.join(_HERE, "webhooks.json")
@@ -202,12 +203,23 @@ def _load_config():
     # Discover latest Factory versions from OBS
     BRANCHES = _discover_versions(CONFIG.get("branches", {}))
 
+    # Resolve the effective compiler/MPI family per branch, falling back to
+    # the global defaults when a branch does not override them.
+    for binfo in BRANCHES.values():
+        binfo["compiler"] = binfo.get("default_compiler", DEFAULT_COMPILER)
+        binfo["mpi"] = binfo.get("default_mpi", DEFAULT_MPI)
+
     log.info("config loaded: obs_api=%s", OBS_API)
     for bkey, binfo in BRANCHES.items():
         log.info(
-            "branch %s: project=%s version=%s", bkey, binfo["project"], binfo["version"]
+            "branch %s: project=%s version=%s compiler=%s mpi=%s",
+            bkey,
+            binfo["project"],
+            binfo["version"],
+            binfo["compiler"],
+            binfo["mpi"],
         )
-    log.debug("defaults: compiler=%s mpi=%s", DEFAULT_COMPILER, DEFAULT_MPI)
+    log.debug("global defaults: compiler=%s mpi=%s", DEFAULT_COMPILER, DEFAULT_MPI)
     log.debug("compiler_dependent packages: %s", sorted(COMPILER_DEPENDENT))
     log.debug("mpi_dependent packages: %s", sorted(MPI_DEPENDENT))
 
@@ -219,7 +231,7 @@ try:
     _load_config()
 except Exception:
     _INIT_ERROR = traceback.format_exc()
-    print("webhooks.py: config load failed:\n" + _INIT_ERROR, file=sys.stderr)
+    log.exception("config load failed")
 
 
 # ---------------------------------------------------------------------------
@@ -227,29 +239,29 @@ except Exception:
 # ---------------------------------------------------------------------------
 
 
-def _tag_package(category, package):
+def _tag_package(category, package, compiler, mpi):
     """Apply compiler/MPI family suffix based on package lists or category.
 
     Returns the tagged package name used in OBS.
     """
     if package in COMPILER_DEPENDENT:
-        tagged = f"{package}-{DEFAULT_COMPILER}"
+        tagged = f"{package}-{compiler}"
         log.debug(
             "tag %s/%s -> %s (compiler_dependent list)", category, package, tagged
         )
         return tagged
     if package in MPI_DEPENDENT:
-        tagged = f"{package}-{DEFAULT_COMPILER}-{DEFAULT_MPI}"
+        tagged = f"{package}-{compiler}-{mpi}"
         log.debug("tag %s/%s -> %s (mpi_dependent list)", category, package, tagged)
         return tagged
 
     # Fall back to directory-based tagging
     if category == "serial-libs":
-        tagged = f"{package}-{DEFAULT_COMPILER}"
+        tagged = f"{package}-{compiler}"
         log.debug("tag %s/%s -> %s (serial-libs dir)", category, package, tagged)
         return tagged
     if category == "parallel-libs":
-        tagged = f"{package}-{DEFAULT_COMPILER}-{DEFAULT_MPI}"
+        tagged = f"{package}-{compiler}-{mpi}"
         log.debug("tag %s/%s -> %s (parallel-libs dir)", category, package, tagged)
         return tagged
 
@@ -257,7 +269,7 @@ def _tag_package(category, package):
     return package
 
 
-def _extract_packages(commits):
+def _extract_packages(commits, compiler, mpi):
     """Scan commit file lists and return a set of OBS package names."""
     packages = set()
     for commit in commits:
@@ -268,7 +280,7 @@ def _extract_packages(commits):
                 m = re.match(r"^components/([^/]+)/([^/]+)/", path)
                 if m:
                     category, pkg = m.group(1), m.group(2)
-                    packages.add(_tag_package(category, pkg))
+                    packages.add(_tag_package(category, pkg, compiler, mpi))
                 elif re.match(r"^docs/recipes/", path):
                     packages.add("docs")
                 elif re.match(r"^tests/", path):
@@ -310,10 +322,10 @@ def _run_osc(*args):
     log.info("running: %s", " ".join(cmd))
     result = subprocess.run(
         cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        universal_newlines=True,
+        capture_output=True,
+        text=True,
         timeout=120,
+        check=False,
     )
     if result.returncode != 0:
         log.error(
@@ -538,9 +550,12 @@ def application(environ, start_response):
             ).encode()
         ]
 
-    # Determine changed packages
+    # Determine changed packages, tagged with this branch's compiler/MPI
+    branch_info = BRANCHES.get(branch_key, {})
+    compiler = branch_info.get("compiler", DEFAULT_COMPILER)
+    mpi = branch_info.get("mpi", DEFAULT_MPI)
     commits = payload.get("commits", [])
-    packages = _extract_packages(commits)
+    packages = _extract_packages(commits, compiler, mpi)
 
     if not packages:
         log.info("no relevant packages changed in %s", ref)

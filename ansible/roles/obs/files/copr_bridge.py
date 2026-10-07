@@ -21,6 +21,8 @@ import coloredlogs
 from copr.v3 import Client
 from copr.v3.exceptions import CoprAuthException, CoprException
 
+logger = logging.getLogger(__name__)
+
 # Terminal build states from copr.v3
 TERMINAL_STATES = ("succeeded", "skipped", "failed", "canceled")
 
@@ -30,7 +32,7 @@ RETRY_BASE_SECONDS = 10
 
 
 def ERROR(output):
-    logging.error(output)
+    logger.error(output)
     sys.exit(1)
 
 
@@ -65,7 +67,7 @@ class InotifyWatcher:
             c_uint32(mask),
         )
         if wd < 0:
-            raise OSError(get_errno(), "inotify_add_watch failed for %s" % path)
+            raise OSError(get_errno(), f"inotify_add_watch failed for {path}")
         return wd
 
     def read_events(self):
@@ -121,8 +123,8 @@ class CoprBridge:
         """Split copr_project into (ownername, projectname)."""
         if "/" not in self.copr_project:
             ERROR(
-                "Invalid --copr-project format '%s'. "
-                "Expected 'owner/project' or '@group/project'." % self.copr_project
+                f"Invalid --copr-project format '{self.copr_project}'. "
+                "Expected 'owner/project' or '@group/project'."
             )
         parts = self.copr_project.split("/", 1)
         return parts[0], parts[1]
@@ -130,20 +132,20 @@ class CoprBridge:
     def load_state(self):
         """Load state from JSON file. Return empty state if missing or corrupt."""
         if not os.path.exists(self.state_file):
-            logging.debug("No state file found at %s, starting fresh", self.state_file)
+            logger.debug("No state file found at %s, starting fresh", self.state_file)
             return self._empty_state()
 
         try:
             with open(self.state_file) as f:
                 state = json.load(f)
-            logging.info(
+            logger.info(
                 "Loaded state from %s (%d builds tracked)",
                 self.state_file,
                 len(state.get("builds", {})),
             )
             return state
         except (json.JSONDecodeError, OSError) as e:
-            logging.warning(
+            logger.warning(
                 "Failed to read state file %s: %s. Starting with empty state.",
                 self.state_file,
                 e,
@@ -170,31 +172,30 @@ class CoprBridge:
                 f.write("\n")
             os.rename(tmp_path, self.state_file)
         except OSError as e:
-            logging.error("Failed to save state file: %s", e)
+            logger.error("Failed to save state file: %s", e)
 
     def scan_srpms(self):
         """Scan srpm_dir for *.src.rpm files, return sorted by mtime ascending."""
         srpm_dir = Path(self.srpm_dir)
         if not srpm_dir.is_dir():
-            ERROR("SRPM directory does not exist: %s" % self.srpm_dir)
+            ERROR(f"SRPM directory does not exist: {self.srpm_dir}")
 
         srpms = list(srpm_dir.glob("*.src.rpm"))
         srpms.sort(key=lambda p: p.stat().st_mtime)
-        logging.info("Found %d SRPMs in %s", len(srpms), self.srpm_dir)
+        logger.info("Found %d SRPMs in %s", len(srpms), self.srpm_dir)
         return srpms
 
     def should_process(self, srpm_name):
         """Check if an SRPM should be processed based on include/skip patterns."""
-        if self.include_patterns:
-            if not any(p.search(srpm_name) for p in self.include_patterns):
-                logging.debug(
-                    "SRPM %s: no include pattern matched, skipping", srpm_name
-                )
-                return False
+        if self.include_patterns and not any(
+            p.search(srpm_name) for p in self.include_patterns
+        ):
+            logger.debug("SRPM %s: no include pattern matched, skipping", srpm_name)
+            return False
 
         for pattern in self.skip_patterns:
             if pattern.search(srpm_name):
-                logging.debug(
+                logger.debug(
                     "SRPM %s: matched skip pattern '%s'",
                     srpm_name,
                     pattern.pattern,
@@ -219,7 +220,7 @@ class CoprBridge:
 
     def submit_build(self, srpm_path):
         """Upload SRPM to COPR and return the build object."""
-        logging.info("Submitting %s to COPR %s", srpm_path.name, self.copr_project)
+        logger.info("Submitting %s to COPR %s", srpm_path.name, self.copr_project)
 
         try:
             buildopts = {}
@@ -231,7 +232,7 @@ class CoprBridge:
                 path=str(srpm_path),
                 buildopts=buildopts if buildopts else None,
             )
-            logging.info(
+            logger.info(
                 "Build submitted: id=%d, url=https://copr.fedorainfracloud.org"
                 "/coprs/build/%d/",
                 build.id,
@@ -239,11 +240,9 @@ class CoprBridge:
             )
             return build
         except CoprAuthException as e:
-            ERROR(
-                "COPR authentication failed: %s\nCheck your ~/.config/copr token." % e
-            )
+            ERROR(f"COPR authentication failed: {e}\nCheck your ~/.config/copr token.")
         except CoprException as e:
-            logging.error("COPR API error submitting %s: %s", srpm_path.name, e)
+            logger.error("COPR API error submitting %s: %s", srpm_path.name, e)
             return None
 
     def poll_build(self, build_id):
@@ -258,7 +257,7 @@ class CoprBridge:
             except (CoprException, OSError) as e:
                 retries += 1
                 if retries > MAX_RETRIES:
-                    logging.error(
+                    logger.error(
                         "Failed to poll build %d after %d retries: %s",
                         build_id,
                         MAX_RETRIES,
@@ -266,7 +265,7 @@ class CoprBridge:
                     )
                     return None
                 wait_time = RETRY_BASE_SECONDS * (2 ** (retries - 1))
-                logging.warning(
+                logger.warning(
                     "Poll failed (attempt %d/%d), retrying in %ds: %s",
                     retries,
                     MAX_RETRIES,
@@ -277,7 +276,7 @@ class CoprBridge:
                 continue
 
             if build.state != last_state:
-                logging.info(
+                logger.info(
                     "Build %d: %s -> %s",
                     build_id,
                     last_state or "(new)",
@@ -289,7 +288,7 @@ class CoprBridge:
                 return build
 
             if build.state == "unknown":
-                logging.error("Build %d entered unknown state", build_id)
+                logger.error("Build %d entered unknown state", build_id)
                 return build
 
             time.sleep(self.poll_interval)
@@ -302,9 +301,7 @@ class CoprBridge:
         mtime = srpm_path.stat().st_mtime
 
         if self.dryrun:
-            logging.info(
-                "[dry-run] Would submit %s to %s", srpm_name, self.copr_project
-            )
+            logger.info("[dry-run] Would submit %s to %s", srpm_name, self.copr_project)
             self.state["builds"][srpm_name] = {
                 "status": "skipped",
                 "reason": "dry-run",
@@ -343,14 +340,14 @@ class CoprBridge:
             self.save_state()
             return False
 
-        build_url = "https://copr.fedorainfracloud.org/coprs/build/%d/" % result.id
+        build_url = f"https://copr.fedorainfracloud.org/coprs/build/{result.id}/"
 
         if result.state == "succeeded":
             self.state["builds"][srpm_name]["status"] = "succeeded"
             self.state["builds"][srpm_name]["completed_at"] = now_iso()
             self.state["last_succeeded"] = srpm_name
             self.save_state()
-            logging.info("Build succeeded: %s (%s)", srpm_name, build_url)
+            logger.info("Build succeeded: %s (%s)", srpm_name, build_url)
             return True
 
         self.state["builds"][srpm_name]["status"] = result.state
@@ -358,7 +355,7 @@ class CoprBridge:
         self.state["builds"][srpm_name]["build_url"] = build_url
         self.state["blocked_on"] = srpm_name
         self.save_state()
-        logging.error("Build %s for %s. See: %s", result.state, srpm_name, build_url)
+        logger.error("Build %s for %s. See: %s", result.state, srpm_name, build_url)
         return False
 
     @staticmethod
@@ -369,8 +366,7 @@ class CoprBridge:
         returns ('ohpc-filesystem', '4.2', '420.ohpc.1.1').
         """
         base = srpm_name
-        if base.endswith(".src.rpm"):
-            base = base[:-8]
+        base = base.removesuffix(".src.rpm")
         parts = base.rsplit("-", 2)
         if len(parts) != 3:
             return None
@@ -381,7 +377,7 @@ class CoprBridge:
         if self.client is None or self.force_rebuild:
             return set()
 
-        logging.info("Checking existing builds in COPR %s ...", self.copr_project)
+        logger.info("Checking existing builds in COPR %s ...", self.copr_project)
         existing = set()
         offset = 0
         limit = 100
@@ -409,11 +405,11 @@ class CoprBridge:
                     break
                 offset += limit
         except (CoprException, OSError) as e:
-            logging.warning("Failed to fetch existing builds from COPR: %s", e)
-            logging.warning("Proceeding without COPR build check")
+            logger.warning("Failed to fetch existing builds from COPR: %s", e)
+            logger.warning("Proceeding without COPR build check")
             return set()
 
-        logging.info("Found %d unique successful builds in COPR", len(existing))
+        logger.info("Found %d unique successful builds in COPR", len(existing))
         return existing
 
     def _already_in_copr(self, srpm_name, existing_builds):
@@ -422,10 +418,10 @@ class CoprBridge:
             return False
         nvr = self._parse_srpm_nvr(srpm_name)
         if nvr is None:
-            logging.warning("Could not parse NVR from %s, will not skip", srpm_name)
+            logger.warning("Could not parse NVR from %s, will not skip", srpm_name)
             return False
         name, version, release = nvr
-        return (name, "%s-%s" % (version, release)) in existing_builds
+        return (name, f"{version}-{release}") in existing_builds
 
     def _auto_reset_blocked(self):
         """If processing is blocked on a failed SRPM, reset it automatically."""
@@ -434,7 +430,7 @@ class CoprBridge:
             return
         entry = self.state["builds"].get(blocked)
         if entry and entry["status"] in ("failed", "canceled"):
-            logging.warning(
+            logger.warning(
                 "Auto-resetting previously failed SRPM '%s' for retry",
                 blocked,
             )
@@ -454,14 +450,14 @@ class CoprBridge:
 
         for srpm_path in srpms:
             if self._shutdown:
-                logging.info("Shutdown requested, stopping scan")
+                logger.info("Shutdown requested, stopping scan")
                 break
 
             srpm_name = srpm_path.name
 
             if self.already_processed(srpm_name):
                 status = self.state["builds"][srpm_name]["status"]
-                logging.debug("Skipping %s (already %s)", srpm_name, status)
+                logger.debug("Skipping %s (already %s)", srpm_name, status)
                 skipped_names.append(srpm_name)
                 continue
 
@@ -476,7 +472,7 @@ class CoprBridge:
                 continue
 
             if self._already_in_copr(srpm_name, existing_builds):
-                logging.info("Skipping %s (already built in COPR)", srpm_name)
+                logger.info("Skipping %s (already built in COPR)", srpm_name)
                 self.state["builds"][srpm_name] = {
                     "status": "skipped",
                     "reason": "already-in-copr",
@@ -497,7 +493,7 @@ class CoprBridge:
                     continue
                 break
 
-        logging.info(
+        logger.info(
             "Scan complete: %d succeeded, %d skipped, %d failed (of %d total)",
             len(succeeded_names),
             len(skipped_names),
@@ -505,22 +501,22 @@ class CoprBridge:
             len(srpms),
         )
         if succeeded_names:
-            logging.info("  Succeeded:")
+            logger.info("  Succeeded:")
             for name in succeeded_names:
-                logging.info("    - %s", name)
+                logger.info("    - %s", name)
         if skipped_names:
-            logging.info("  Skipped:")
+            logger.info("  Skipped:")
             for name in skipped_names:
-                logging.info("    - %s", name)
+                logger.info("    - %s", name)
         if failed_names:
-            logging.info("  Failed:")
+            logger.info("  Failed:")
             for name in failed_names:
-                logging.info("    - %s", name)
+                logger.info("    - %s", name)
 
     def run_watch(self):
         """Watch mode: initial scan then inotify event loop."""
         # Run initial scan first
-        logging.info("Running initial scan before entering watch mode")
+        logger.info("Running initial scan before entering watch mode")
         self._auto_reset_blocked()
 
         srpms = self.scan_srpms()
@@ -540,7 +536,7 @@ class CoprBridge:
                 self.save_state()
                 continue
             if self._already_in_copr(srpm_name, existing_builds):
-                logging.info("Skipping %s (already built in COPR)", srpm_name)
+                logger.info("Skipping %s (already built in COPR)", srpm_name)
                 self.state["builds"][srpm_name] = {
                     "status": "skipped",
                     "reason": "already-in-copr",
@@ -562,7 +558,7 @@ class CoprBridge:
         watcher = InotifyWatcher()
         mask = InotifyWatcher.IN_CLOSE_WRITE | InotifyWatcher.IN_MOVED_TO
         watcher.add_watch(self.srpm_dir, mask)
-        logging.info("Watching %s for new SRPMs...", self.srpm_dir)
+        logger.info("Watching %s for new SRPMs...", self.srpm_dir)
 
         try:
             while not self._shutdown:
@@ -581,7 +577,7 @@ class CoprBridge:
 
                     srpm_name = srpm_path.name
                     if self.already_processed(srpm_name):
-                        logging.debug("Already processed %s, ignoring", srpm_name)
+                        logger.debug("Already processed %s, ignoring", srpm_name)
                         continue
                     if not self.should_process(srpm_name):
                         self.state["builds"][srpm_name] = {
@@ -593,7 +589,7 @@ class CoprBridge:
                         continue
 
                     if self._already_in_copr(srpm_name, existing_builds):
-                        logging.info(
+                        logger.info(
                             "Skipping %s (already built in COPR)",
                             srpm_name,
                         )
@@ -605,15 +601,15 @@ class CoprBridge:
                         self.save_state()
                         continue
 
-                    logging.info("New SRPM detected: %s", srpm_name)
+                    logger.info("New SRPM detected: %s", srpm_name)
                     if not self.process_srpm(srpm_path):
                         if self.ignore_errors:
                             self.state["blocked_on"] = None
                             self.save_state()
                             continue
                         ERROR(
-                            "Build failed for %s. "
-                            "Fix and restart with --reset-failed." % srpm_name
+                            f"Build failed for {srpm_name}. "
+                            "Fix and restart with --reset-failed."
                         )
         finally:
             watcher.close()
@@ -621,13 +617,12 @@ class CoprBridge:
     def reset_failed(self, srpm_name):
         """Remove a failed SRPM from state so it will be retried."""
         if srpm_name not in self.state["builds"]:
-            ERROR("SRPM '%s' not found in state file" % srpm_name)
+            ERROR(f"SRPM '{srpm_name}' not found in state file")
 
         entry = self.state["builds"][srpm_name]
         if entry["status"] not in ("failed", "canceled"):
             ERROR(
-                "SRPM '%s' has status '%s', not failed/canceled"
-                % (srpm_name, entry["status"])
+                f"SRPM '{srpm_name}' has status '{entry['status']}', not failed/canceled"
             )
 
         old_status = entry["status"]
@@ -637,7 +632,7 @@ class CoprBridge:
             self.state["blocked_on"] = None
 
         self.save_state()
-        logging.info(
+        logger.info(
             "Removed '%s' (was '%s') from state. It will be retried on next run.",
             srpm_name,
             old_status,
@@ -648,7 +643,7 @@ class CoprBridge:
 
         def handler(signum, _frame):
             signame = signal.Signals(signum).name
-            logging.info("Received %s, shutting down gracefully...", signame)
+            logger.info("Received %s, shutting down gracefully...", signame)
             self._shutdown = True
 
         signal.signal(signal.SIGINT, handler)
