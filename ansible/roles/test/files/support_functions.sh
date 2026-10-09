@@ -448,6 +448,30 @@ install_openHPC_cluster() {
 		fi
 		# shellcheck disable=SC2016
 		sed '/export CHROOT/a mkdir -p $CHROOT/etc/dnf $CHROOT/etc/profile.d' -i "${recipeFile}"
+		echo "CI Customization: Switch to http in repository definition"
+		# genimage installs from the URLs in otherpkgdir, the repository
+		# files are only copied into the image after genimage.
+		sed -e '/otherpkgdir="\\$/,/"$/ s,https://,http://,g' -i "${recipeFile}"
+		sed "/cp \/etc\/yum.repos.d\/epel\*.repo/a sed -i '/\\\/metalink?/ s/$/\\\&protocol=http/g' \$CHROOT/etc/yum.repos.d/*repo" -i "${recipeFile}"
+		sed "/cp \/etc\/yum.repos.d\/epel\*.repo/a sed -i '/\\\/mirrorlist?/ s/$/\\\&protocol=http/g' \$CHROOT/etc/yum.repos.d/*repo" -i "${recipeFile}"
+		# The repository files for the booted image are copied from the
+		# host and already point to Factory or Staging. Only the image
+		# build (otherpkgdir) needs the additional repositories.
+		VERSION_MINOR=$(echo "${Version}" | awk -F. '{print $2}')
+		VERSION_MICRO=$(echo "${Version}" | awk -F. '{print $3}')
+		if [[ "${Repo}" == "Factory" ]]; then
+			echo "CI Customization: Add Factory repository to the image build"
+			# shellcheck disable=SC2153
+			sed -e "/otherpkgdir=\"\\\\$/,/\"$/ s|/\"$|/,http://obs.openhpc.community:82/OpenHPC${VERSION_MAJOR}:/${Version}:/Factory/${os_repo}/\"|" -i "${recipeFile}"
+		elif [[ "${Repo}" == "Staging" ]]; then
+			echo "CI Customization: Add Staging repository to the image build"
+			if [[ "${VERSION_MINOR}" == "0" ]] && [ -z "${VERSION_MICRO}" ]; then
+				# Initial release, the release repository does not exist yet
+				sed -e "s,repos.openhpc.community/OpenHPC/,repos.openhpc.community/.staging/OpenHPC/,g" -i "${recipeFile}"
+			else
+				sed -e "/otherpkgdir=\"\\\\$/,/\"$/ s|/\"$|/,http://repos.openhpc.community/.staging/OpenHPC/${VERSION_MAJOR}/${os_repo}/,http://repos.openhpc.community/.staging/OpenHPC/${VERSION_MAJOR}/updates/${os_repo}/\"|" -i "${recipeFile}"
+			fi
+		fi
 	fi
 
 	if [ "${PKG_MANAGER}" == "dnf" ]; then
