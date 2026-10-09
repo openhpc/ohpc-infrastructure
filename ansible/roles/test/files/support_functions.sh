@@ -430,6 +430,26 @@ install_openHPC_cluster() {
 	echo "DISTRIBUTION = $DISTRIBUTION"
 	echo "CI_CLUSTER = $CI_CLUSTER"
 
+	if [ "${Provisioner}" == "xcat_stateless" ]; then
+		echo "CI Customization: Add proxy and user_agent=curl to the stateless xCAT image"
+		# The chroot does not exist yet when CHROOT is exported, seed it
+		# before genimage so that the proxy is known inside the image.
+		# Each sed inserts directly after 'export CHROOT', so the lines
+		# are added in reverse order of how they end up in the recipe.
+		if [ -n "${http_proxy}" ]; then
+			sed "/export CHROOT/a echo -e \"[main]\\\\nuser_agent=curl\\\\nproxy=${http_proxy}\" >> \$CHROOT/etc/dnf/dnf.conf" -i "${recipeFile}"
+		else
+			# shellcheck disable=SC2016
+			sed '/export CHROOT/a echo -e "[main]\\nuser_agent=curl" >> $CHROOT/etc/dnf/dnf.conf' -i "${recipeFile}"
+		fi
+		if [ -e /etc/profile.d/proxy.sh ]; then
+			# shellcheck disable=SC2016
+			sed '/export CHROOT/a cp -v /etc/profile.d/proxy.sh $CHROOT/etc/profile.d/proxy.sh' -i "${recipeFile}"
+		fi
+		# shellcheck disable=SC2016
+		sed '/export CHROOT/a mkdir -p $CHROOT/etc/dnf $CHROOT/etc/profile.d' -i "${recipeFile}"
+	fi
+
 	if [ "${PKG_MANAGER}" == "dnf" ]; then
 		echo "CI Customization: Speed up dnf and reduce log noise"
 		echo "max_parallel_downloads=10" >>/etc/dnf/dnf.conf
