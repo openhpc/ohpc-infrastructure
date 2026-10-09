@@ -515,6 +515,16 @@ if [[ "${PROVISIONER}" == "confluent" ]]; then
 	fi
 fi
 
+if [[ "${PROVISIONER}" == "xcat_"* ]]; then
+	{
+		echo "export dns_domain=local"
+	} >>"${VARS}"
+
+	if [[ "${DISTRIBUTION}" == "almalinux10" ]]; then
+		echo "export iso_path=/root/AlmaLinux-10-latest-x86_64-dvd.iso" >>"${VARS}"
+	fi
+fi
+
 if [[ "${DISTRIBUTION}" == "almalinux"* ]] && [[ "${SMS}" == "ohpc-huawei-sms" ]]; then
 	echo "export YUM_MIRROR_BASE=http://mirrors.nju.edu.cn/almalinux/" >>"${VARS}"
 fi
