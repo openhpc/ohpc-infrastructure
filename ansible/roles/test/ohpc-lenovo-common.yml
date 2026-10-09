@@ -5,7 +5,7 @@
     line: "{{ item }}"
   with_items:
     - 10.241.58.130 ohpc-lenovo-repo repo
-    - 10.241.58.134 ohpc-lenovo-sms sms
+    - 10.241.58.134 ohpc-lenovo-sms sms ohpc-lenovo-sms.local
     - 10.241.58.132 ohpc-lenovo-c1 c1
     - 10.241.58.133 ohpc-lenovo-c2 c2
     - 10.241.58.131 ohpc-lenovo-c3 c3

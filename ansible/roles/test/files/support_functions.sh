@@ -678,7 +678,7 @@ pre_install_cmds() {
 		# shellcheck disable=SC1090
 		. "${inputFile}"
 	fi
-	if [ "${Provisioner}" == "confluent" ]; then
+	if [[ "${Provisioner}" == "confluent" ]] || [[ "${Provisioner}" == "xcat_state"* ]]; then
 		echo "Downloading ISO image for compute nodes installation $(basename "${iso_path}")"
 		wget -q http://10.241.58.130/"$(basename "${iso_path}")"
 	fi
