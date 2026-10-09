@@ -545,7 +545,7 @@ post_install_cmds() {
 	if [ "${Provisioner}" == "warewulf" ]; then
 		wwsh file sync
 		local_sleep 10
-	elif [ "${Provisioner}" == "xcat" ]; then
+	elif [[ "${Provisioner}" == "xcat"* ]]; then
 		local_sleep 1
 		/opt/xcat/bin/updatenode compute -F
 	elif [ "${Provisioner}" == "openchami" ]; then
