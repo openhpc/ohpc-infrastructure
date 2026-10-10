@@ -432,22 +432,27 @@ install_openHPC_cluster() {
 
 	if [ "${Provisioner}" == "xcat_stateless" ]; then
 		echo "CI Customization: Add proxy and user_agent=curl to the stateless xCAT image"
-		# The chroot does not exist yet when CHROOT is exported, seed it
-		# before genimage so that the proxy is known inside the image.
-		# Each sed inserts directly after 'export CHROOT', so the lines
-		# are added in reverse order of how they end up in the recipe.
-		if [ -n "${http_proxy}" ]; then
-			sed "/export CHROOT/a echo -e \"[main]\\\\nuser_agent=curl\\\\nproxy=${http_proxy}\" >> \$CHROOT/etc/dnf/dnf.conf" -i "${recipeFile}"
-		else
-			# shellcheck disable=SC2016
-			sed '/export CHROOT/a echo -e "[main]\\nuser_agent=curl" >> $CHROOT/etc/dnf/dnf.conf' -i "${recipeFile}"
-		fi
+		# The chroot does not exist yet at the proxy marker, seed it before
+		# genimage so that the proxy is known inside the image. The lines
+		# are inserted before the marker as the marker itself is replaced
+		# later with commands appending to the dnf.conf in the chroot.
+		# shellcheck disable=SC2016
+		sed '/ohpc_proxy:compute/i mkdir -p $CHROOT/etc/dnf $CHROOT/etc/profile.d' -i "${recipeFile}"
 		if [ -e /etc/profile.d/proxy.sh ]; then
 			# shellcheck disable=SC2016
-			sed '/export CHROOT/a cp -v /etc/profile.d/proxy.sh $CHROOT/etc/profile.d/proxy.sh' -i "${recipeFile}"
+			sed '/ohpc_proxy:compute/i cp -v /etc/profile.d/proxy.sh $CHROOT/etc/profile.d/proxy.sh' -i "${recipeFile}"
 		fi
-		# shellcheck disable=SC2016
-		sed '/export CHROOT/a mkdir -p $CHROOT/etc/dnf $CHROOT/etc/profile.d' -i "${recipeFile}"
+		if [ -n "${http_proxy}" ]; then
+			sed "/ohpc_proxy:compute/i echo -e \"[main]\\\\nuser_agent=curl\\\\nproxy=${http_proxy}\" >> \$CHROOT/etc/dnf/dnf.conf" -i "${recipeFile}"
+		else
+			# shellcheck disable=SC2016
+			sed '/ohpc_proxy:compute/i echo -e "[main]\\nuser_agent=curl" >> $CHROOT/etc/dnf/dnf.conf' -i "${recipeFile}"
+		fi
+		# genimage uses its own dnf configuration, /etc/dnf/dnf.conf is
+		# not used. The proxy is picked up from the environment, but the
+		# user agent can only be set via the dnf command genimage builds.
+		sed "/ohpc_proxy:compute/i sed -i 's|--disablerepo=\\\\* \";|--disablerepo=* --setopt=user_agent=curl \";|' /opt/xcat/share/xcat/netboot/imgutils/imgutils.pm" -i "${recipeFile}"
+		sed "/ohpc_proxy:compute/i grep -q 'user_agent=curl' /opt/xcat/share/xcat/netboot/imgutils/imgutils.pm" -i "${recipeFile}"
 		echo "CI Customization: Switch to http in repository definition"
 		# genimage installs from the URLs in otherpkgdir, the repository
 		# files are only copied into the image after genimage.
