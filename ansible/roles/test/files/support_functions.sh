@@ -595,7 +595,7 @@ post_install_cmds() {
 			local_sleep "${waittime}"
 			if [ "${Provisioner}" == "warewulf" ]; then
 				koomie_cf -x "$compute_prefix\d+" /warewulf/bin/wwgetfiles
-			elif [ "${Provisioner}" == "xcat" ]; then
+			elif [[ "${Provisioner}" == "xcat"* ]]; then
 				/opt/xcat/bin/updatenode compute -F
 			elif [ "${Provisioner}" == "confluent" ]; then
 				/opt/confluent/bin/nodeapply -F compute
@@ -902,7 +902,7 @@ wait_for_computes() {
 	elif [ "${Provisioner}" == "warewulf" ]; then
 		wwsh file sync
 		local_sleep 10
-	elif [ "${Provisioner}" == "xcat" ]; then
+	elif [[ "${Provisioner}" == "xcat"* ]]; then
 		/opt/xcat/bin/updatenode compute -F
 	elif [ "${Provisioner}" == "confluent" ]; then
 		/opt/confluent/bin/nodeshell compute setenforce 0
