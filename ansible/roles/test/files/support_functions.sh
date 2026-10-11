@@ -449,10 +449,20 @@ install_openHPC_cluster() {
 			sed '/ohpc_proxy:compute/i echo -e "[main]\\nuser_agent=curl" >> $CHROOT/etc/dnf/dnf.conf' -i "${recipeFile}"
 		fi
 		# genimage uses its own dnf configuration, /etc/dnf/dnf.conf is
-		# not used. The proxy is picked up from the environment, but the
-		# user agent can only be set via the dnf command genimage builds.
+		# not used. The user agent can only be set via the dnf command
+		# genimage builds.
 		sed "/ohpc_proxy:compute/i sed -i 's|--disablerepo=\\\\* \";|--disablerepo=* --setopt=user_agent=curl \";|' /opt/xcat/share/xcat/netboot/imgutils/imgutils.pm" -i "${recipeFile}"
 		sed "/ohpc_proxy:compute/i grep -q 'user_agent=curl' /opt/xcat/share/xcat/netboot/imgutils/imgutils.pm" -i "${recipeFile}"
+		if [ -n "${http_proxy}" ]; then
+			# genimage runs under xcatd and does not see the proxy from the
+			# environment of the recipe. The supported way is the #ENV: line
+			# in the package list, genimage prefixes its dnf command with
+			# it. No commas allowed, xCAT splits package lists on commas, so
+			# no_proxy can only contain a single host.
+			local OTHERPKGLIST
+			OTHERPKGLIST=$(grep -o '/install/custom/netboot/[^ ]*/ohpc.otherpkgs.pkglist' "${recipeFile}" | head -1)
+			sed "/ohpc_proxy:compute/i echo \"#ENV:https_proxy=${http_proxy} http_proxy=${http_proxy} no_proxy=\${sms_ip}#\" >> ${OTHERPKGLIST}" -i "${recipeFile}"
+		fi
 		echo "CI Customization: Switch to http in repository definition"
 		# genimage installs from the URLs in otherpkgdir, the repository
 		# files are only copied into the image after genimage.
