@@ -334,8 +334,11 @@ install_openHPC_cluster() {
 			echo "CI Customization: Switch to curl as dnf user agent"
 			# shellcheck disable=SC2016
 			sed '/ohpc_proxy:head/a echo -e "[main]\\nuser_agent=curl" >> $CHROOT/etc/dnf/dnf.conf' -i "${recipeFile}"
-			# shellcheck disable=SC2016
-			sed '/ohpc_proxy:compute/a echo -e "[main]\\nuser_agent=curl" >> $CHROOT/etc/dnf/dnf.conf' -i "${recipeFile}"
+			if [[ "${Provisioner}" != "xcat_state"* ]]; then
+				# The xCAT provisioners set the user agent themselves
+				# shellcheck disable=SC2016
+				sed '/ohpc_proxy:compute/a echo -e "[main]\\nuser_agent=curl" >> $CHROOT/etc/dnf/dnf.conf' -i "${recipeFile}"
+			fi
 			# shellcheck disable=SC2016
 			sed '/CHROOT install epel-release/a echo -e "[main]\\nuser_agent=curl" >> $CHROOT/etc/dnf/dnf.conf' -i "${recipeFile}"
 		fi
@@ -464,27 +467,63 @@ install_openHPC_cluster() {
 			sed "/ohpc_proxy:compute/i echo \"#ENV:https_proxy=${http_proxy} http_proxy=${http_proxy} no_proxy=\${sms_ip}#\" >> ${OTHERPKGLIST}" -i "${recipeFile}"
 		fi
 		echo "CI Customization: Switch to http in repository definition"
-		# genimage installs from the URLs in otherpkgdir, the repository
-		# files are only copied into the image after genimage.
-		sed -e '/otherpkgdir="\\$/,/"$/ s,https://,http://,g' -i "${recipeFile}"
+		# The repository files are copied into the image after genimage.
 		sed "/cp \/etc\/yum.repos.d\/epel\*.repo/a sed -i '/\\\/metalink?/ s/$/\\\&protocol=http/g' \$CHROOT/etc/yum.repos.d/*repo" -i "${recipeFile}"
 		sed "/cp \/etc\/yum.repos.d\/epel\*.repo/a sed -i '/\\\/mirrorlist?/ s/$/\\\&protocol=http/g' \$CHROOT/etc/yum.repos.d/*repo" -i "${recipeFile}"
-		# The repository files for the booted image are copied from the
-		# host and already point to Factory or Staging. Only the image
-		# build (otherpkgdir) needs the additional repositories.
+	fi
+
+	if [ "${Provisioner}" == "xcat_stateful" ]; then
+		echo "CI Customization: Add proxy and user_agent=curl to the stateful xCAT nodes"
+		# The nodes are installed from the local xCAT tree, the OpenHPC
+		# packages are installed by the otherpkgs postbootscript at the
+		# first boot. Run a postscript during the installation to set the
+		# proxy and the dnf user agent on the nodes before otherpkgs runs.
+		{
+			echo '#!/bin/sh'
+			echo '# OpenHPC CI customization -- proxy and dnf settings for the compute nodes'
+			if [ -e /etc/profile.d/proxy.sh ]; then
+				echo "cat > /etc/profile.d/proxy.sh << 'EOF'"
+				cat /etc/profile.d/proxy.sh
+				echo "EOF"
+			fi
+			if [ -n "${http_proxy}" ]; then
+				echo "echo proxy=${http_proxy} >> /etc/dnf/dnf.conf"
+			fi
+			echo "echo user_agent=curl >> /etc/dnf/dnf.conf"
+			echo "echo max_parallel_downloads=10 >> /etc/dnf/dnf.conf"
+			echo "echo debuglevel=1 >> /etc/dnf/dnf.conf"
+		} >/root/ohpc-ci-proxy
+		chmod 0755 /root/ohpc-ci-proxy
+		# Inserted before the marker as the marker itself is replaced later.
+		sed '/ohpc_proxy:compute/i cp /root/ohpc-ci-proxy /install/postscripts/ohpc-ci-proxy' -i "${recipeFile}"
+		sed '/ohpc_proxy:compute/i chdef compute -p postscripts=ohpc-ci-proxy' -i "${recipeFile}"
+		if [[ "${Repo}" == "Staging" ]]; then
+			# The otherpkgs repositories stay enabled on the nodes, only the
+			# OpenHPC.repo from ohpc-release needs to point to Staging.
+			echo "CI Customization: Sync the Staging repository file to the compute nodes"
+			# shellcheck disable=SC2016
+			sed '/ohpc_proxy:compute/i echo "/etc/yum.repos.d/OpenHPC.repo -> /etc/yum.repos.d/OpenHPC.repo" >> ${xcat_synclist_dir}/compute.synclist' -i "${recipeFile}"
+		fi
+	fi
+
+	if [[ "${Provisioner}" == "xcat_state"* ]]; then
+		echo "CI Customization: Switch to http in the otherpkgdir repositories"
+		# genimage (stateless) and the otherpkgs postbootscript on the nodes
+		# (stateful) install the OpenHPC packages from the otherpkgdir URLs.
+		sed -e '/otherpkgdir="/,/"$/ s,https://,http://,g' -i "${recipeFile}"
 		VERSION_MINOR=$(echo "${Version}" | awk -F. '{print $2}')
 		VERSION_MICRO=$(echo "${Version}" | awk -F. '{print $3}')
 		if [[ "${Repo}" == "Factory" ]]; then
-			echo "CI Customization: Add Factory repository to the image build"
+			echo "CI Customization: Add Factory repository to otherpkgdir"
 			# shellcheck disable=SC2153
-			sed -e "/otherpkgdir=\"\\\\$/,/\"$/ s|/\"$|/,http://obs.openhpc.community:82/OpenHPC${VERSION_MAJOR}:/${Version}:/Factory/${os_repo}/\"|" -i "${recipeFile}"
+			sed -e "/otherpkgdir=\"/,/\"$/ s|/\"$|/,http://obs.openhpc.community:82/OpenHPC${VERSION_MAJOR}:/${Version}:/Factory/${os_repo}/\"|" -i "${recipeFile}"
 		elif [[ "${Repo}" == "Staging" ]]; then
-			echo "CI Customization: Add Staging repository to the image build"
+			echo "CI Customization: Add Staging repository to otherpkgdir"
 			if [[ "${VERSION_MINOR}" == "0" ]] && [ -z "${VERSION_MICRO}" ]; then
 				# Initial release, the release repository does not exist yet
 				sed -e "s,repos.openhpc.community/OpenHPC/,repos.openhpc.community/.staging/OpenHPC/,g" -i "${recipeFile}"
 			else
-				sed -e "/otherpkgdir=\"\\\\$/,/\"$/ s|/\"$|/,http://repos.openhpc.community/.staging/OpenHPC/${VERSION_MAJOR}/${os_repo}/,http://repos.openhpc.community/.staging/OpenHPC/${VERSION_MAJOR}/updates/${os_repo}/\"|" -i "${recipeFile}"
+				sed -e "/otherpkgdir=\"/,/\"$/ s|/\"$|/,http://repos.openhpc.community/.staging/OpenHPC/${VERSION_MAJOR}/${os_repo}/,http://repos.openhpc.community/.staging/OpenHPC/${VERSION_MAJOR}/updates/${os_repo}/\"|" -i "${recipeFile}"
 			fi
 		fi
 	fi
@@ -493,8 +532,12 @@ install_openHPC_cluster() {
 		echo "CI Customization: Speed up dnf and reduce log noise"
 		echo "max_parallel_downloads=10" >>/etc/dnf/dnf.conf
 		echo "debuglevel=1" >>/etc/dnf/dnf.conf
-		# shellcheck disable=SC2016
-		sed 's|#<<< ohpc_proxy:compute >>>#|echo "max_parallel_downloads=10" >> $CHROOT/etc/dnf/dnf.conf\necho "debuglevel=1" >> $CHROOT/etc/dnf/dnf.conf|' -i "${recipeFile}"
+		if [ "${Provisioner}" != "xcat_stateful" ]; then
+			# There is no chroot with xcat_stateful, the nodes are
+			# configured by the ohpc-ci-proxy postscript instead.
+			# shellcheck disable=SC2016
+			sed 's|#<<< ohpc_proxy:compute >>>#|echo "max_parallel_downloads=10" >> $CHROOT/etc/dnf/dnf.conf\necho "debuglevel=1" >> $CHROOT/etc/dnf/dnf.conf|' -i "${recipeFile}"
+		fi
 		# shellcheck disable=SC2016
 		sed '/CHROOT install epel-release/a echo "install_weak_deps=1" >> $CHROOT/etc/dnf/dnf.conf' -i "${recipeFile}"
 		# shellcheck disable=SC2016
