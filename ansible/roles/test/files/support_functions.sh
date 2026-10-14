@@ -427,6 +427,14 @@ install_openHPC_cluster() {
 				dnf -y --installroot=\$CHROOT install opensm; chroot \$CHROOT systemctl enable opensm,g" -i "${recipeFile}"
 			# switch mellanox cards to InfiniBand mode: mstconfig -d 8a:00.0 set LINK_TYPE_P1=1
 		fi
+		if [[ "${Provisioner}" == "warewulf"* ]]; then
+			echo "CI Customization: Do not configure IPoIB on the head node"
+			# The Lenovo cluster only has InfiniBand cards in the compute
+			# nodes. The nmcli add command spans two lines. The up command
+			# is turned into a no-op so that the if block does not end up
+			# empty.
+			sed -e '/^nmcli connection add type infiniband/,+1 s/^/#/' -e 's/^nmcli connection up ipoib/true # &/' -i "${recipeFile}"
+		fi
 	else
 		echo "No CI specialization"
 	fi
