@@ -420,11 +420,13 @@ install_openHPC_cluster() {
 			# shellcheck disable=SC2016
 			sed '/Add OpenHPC base components to compute image/i /usr/bin/cp -vf /etc/yum.repos.d/OpenHPC*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
 		fi
-		if [ "${enable_ib}" -eq 1 ] || [ "${Provisioner}" == "warewulf" ]; then
+		if [ "${enable_ib}" -eq 1 ] || [[ "${Provisioner}" == "warewulf"* ]]; then
 			echo "CI Customization: Install opensm on compute node"
-			# for warewulf stateless provisioning we need a way to install opensm on one of the compute nodes
-			sed -e "s,\(dnf -y --installroot=\$CHROOT groupinstall \"InfiniBand Support\"\),\1 ; \
-				dnf -y --installroot=\$CHROOT install opensm; chroot \$CHROOT systemctl enable opensm,g" -i "${recipeFile}"
+			# For warewulf stateless provisioning we need a way to install
+			# opensm on one of the compute nodes. Current recipes quote
+			# $CHROOT, older ones did not, so the quotes are optional.
+			# shellcheck disable=SC2016
+			sed -e 's,\(dnf -y --installroot="\?$CHROOT"\? groupinstall "InfiniBand Support"\),\1 ; dnf -y --installroot="$CHROOT" install opensm; chroot "$CHROOT" systemctl enable opensm,g' -i "${recipeFile}"
 			# switch mellanox cards to InfiniBand mode: mstconfig -d 8a:00.0 set LINK_TYPE_P1=1
 		fi
 		if [[ "${Provisioner}" == "warewulf"* ]]; then
