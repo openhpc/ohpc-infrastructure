@@ -2,7 +2,7 @@
   "Dhcp4": {
     "interfaces-config": {
       "interfaces": [
-        "enp189s0f0"
+        "enp125s0f0"
       ]
     },
     "control-socket": {
@@ -15,6 +15,10 @@
         "data": "8.8.8.8"
       },
       {
+        "name": "routers",
+        "data": "192.168.24.1"
+      },
+      {
         "name": "boot-file-name",
         "data": "grubaa64.efi"
       }
@@ -22,12 +26,12 @@
     "subnet4": [
       {
         "id": 1,
-        "subnet": "175.200.0.0/16",
+        "subnet": "192.168.0.0/16",
         "reservations": [
           {
-            "hw-address": "f4:de:af:6c:ce:a2",
-            "next-server": "175.200.16.14",
-            "ip-address": "175.200.16.11"
+            "hw-address": "18:56:44:a5:82:fa",
+            "next-server": "192.168.29.53",
+            "ip-address": "192.168.29.54"
           }
         ]
       }

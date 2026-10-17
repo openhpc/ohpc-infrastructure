@@ -3,9 +3,9 @@
   gather_facts: true
   vars:
     distro: openEuler_22.03
-    disks: sda,sdb
-    repo: 175.200.16.14
-    proxy: 175.200.16.14:3128
+    disks: sda
+    repo: 192.168.29.53
+    proxy: 192.168.29.53:3128
     cluster: huawei
     arch: aarch64
     arch_short: aa64
@@ -24,7 +24,7 @@
         state: present
         line: "{{ item }}"
       with_items:
-        - "allow 175.200.16.11/16"
+        - "allow 192.168.0.0/16"
       notify:
         - Restart chronyd
 
