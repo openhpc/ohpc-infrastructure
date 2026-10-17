@@ -28,6 +28,27 @@
       notify:
         - Restart chronyd
 
+    - name: Install skopeo
+      ansible.builtin.package:
+        state: present
+        name: skopeo
+
+    - name: Install registry image sync script
+      ansible.builtin.copy:
+        src: sync-registry-images.sh
+        dest: /usr/local/bin/sync-registry-images.sh
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install docker.io mirror configuration
+      ansible.builtin.copy:
+        src: registries-docker.io-mirror.conf
+        dest: /etc/containers/registries.conf.d/docker.io-mirror.conf
+        owner: root
+        group: root
+        mode: "0644"
+
     - name: Install registry.container definition
       ansible.builtin.copy:
         src: registry.container
@@ -37,6 +58,11 @@
         mode: "0644"
       notify:
         - Systemd daemon-reload
+
+    # Let systemd generate the registry.service unit from the quadlet
+    # before trying to enable it.
+    - name: Flush handlers
+      ansible.builtin.meta: flush_handlers
 
     - name: Enable services
       ansible.builtin.service:
