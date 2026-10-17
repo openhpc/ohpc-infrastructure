@@ -28,6 +28,14 @@
       notify:
         - Restart chronyd
 
+    - name: Configure proxy
+      ansible.builtin.copy:
+        dest: /etc/profile.d/proxy.sh
+        src: "proxy.sh.{{ cluster }}"
+        owner: root
+        group: root
+        mode: "0644"
+
     - name: Install skopeo
       ansible.builtin.package:
         state: present

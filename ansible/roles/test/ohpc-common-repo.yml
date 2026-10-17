@@ -45,9 +45,19 @@
       - screen
       - nmap-ncat
       - python3-virtualenv
+      - vim-enhanced
+      - bash-completion
 
 - name: "Import ohpc-cluster-common.yml for {{ cluster }}"
   ansible.builtin.import_tasks: "ohpc-{{ cluster }}-common.yml"
+
+# run-ci.sh uses junit2html to merge and render the test results
+- name: Install junit2html into a virtualenv
+  ansible.builtin.pip:
+    name: junit2html
+    virtualenv: /usr/local/junit2html
+    virtualenv_command: /usr/bin/python3 -m venv
+    extra_args: "{{ '-i https://mirrors.aliyun.com/pypi/simple/' if cluster == 'huawei' else '' }}"
 
 - name: Create directories
   ansible.builtin.file:

@@ -114,8 +114,22 @@
       - ipmitool
       - rsync
       - chrony
+      - tcpdump
       - bats
+      - bash-completion
   when: distro != "leap15.3"
+
+- name: Install vim
+  ansible.builtin.package:
+    state: present
+    name: vim-enhanced
+  when: not distro.startswith("leap15")
+
+- name: Install vim
+  ansible.builtin.package:
+    state: present
+    name: vim
+  when: distro == "leap15.5"
 
 - name: "Import ohpc-cluster-common.yml for {{ cluster }}"
   ansible.builtin.import_tasks: "ohpc-{{ cluster }}-common.yml"
@@ -124,9 +138,12 @@
   ansible.builtin.file:
     dest: "{{ item }}"
     state: directory
+    owner: root
+    group: root
     mode: "0755"
   with_items:
     - /root/ci
+    - /results
 
 - name: Copy helper scripts
   ansible.builtin.copy:
