@@ -457,7 +457,8 @@ set -e
 VARS=$(mktemp)
 
 cat vars >"${VARS}"
-echo "export IPMI_PASSWORD=${SMS_IPMI_PASSWORD}" >>"${VARS}"
+# the file is sourced on the SMS, quote the password for bash
+printf 'export IPMI_PASSWORD=%q\n' "${SMS_IPMI_PASSWORD}" >>"${VARS}"
 
 set -x
 
