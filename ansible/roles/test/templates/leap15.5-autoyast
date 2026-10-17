@@ -116,7 +116,7 @@
 {% if inventory_hostname_short.startswith('ohpc-lenovo-repo') %}
 				<ipaddr>10.241.58.134</ipaddr>
 {% elif inventory_hostname_short.startswith('ohpc-huawei-repo') %}
-				<ipaddr>175.200.16.11</ipaddr>
+				<ipaddr>192.168.29.54</ipaddr>
 {% endif %}
 				<mtu>0</mtu>
 				<name>eth0</name>
@@ -139,15 +139,9 @@
 {% if inventory_hostname_short.startswith('ohpc-lenovo-repo') %}
 					<gateway>10.241.58.129</gateway>
 {% elif inventory_hostname_short.startswith('ohpc-huawei-repo') %}
-					<gateway>175.200.0.1</gateway>
+					<gateway>192.168.24.1</gateway>
 {% endif %}
 				</route>
-{% if inventory_hostname_short.startswith('ohpc-huawei-repo') %}
-				<route>
-					<destination>150.50.0.0/16</destination>
-					<gateway>175.200.16.14</gateway>
-				</route>
-{% endif %}
 			</routes>
 			<ipv4_forward t="boolean">false</ipv4_forward>
 			<ipv6_forward t="boolean">false</ipv6_forward>

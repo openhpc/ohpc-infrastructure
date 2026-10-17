@@ -1,11 +1,11 @@
 [ohpc_huawei_jumper]
-ohpc-huawei-jumper
+openhpc-jumper ansible_python_interpreter=/usr/bin/python3
 
 [ohpc_huawei_sms]
 ohpc-huawei-sms
 
 [ohpc_huawei_repo]
-ohpc-huawei-repo
+ohpc-huawei-repo ansible_python_interpreter=/usr/bin/python3
 
 [ohpc_lenovo_repo]
 ohpc-lenovo-repo

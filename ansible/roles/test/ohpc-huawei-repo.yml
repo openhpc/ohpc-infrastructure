@@ -3,9 +3,9 @@
   gather_facts: true
   vars:
     distro: openEuler_22.03
-    disks: sda,sdb
-    repo: 175.200.16.14
-    proxy: 175.200.16.14:3128
+    disks: sda
+    repo: 192.168.29.53
+    proxy: 192.168.29.53:3128
     cluster: huawei
     arch: aarch64
     arch_short: aa64
@@ -24,25 +24,38 @@
         state: present
         line: "{{ item }}"
       with_items:
-        - "allow 175.200.16.11/16"
+        - "allow 192.168.0.0/16"
       notify:
         - Restart chronyd
 
-    - name: Install openvpn server file
-      ansible.builtin.template:
-        src: server-tun1.conf
-        dest: /etc/openvpn/server/tun1.conf
-        owner: root
-        group: root
-        mode: "0600"
-
-    - name: Install openvpn key file
+    - name: Configure proxy
       ansible.builtin.copy:
-        src: /etc/openvpn/client/test.key
-        dest: /etc/openvpn/server/test.key
+        dest: /etc/profile.d/proxy.sh
+        src: "proxy.sh.{{ cluster }}"
         owner: root
         group: root
-        mode: "0600"
+        mode: "0644"
+
+    - name: Install skopeo
+      ansible.builtin.package:
+        state: present
+        name: skopeo
+
+    - name: Install registry image sync script
+      ansible.builtin.copy:
+        src: sync-registry-images.sh
+        dest: /usr/local/bin/sync-registry-images.sh
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install docker.io mirror configuration
+      ansible.builtin.copy:
+        src: registries-docker.io-mirror.conf
+        dest: /etc/containers/registries.conf.d/docker.io-mirror.conf
+        owner: root
+        group: root
+        mode: "0644"
 
     - name: Install registry.container definition
       ansible.builtin.copy:
@@ -54,13 +67,17 @@
       notify:
         - Systemd daemon-reload
 
+    # Let systemd generate the registry.service unit from the quadlet
+    # before trying to enable it.
+    - name: Flush handlers
+      ansible.builtin.meta: flush_handlers
+
     - name: Enable services
       ansible.builtin.service:
         name: "{{ item }}"
         enabled: true
         state: started
       with_items:
-        - openvpn-server@tun1
         - registry.service
 
     - name: Enable masquerade in public zone
@@ -83,16 +100,6 @@
       tags:
         - skip_ansible_lint
 
-    - name: Add tun1 to public zone
-      ansible.posix.firewalld:
-        zone: public
-        interface: tun1
-        permanent: true
-        immediate: true
-        state: enabled
-      tags:
-        - skip_ansible_lint
-
     - name: Open firewall ports
       ansible.posix.firewalld:
         zone: public
@@ -104,5 +111,4 @@
         - skip_ansible_lint
       with_items:
         - 123/udp
-        - 1194/udp
         - 5000/tcp

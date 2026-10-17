@@ -99,9 +99,9 @@ lang en_US.UTF-8
 
 {% if inventory_hostname_short.startswith('ohpc-huawei-repo') %}
 	{% if type == 'el' %}
-		network --hostname=ohpc-huawei-sms --device=enp189s0f0 --ip=175.200.16.11 --netmask=255.255.0.0 --gateway=175.200.0.1 --bootproto=static --nameserver=8.8.8.8
+		network --hostname=ohpc-huawei-sms --device=enp125s0f0 --ip=192.168.29.54 --netmask=255.255.0.0 --gateway=192.168.24.1 --bootproto=static --nameserver=8.8.8.8
 	{% elif type == 'openeuler' %}
-		network --hostname=ohpc-huawei-sms --device=enp189s0f0 --ip=175.200.16.11 --netmask=255.255.0.0 --gateway=175.200.0.1 --bootproto=static --nameserver=8.8.8.8
+		network --hostname=ohpc-huawei-sms --device=enp125s0f0 --ip=192.168.29.54 --netmask=255.255.0.0 --gateway=192.168.24.1 --bootproto=static --nameserver=8.8.8.8
 	{% endif %}
 {% endif %}
 
@@ -163,13 +163,6 @@ curl -so /dev/null http://{{ repo }}/kickstart-progress/post-started-{{ distro }
 	echo "gpgcheck=0" >> /etc/yum.repos.d/AppStreamMirror2.repo
 	curl -so /dev/null http://{{ repo }}/kickstart-progress/epel-install-{{ distro }} || true
 	dnf -y install epel-release
-	{% if inventory_hostname_short.startswith('ohpc-huawei-repo') %}
-		cat /etc/NetworkManager/system-connections/enp189s0f0.nmconnection | \
-			nmcli --offline connection modify +ipv4.routes "150.50.0.0/16 175.200.16.14" > \
-			/etc/NetworkManager/system-connections/enp189s0f0.nmconnection.new
-		mv /etc/NetworkManager/system-connections/enp189s0f0.nmconnection.new /etc/NetworkManager/system-connections/enp189s0f0.nmconnection
-		chmod 600 /etc/NetworkManager/system-connections/enp189s0f0.nmconnection
-	{% endif %}
 	/usr/bin/crb enable
 	curl -so /dev/null http://{{ repo }}/kickstart-progress/repos-configured-{{ distro }} || true
 {% elif type == 'openeuler' %}
@@ -188,11 +181,6 @@ curl -so /dev/null http://{{ repo }}/kickstart-progress/post-started-{{ distro }
 
 	sed '/Banner/d;/AllowTcpForwarding/d;/AllowAgentForwarding/d;/GatewayPorts/d;/PermitTunnel/d;' -i /etc/ssh/sshd_config
 	sed 's,/usr/libexec/openssh/openssh/sftp-server,/usr/libexec/openssh/sftp-server,g;' -i /etc/ssh/sshd_config
-	{% if inventory_hostname_short.startswith('ohpc-huawei-repo') %}
-cat > /etc/sysconfig/network-scripts/route-enp189s0f0 <<EOF
-150.50.0.0/16 via 175.200.16.14
-EOF
-	{% endif %}
 	curl -so /dev/null http://{{ repo }}/kickstart-progress/repos-configured-{{ distro }} || true
 {% endif %}
 

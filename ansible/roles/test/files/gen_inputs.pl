@@ -19,7 +19,12 @@ sub update_var {
     my $value   = shift;
 
     if($_[0] =~ /^($varname=\"\$\{$varname:-)(\S*)\}\"$/) {
-	$_[0] = "$1"."$value}\"\n";
+	my $prefix = $1;
+	# The value ends up inside double quotes in a file sourced by bash.
+	# Escape the characters bash would interpret, e.g. a '$' in a
+	# password.
+	$value =~ s/([\$`"\\])/\\$1/g;
+	$_[0] = "$prefix"."$value}\"\n";
 	return(1);
     } else {
 	return(0);

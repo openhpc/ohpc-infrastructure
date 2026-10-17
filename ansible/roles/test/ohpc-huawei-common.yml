@@ -1,19 +1,17 @@
 - name: Update /etc/hosts
-  ansible.builtin.lineinfile:
+  ansible.builtin.blockinfile:
     path: /etc/hosts
-    state: present
-    line: "{{ item }}"
-  with_items:
-    - 129.114.60.186 test.openhpc.community
-    - 192.168.243.1 ohpc-huawei-sms-internal
-    - 175.200.16.11 ohpc-huawei-sms sms
-    - 175.200.16.12 ohpc-huawei-c1 c1
-    - 175.200.16.13 ohpc-huawei-c2 c2
-    - 175.200.16.14 ohpc-huawei-repo repo
-    - 150.50.16.11 mohpc-huawei-sms
-    - 150.50.16.12 mohpc-huawei-c1
-    - 150.50.16.13 mohpc-huawei-c2
-    - 150.50.16.14 mohpc-huawei-repo
+    marker: "# {mark} ANSIBLE MANAGED BLOCK (ohpc-huawei)"
+    block: |
+      129.114.60.186 test.openhpc.community
+      192.168.29.53 ohpc-huawei-repo repo agent01
+      192.168.29.54 ohpc-huawei-sms sms agent02
+      192.168.29.55 ohpc-huawei-c1 c1 agent03
+      192.168.29.56 ohpc-huawei-c2 c2 agent04
+      192.168.28.53 mohpc-huawei-repo
+      192.168.28.54 mohpc-huawei-sms
+      192.168.28.55 mohpc-huawei-c1
+      192.168.28.56 mohpc-huawei-c2
 
 - name: Set a hostname to "{{ inventory_hostname_short }}"
   ansible.builtin.hostname:

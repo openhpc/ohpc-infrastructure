@@ -294,6 +294,8 @@ install_openHPC_cluster() {
 			perl -pi -e 's/DHCPD_INTERFACE=\${sms_eth_internal}/DHCPD_INTERFACE=eth0/' "${recipeFile}"
 		fi
 	elif [[ $CI_CLUSTER == "huawei" ]]; then
+		echo "CI Customization: PXE boot selection is not persistent"
+		sed -e 's,ipmitool,ipmitool -E -I lanplus -H ${c_bmc[$i]} -U ${bmc_username} -P ${bmc_password} chassis bootdev pxe options=efiboot; ipmitool,g' -i "${recipeFile}"
 		echo "CI Customization: switch to a local pypi mirror"
 		pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
 		if [ "${Provisioner}" == "warewulf" ]; then
@@ -312,7 +314,7 @@ install_openHPC_cluster() {
 			sed "/export CHROOT/a sed -i '/\\\/mirrorlist?/ s/$/\\\&protocol=http/g' \$CHROOT/etc/yum.repos.d/*repo" -i "${recipeFile}"
 			echo "CI Customization: switch to local registry"
 			sed '/dnf -y install ohpc-warewulf/a sed -e "s,console=tty0,,g" -i /usr/share/perl5/vendor_perl/Warewulf/Provision/Pxe.pm' -i "${recipeFile}"
-			sed "s,ghcr.io/warewulf,ohpc-huawei-repo:5000,g" -i "${recipeFile}"
+			sed "s,ghcr.io/,ohpc-huawei-repo:5000/,g" -i "${recipeFile}"
 			mkdir -p /root/.config/containers
 			echo -e "[registries.insecure]\nregistries = ['ohpc-huawei-repo']" >/root/.config/containers/registries.conf
 			echo "CI Customization: Use OpenHPC repository files from host"
