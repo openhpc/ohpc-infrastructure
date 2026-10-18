@@ -11,6 +11,9 @@
 # clusters, deleting with the view of one cluster would remove the
 # results of the others.
 #
+# run-ci.sh collects a run in /results/.incoming and renames it into
+# place when it is done, so that directory is skipped.
+#
 # The update-results-watcher service notices the new files and
 # regenerates the result pages.
 
@@ -25,4 +28,4 @@ HOST="$1"
 RESULTS="/results"
 
 echo "Pulling results from ${HOST}"
-rsync -a --stats "${HOST}:." "${RESULTS}/"
+rsync -a --stats --exclude=.incoming "${HOST}:." "${RESULTS}/"

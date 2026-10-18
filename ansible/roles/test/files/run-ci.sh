@@ -146,7 +146,6 @@ fi
 cd ../../../../
 
 LOG=$(mktemp)
-OUT=$(mktemp -d)
 RESULT=FAIL
 RESULTS="/results"
 
@@ -236,6 +235,12 @@ if [ ! -d "${RESULTS}" ]; then
 	echo "Results directory (${RESULTS}) missing. Exiting"
 	exit 1
 fi
+
+# Collect the results on the same filesystem as ${RESULTS} so that the
+# final mv is an atomic rename. The results are synced to the repository
+# server while this script runs and must never be seen half copied.
+mkdir -p "${RESULTS}/.incoming"
+OUT=$(mktemp -d -p "${RESULTS}/.incoming")
 
 if [[ "${PROVISIONER}" == "openchami" ]]; then
 	((TIMEOUT += 100))
@@ -379,7 +384,7 @@ cleanup() {
 		# The Huawei lab cannot reach the repository server, its results
 		# are pulled by pull-results@ohpc-huawei-repo.timer on repos.
 		if [[ "${SMS}" != "ohpc-huawei-sms" ]]; then
-			rsync -a /results/ ohpc@repos.ohpc.io:/results || echo "--> WARNING: upload to repos.ohpc.io failed"
+			rsync -a --exclude=.incoming /results/ ohpc@repos.ohpc.io:/results || echo "--> WARNING: upload to repos.ohpc.io failed"
 		fi
 	fi
 	# save CPAN cache
