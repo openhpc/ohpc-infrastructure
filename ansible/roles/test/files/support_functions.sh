@@ -954,8 +954,13 @@ wait_for_computes() {
 	if [[ $CI_CLUSTER == "lenovo" ]]; then
 		# This is mainly necessary for confluent statefull provisioning
 		pdsh -w "${compute_prefix}"[1-"${num_computes}"] systemctl disable --now firewalld
-		if [ "${enable_ib}" -eq 0 ]; then
-			# Disable IB
+	fi
+
+	if [[ $CI_CLUSTER == "lenovo" || $CI_CLUSTER == "huawei" ]]; then
+		if [ "${enable_ib:-0}" -eq 0 ]; then
+			# Disable IB. On huawei only one compute node has a ConnectX-6 Dx;
+			# its RDMA device makes the transport selection of Open MPI
+			# asymmetric between the nodes and multi-node jobs hang.
 			printf "blacklist %s\n" mlx5_ib mlx5_core mlx5_fwctl mlxfw rdma_cm ib_ipoib rpcrdma ib_srpt iw_cm ib_iser ib_umad ib_isert rdma_ucm ib_uverbs qedr ib_cm ib_core >/etc/modprobe.d/disable-ib.conf
 			rmmod mlx5_ib mlx5_core mlx5_fwctl mlxfw rdma_cm ib_ipoib rpcrdma ib_srpt iw_cm ib_iser ib_umad ib_isert rdma_ucm ib_uverbs qedr ib_cm ib_core || true
 			rmmod mlx5_ib mlx5_core mlx5_fwctl mlxfw rdma_cm ib_ipoib rpcrdma ib_srpt iw_cm ib_iser ib_umad ib_isert rdma_ucm ib_uverbs qedr ib_cm ib_core || true
