@@ -1,0 +1,10 @@
+[Unit]
+Description=Pull CI results from %i every 10 minutes
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=10min
+RandomizedDelaySec=1min
+
+[Install]
+WantedBy=timers.target

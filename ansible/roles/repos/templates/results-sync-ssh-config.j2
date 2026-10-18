@@ -1,0 +1,20 @@
+# Used by pull-results@<host>.service to fetch the CI results of test
+# clusters that cannot reach this server. The results-sync key is
+# limited on the jump host to forwarding to the test cluster and on the
+# test cluster to a read-only rsync of /results.
+
+Host {{ repos_pull_results_jumper }}
+    HostName {{ repos_pull_results_jumper_address }}
+    User root
+    IdentityFile ~/.ssh/results-sync
+    IdentitiesOnly yes
+    StrictHostKeyChecking accept-new
+{% for host in repos_pull_results_hosts %}
+
+Host {{ host }}
+    User root
+    ProxyJump {{ repos_pull_results_jumper }}
+    IdentityFile ~/.ssh/results-sync
+    IdentitiesOnly yes
+    StrictHostKeyChecking accept-new
+{% endfor %}

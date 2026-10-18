@@ -376,9 +376,11 @@ cleanup() {
 		cd "${DEST_DIR}"
 		ln -sfn "${DEST_NAME}" "0-LATEST-${NAME}"
 		cd - >/dev/null
-		rsync -a /results/ ohpc@repos.ohpc.io:/results
-		# shellcheck disable=SC2029
-		echo ssh ohpc@repos.ohpc.io /home/ohpc/bin/update_results.sh "${VERSION_MAJOR}" "${VERSION}"
+		# The Huawei lab cannot reach the repository server, its results
+		# are pulled by pull-results@ohpc-huawei-repo.timer on repos.
+		if [[ "${SMS}" != "ohpc-huawei-sms" ]]; then
+			rsync -a /results/ ohpc@repos.ohpc.io:/results || echo "--> WARNING: upload to repos.ohpc.io failed"
+		fi
 	fi
 	# save CPAN cache
 	if [[ "${SMS}" == "ohpc-huawei-sms" ]]; then

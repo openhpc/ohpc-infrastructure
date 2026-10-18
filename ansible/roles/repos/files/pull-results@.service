@@ -1,0 +1,11 @@
+[Unit]
+Description=Pull CI results from %i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ohpc
+ExecStart=/usr/local/bin/pull-results.sh %i
+# The first sync of a lab can take a while, later runs are small.
+TimeoutStartSec=2h
