@@ -324,6 +324,14 @@ install_openHPC_cluster() {
 			sed '/export CHROOT/a /usr/bin/cp -vf /etc/yum.repos.d/BaseOS*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
 			# shellcheck disable=SC2016
 			sed '/export CHROOT/a /usr/bin/cp -vf /etc/yum.repos.d/AppStream*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
+			if [[ "${DISTRIBUTION}" == "rocky"* ]]; then
+				# The repository files in the image still use the mirrorlist
+				# service, which does not work from the Huawei lab. The files
+				# on the SMS have been switched to a fixed mirror already.
+				echo "CI Customization: Use Rocky repository files from host"
+				# shellcheck disable=SC2016
+				sed '/export CHROOT/a /usr/bin/cp -vf /etc/yum.repos.d/rocky*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
+			fi
 			if [[ "${DISTRIBUTION}" == "openEuler"* ]]; then
 				sed "/export CHROOT/a sed -i 's,\\\(metalink\\\),#\\\1,g' \$CHROOT/etc/yum.repos.d/openEuler.repo" -i "${recipeFile}"
 				sed "/export CHROOT/a sed -i 's,\\\(baseurl=http\\\)s,\\\1,g' \$CHROOT/etc/yum.repos.d/openEuler.epo" -i "${recipeFile}"

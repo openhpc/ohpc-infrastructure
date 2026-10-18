@@ -17,7 +17,7 @@
 {%- set mirror1_base = 'http://mirrors.nxthost.com/rocky/'~release~'/' -%}
 {%- set mirror2_base = 'http://mirrors.nav.ro/rockylinux/'~release~'/' -%}
 {%- elif inventory_hostname_short.startswith('ohpc-huawei-repo') -%}
-{%- set mirror1_base = 'http:///mirrors.ustc.edu.cn/rocky/'~release~'/' -%}
+{%- set mirror1_base = 'http://mirror.nyist.edu.cn/rocky/'~release~'/' -%}
 {%- set mirror2_base = 'http://mirrors.nju.edu.cn/rocky/'~release~'/' -%}
 {%- endif -%}
 {%- elif distro.startswith('openEuler') -%}
@@ -106,7 +106,7 @@ lang en_US.UTF-8
 {% endif %}
 
 ignoredisk --only-use={{ disks }}
-bootloader --location=mbr --boot-drive=sda
+bootloader --location=mbr --boot-drive=sda --append="quiet"
 clearpart --all --initlabel --drives={{ disks }}
 autopart
 timezone UTC --utc
@@ -161,6 +161,13 @@ curl -so /dev/null http://{{ repo }}/kickstart-progress/post-started-{{ distro }
 	echo "gpgcheck=0" >> /etc/yum.repos.d/AppStreamMirror1.repo
 	echo "gpgcheck=0" >> /etc/yum.repos.d/BaseOSMirror2.repo
 	echo "gpgcheck=0" >> /etc/yum.repos.d/AppStreamMirror2.repo
+{% if distro.startswith('rocky') and inventory_hostname_short.startswith('ohpc-huawei-repo') %}
+	# The Rocky mirrorlist service does not return usable mirrors from
+	# the Huawei lab. Use a fixed mirror in China instead.
+	sed -e 's,^mirrorlist=,#mirrorlist=,' \
+	    -e 's,^#baseurl=http://dl\.rockylinux\.org/\$contentdir/,baseurl=http://mirrors.nju.edu.cn/rocky/,' \
+	    -i /etc/yum.repos.d/rocky*.repo
+{% endif %}
 	curl -so /dev/null http://{{ repo }}/kickstart-progress/epel-install-{{ distro }} || true
 	dnf -y install epel-release
 	/usr/bin/crb enable
