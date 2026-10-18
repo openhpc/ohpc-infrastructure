@@ -37,6 +37,25 @@
 {%- endif -%}
 {%- set mirror1_base = mirror1~'/openEuler-'~release~'-LTS-'~SP~'/' -%}
 {%- endif -%}
+{%- set huawei = inventory_hostname_short.startswith('ohpc-huawei-repo') -%}
+{#- External mirrors as (repository name, base URL). On Lenovo they are
+    used during the installation, on Huawei they are only added in %post
+    with skip_if_unavailable so that an unreachable mirror does not break
+    the upgrade. The cost keeps them preferred over the default
+    repositories of the distribution (cost 1000). -#}
+{%- if type == 'el' -%}
+{%- set mirrors = [
+  ('BaseOSMirror1', mirror1_base~'BaseOS/'~arch~'/os/'),
+  ('AppStreamMirror1', mirror1_base~'AppStream/'~arch~'/os/'),
+  ('BaseOSMirror2', mirror2_base~'BaseOS/'~arch~'/os/'),
+  ('AppStreamMirror2', mirror2_base~'AppStream/'~arch~'/os/'),
+] -%}
+{%- elif type == 'openeuler' -%}
+{%- set mirrors = [
+  ('everythingMirror', mirror1_base~'everything/'~arch~'/'),
+  ('updateMirror', mirror1_base~'update/'~arch~'/'),
+] -%}
+{%- endif -%}
 
 text
 
@@ -117,14 +136,13 @@ url --url http://{{ repo }}/{{base}}
 {% if type == 'el' %}
 repo --cost=1 --install --name="BaseOS" --baseurl="http://{{ repo }}/{{base}}BaseOS/"
 repo --cost=1 --install --name="AppStream" --baseurl="http://{{ repo }}/{{base}}/AppStream/"
-repo --cost=50 --install  --name="BaseOSMirror1" --baseurl="{{ mirror1_base }}BaseOS/{{ arch }}/os/" --proxy="http://{{ proxy }}"
-repo --cost=50 --install  --name="AppStreamMirror1" --baseurl="{{ mirror1_base }}AppStream/{{ arch }}/os/" --proxy="http://{{ proxy }}"
-repo --cost=50 --install  --name="BaseOSMirror2" --baseurl="{{ mirror2_base }}BaseOS/{{ arch }}/os/" --proxy="http://{{ proxy }}"
-repo --cost=50 --install  --name="AppStreamMirror2" --baseurl="{{ mirror2_base }}AppStream/{{ arch }}/os/" --proxy="http://{{ proxy }}"
 {% elif type == 'openeuler' %}
 repo --cost=1 --install --name="DVD" --baseurl="http://{{ repo }}/{{ base }}"
-repo --cost=50 --install  --name="everythingMirror" --baseurl="{{ mirror1_base }}everything/{{ arch }}/" --proxy="http://{{ proxy }}"
-repo --cost=50 --install  --name="updateMirror" --baseurl="{{ mirror1_base }}update/{{ arch }}/" --proxy="http://{{ proxy }}"
+{% endif %}
+{% if not huawei %}
+{% for name, url in mirrors %}
+repo --cost=50 --install --name="{{ name }}" --baseurl="{{ url }}" --proxy="http://{{ proxy }}"
+{% endfor %}
 {% endif %}
 
 
@@ -154,13 +172,31 @@ export http_proxy=http://{{ proxy }}
 
 curl -so /dev/null http://{{ repo }}/kickstart-progress/post-started-{{ distro }} || true
 
+{% if huawei %}
+# The external mirrors are not used during the installation. Add them
+# with skip_if_unavailable so that an unreachable mirror does not break
+# the upgrade, with a cost below the default repositories.
+{% for name, url in mirrors %}
+cat > /etc/yum.repos.d/{{ name }}.repo <<EOF
+[{{ name }}]
+name={{ name }}
+baseurl={{ url }}
+proxy=http://{{ proxy }}
+cost=50
+enabled=1
+gpgcheck=0
+skip_if_unavailable=1
+EOF
+{% endfor %}
+{% else %}
+{% for name, url in mirrors %}
+	echo "gpgcheck=0" >> /etc/yum.repos.d/{{ name }}.repo
+{% endfor %}
+{% endif %}
+
 {% if type == 'el' %}
 	echo "gpgcheck=0" >> /etc/yum.repos.d/BaseOS.repo
 	echo "gpgcheck=0" >> /etc/yum.repos.d/AppStream.repo
-	echo "gpgcheck=0" >> /etc/yum.repos.d/BaseOSMirror1.repo
-	echo "gpgcheck=0" >> /etc/yum.repos.d/AppStreamMirror1.repo
-	echo "gpgcheck=0" >> /etc/yum.repos.d/BaseOSMirror2.repo
-	echo "gpgcheck=0" >> /etc/yum.repos.d/AppStreamMirror2.repo
 {% if distro.startswith('rocky') and inventory_hostname_short.startswith('ohpc-huawei-repo') %}
 	# The Rocky mirrorlist service does not return usable mirrors from
 	# the Huawei lab. Use a fixed mirror in China instead.
@@ -179,8 +215,6 @@ curl -so /dev/null http://{{ repo }}/kickstart-progress/post-started-{{ distro }
 	dracut --force --kver $(rpm -q --queryformat '%{version}-%{release}.%{arch}' kernel)
 
 	echo "gpgcheck=0" >> /etc/yum.repos.d/DVD.repo
-	echo "gpgcheck=0" >> /etc/yum.repos.d/everythingMirror.repo
-	echo "gpgcheck=0" >> /etc/yum.repos.d/updateMirror.repo
 	sed -i "s,\(metalink\),#\1,g" -i /etc/yum.repos.d/openEuler.repo
 	sed -e "s,\(baseurl=http\)s,\1,g" -i /etc/yum.repos.d/openEuler.repo
 
