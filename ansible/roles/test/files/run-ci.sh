@@ -241,6 +241,12 @@ if [[ "${PROVISIONER}" == "openchami" ]]; then
 	((TIMEOUT += 100))
 fi
 
+# EESSI is installed and tested on the Lenovo cluster only, for x86_64
+# with Warewulf and OpenHPC 4.x.
+if [[ "${CI_CLUSTER}" == "lenovo" ]] && [[ "${TEST_ARCH}" == "x86_64" ]] && [[ "${VERSION_MAJOR}" == "4" ]] && [[ "${PROVISIONER}" == "warewulf" ]]; then
+	ENABLE_EESSI="true"
+fi
+
 print_overview() {
 	echo
 	echo "--> distribution:      ${DISTRIBUTION}"
@@ -429,6 +435,10 @@ if [[ "${CI_CLUSTER}" == "huawei" ]] && [[ "${DISTRIBUTION}" == "openEuler_22.03
 	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-hypre"
 fi
 
+if [ -n "${ENABLE_EESSI}" ]; then
+	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --enable-eessi"
+fi
+
 print_overview
 
 # Save old history
@@ -566,6 +576,10 @@ fi
 
 if [ -n "${ENABLE_TODISK}" ]; then
 	echo "export enable_todisk=1" >>"${VARS}"
+fi
+
+if [ -n "${ENABLE_EESSI}" ]; then
+	echo "export enable_eessi=1" >>"${VARS}"
 fi
 
 # Pre-stage EasyBuild source tarballs to avoid mirror failures
