@@ -30,6 +30,15 @@
     name: httpd
   ignore_errors: "{{ ansible_check_mode }}"
 
+# A restart waits for the graceful stop of httpd, which only finishes
+# once all running downloads are done. A reload is "httpd -k graceful"
+# and returns immediately.
+- name: Reload httpd
+  ansible.builtin.systemd_service:
+    state: reloaded
+    name: httpd
+  ignore_errors: "{{ ansible_check_mode }}"
+
 - name: Restart fail2ban
   ansible.builtin.systemd_service:
     state: restarted

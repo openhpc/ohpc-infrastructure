@@ -186,7 +186,8 @@
         - results.conf
         - welcome.conf
         - ssl.conf
-      register: repos_httpd_conf
+      notify:
+        - Reload httpd
       tags:
         - httpd-conf
 
