@@ -227,13 +227,20 @@
       notify:
         - Restart httpd
 
-    - name: Install /repos HEADER.html
+    - name: Install /repos HEADER.html and FOOTER.html
       ansible.builtin.copy:
-        src: HEADER.html.repos
-        dest: /repos/HEADER.html
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
         owner: root
         group: root
         mode: "0644"
+      with_items:
+        - src: HEADER.html.repos
+          dest: /repos/HEADER.html
+        - src: FOOTER.html.repos
+          dest: /repos/FOOTER.html
+      tags:
+        - install-http-files
 
     - name: Install certbot timer
       ansible.builtin.copy:
@@ -267,6 +274,7 @@
         mode: "0644"
       with_items:
         - styles.css
+        - repos.css
         - test_error.png
         - test_ok.png
         - test_warning.png

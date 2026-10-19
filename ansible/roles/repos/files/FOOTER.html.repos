@@ -1,0 +1,9 @@
+		</section>
+	</main>
+
+	<footer class="site-footer">
+		<a href="https://openhpc.community/">OpenHPC</a> package repository &middot;
+		<a href="/results/">Test Results</a> &middot;
+		<a href="/stats/">Download Statistics</a> &middot;
+		<a href="https://lists.openhpc.community/">Mailing Lists</a>
+	</footer>
