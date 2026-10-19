@@ -320,10 +320,12 @@ install_openHPC_cluster() {
 			echo "CI Customization: Use OpenHPC repository files from host"
 			# shellcheck disable=SC2016
 			sed '/Add OpenHPC base components to compute image/i /usr/bin/cp -vf /etc/yum.repos.d/OpenHPC*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
-			# shellcheck disable=SC2016
-			sed '/export CHROOT/a /usr/bin/cp -vf /etc/yum.repos.d/BaseOS*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
-			# shellcheck disable=SC2016
-			sed '/export CHROOT/a /usr/bin/cp -vf /etc/yum.repos.d/AppStream*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
+			if [[ "${os_repo}" == "EL_"* ]]; then
+				# shellcheck disable=SC2016
+				sed '/export CHROOT/a /usr/bin/cp -vf /etc/yum.repos.d/BaseOS*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
+				# shellcheck disable=SC2016
+				sed '/export CHROOT/a /usr/bin/cp -vf /etc/yum.repos.d/AppStream*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
+			fi
 			if [[ "${DISTRIBUTION}" == "rocky"* ]]; then
 				# The repository files in the image still use the mirrorlist
 				# service, which does not work from the Huawei lab. The files
@@ -334,7 +336,7 @@ install_openHPC_cluster() {
 			fi
 			if [[ "${DISTRIBUTION}" == "openEuler"* ]]; then
 				sed "/export CHROOT/a sed -i 's,\\\(metalink\\\),#\\\1,g' \$CHROOT/etc/yum.repos.d/openEuler.repo" -i "${recipeFile}"
-				sed "/export CHROOT/a sed -i 's,\\\(baseurl=http\\\)s,\\\1,g' \$CHROOT/etc/yum.repos.d/openEuler.epo" -i "${recipeFile}"
+				sed "/export CHROOT/a sed -i 's,\\\(baseurl=http\\\)s,\\\1,g' \$CHROOT/etc/yum.repos.d/openEuler.repo" -i "${recipeFile}"
 			fi
 		fi
 	elif [[ $CI_CLUSTER == "lenovo" ]]; then
