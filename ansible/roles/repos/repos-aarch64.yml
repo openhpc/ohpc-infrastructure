@@ -2,6 +2,15 @@
   hosts: repos_aarch64
   become: true
   gather_facts: true
+  vars:
+    # Test clusters that cannot reach this server have their results
+    # pulled by pull-results@<host>.timer through the jump host. Every
+    # host listed here needs the results-sync key installed, see
+    # roles/test/ohpc-huawei-jumper.yml and ohpc-huawei-repo.yml.
+    repos_pull_results_jumper: openhpc-jumper
+    repos_pull_results_jumper_address: jumper01
+    repos_pull_results_hosts:
+      - ohpc-huawei-repo
 
   handlers:
     - name: Include handlers
@@ -334,6 +343,98 @@
       tags:
         - skip_ansible_lint
         - update-results-watcher
+
+    - name: Create /home/ohpc/.ssh
+      ansible.builtin.file:
+        path: /home/ohpc/.ssh
+        state: directory
+        owner: ohpc
+        group: ohpc
+        mode: "0700"
+      tags:
+        - pull-results
+
+    - name: Generate the results-sync SSH key
+      ansible.builtin.command:
+        cmd: ssh-keygen -t ed25519 -N "" -C "results-sync@{{ inventory_hostname }}" -f /home/ohpc/.ssh/results-sync
+        creates: /home/ohpc/.ssh/results-sync
+      become: true
+      become_user: ohpc
+      tags:
+        - pull-results
+
+    # The public key is committed to the repository and installed on
+    # the jump host and the test clusters by the playbooks in roles/test.
+    - name: Fetch the results-sync public key
+      ansible.builtin.fetch:
+        src: /home/ohpc/.ssh/results-sync.pub
+        dest: "{{ playbook_dir }}/../test/files/results-sync.pub"
+        flat: true
+      tags:
+        - pull-results
+
+    - name: Install SSH configuration for pulling results
+      ansible.builtin.blockinfile:
+        path: /home/ohpc/.ssh/config
+        create: true
+        owner: ohpc
+        group: ohpc
+        mode: "0600"
+        marker: "# {mark} ANSIBLE MANAGED BLOCK (pull-results)"
+        block: "{{ lookup('template', 'results-sync-ssh-config.j2') }}"
+      tags:
+        - pull-results
+
+    # Not in /home/ohpc/bin like the other helper scripts: a service
+    # started from there runs rsync in the confined rsync_t SELinux
+    # domain, which may not execute ssh. From /usr/local/bin the
+    # service runs unconfined.
+    - name: Install pull-results.sh
+      ansible.builtin.copy:
+        src: pull-results.sh
+        dest: /usr/local/bin/pull-results.sh
+        owner: root
+        group: root
+        mode: "0755"
+      tags:
+        - pull-results
+
+    - name: Remove pull-results.sh from the helper scripts directory
+      ansible.builtin.file:
+        path: /home/ohpc/bin/pull-results.sh
+        state: absent
+      tags:
+        - pull-results
+
+    - name: Install pull-results units
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "/etc/systemd/system/{{ item }}"
+        owner: root
+        group: root
+        mode: "0644"
+      with_items:
+        - pull-results@.service
+        - pull-results@.timer
+      notify:
+        - Systemd daemon-reload
+      tags:
+        - pull-results
+
+    # Let systemd see the new units before enabling the timers.
+    - name: Flush handlers
+      ansible.builtin.meta: flush_handlers
+      tags:
+        - pull-results
+
+    - name: Enable pull-results timers
+      ansible.builtin.systemd_service:
+        name: "pull-results@{{ item }}.timer"
+        state: started
+        enabled: true
+      with_items: "{{ repos_pull_results_hosts }}"
+      tags:
+        - pull-results
 
     - name: Copy public keys
       ansible.builtin.copy:
