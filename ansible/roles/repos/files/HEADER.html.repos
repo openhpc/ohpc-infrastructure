@@ -1,22 +1,90 @@
 <!DOCTYPE html>
-<html><head>
-	<title>OpenHPC Package Repository </title>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="description" content="OpenHPC package repositories, release tarballs, test results and download statistics">
+	<title>OpenHPC Package Repository</title>
+	<link rel="stylesheet" type="text/css" href="/.files/repos.css">
+	<script>
+	(function () {
+		var path = decodeURIComponent(window.location.pathname);
+
+		// The quick links are only shown on the top level listing.
+		if (path === "/") {
+			document.documentElement.classList.add("is-root");
+		}
+
+		function escapeHtml(text) {
+			return text.replace(/&/g, "&amp;").replace(/</g, "&lt;")
+				.replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+		}
+
+		document.addEventListener("DOMContentLoaded", function () {
+			var nav = document.getElementById("breadcrumb");
+			var parts = path.split("/").filter(Boolean);
+			var href = "/";
+			var html = '<a href="/">repos.openhpc.community</a>';
+
+			parts.forEach(function (part, index) {
+				href += part + "/";
+				html += '<span class="separator">/</span>';
+				if (index === parts.length - 1) {
+					html += '<span class="current">' + escapeHtml(part) + '</span>';
+				} else {
+					html += '<a href="' + encodeURI(href) + '">' + escapeHtml(part) + '</a>';
+				}
+			});
+
+			if (nav) {
+				nav.innerHTML = html;
+			}
+			if (parts.length > 0) {
+				document.title = parts.join("/") + " - OpenHPC Package Repository";
+			}
+		});
+	})();
+	</script>
 </head>
 <body>
-	<div id="header">
-		<a href="/"><img src="/HEADER.images/ohpc_logo.png" width="350" alt="OpenHPC" border="0"></a>
-	</div>
-	<hr>
-	<table bgcolor="#A6A79F" text="#000000" cellSpacing=0 cellPadding=0 width="100%" border=0 align="center">
-		<tbody><tr><td vAlign=top>
-			<table width="100%" border="0" cellspacing="0" cellpadding="0" height="25"><tr>
-				<td valign=center>&nbsp;<font size=3 face="Verdana, Arial, Helvetica, sans-serif" color=#00000>
-					<a href="https://openhpc.community/"><font color="#0f0f0f">openhpc.community</font></a> |
-					<a href="https://github.com/openhpc/ohpc"><font color="#0f0f0f">GitHub</font></a> |
-					<a href="https://groups.io/g/openhpc-users"><font color="#0f0f0f">Mailing List</font></a> |
-					<a href="https://github.com/openhpc/ohpc/wiki/System-Registry"><font color="#0f0f0f">System Registry</font></a></font>
-				</td>
-			</tr></table>
-		</td></tbody>
-	</table>
-	<hr>
+	<header class="site-header">
+		<div class="site-header-inner">
+			<a class="site-logo" href="/">
+				<img src="/HEADER.images/ohpc_logo.png" alt="OpenHPC">
+			</a>
+			<nav class="site-nav" aria-label="OpenHPC links">
+				<a href="https://openhpc.community/">openhpc.community</a>
+				<a href="https://github.com/openhpc/ohpc">GitHub</a>
+				<a href="https://lists.openhpc.community/">Mailing Lists</a>
+				<a href="https://github.com/openhpc/ohpc/wiki/System-Registry">System Registry</a>
+				<a href="/results/">Test Results</a>
+				<a href="/stats/">Statistics</a>
+			</nav>
+		</div>
+	</header>
+
+	<main class="container">
+		<h1>&#128230; OpenHPC Package Repository</h1>
+
+		<nav class="breadcrumb" id="breadcrumb" aria-label="Breadcrumb">
+			<a href="/">repos.openhpc.community</a>
+		</nav>
+
+		<section class="quick-links" aria-label="Additional links">
+			<a class="quick-link" href="/results/">
+				<span class="quick-link-icon">&#129514;</span>
+				<span class="quick-link-body">
+					<span class="quick-link-title">Test Results</span>
+					<span class="quick-link-text">Continuous integration results for every OpenHPC release, distribution and architecture.</span>
+				</span>
+			</a>
+			<a class="quick-link" href="/stats/">
+				<span class="quick-link-icon">&#128200;</span>
+				<span class="quick-link-body">
+					<span class="quick-link-title">Download Statistics</span>
+					<span class="quick-link-text">Repository download numbers per OpenHPC release over time.</span>
+				</span>
+			</a>
+		</section>
+
+		<section class="listing" aria-label="Directory listing">

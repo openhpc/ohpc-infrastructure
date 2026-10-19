@@ -2,6 +2,19 @@
 
 set -ex
 
+# Emit an AddDescription line that matches the given name exactly.
+# Apache treats a plain file argument as a substring match and uses the
+# first match, so "4.1" would also match "4.1.1". Wrapping the first
+# character in brackets turns the argument into a wildcard pattern that
+# is matched against the whole name with fnmatch().
+add_description() {
+	local icon="$1"
+	local name="$2"
+	local pattern="[${name:0:1}]${name:1}"
+
+	echo "AddDescription \"<img src=\\\"/.files/${icon}.png\\\"/>\" \"${pattern}\"" >>.htaccess.new
+}
+
 # Function to add appropriate closing HTML based on page type
 add_html_footer() {
 	local current_path="$1"
@@ -67,9 +80,9 @@ fi
 
 for i in *OHPC*; do
 	if [ -e "$i/FAIL" ]; then
-		echo "AddDescription \"<img src=\\\"/.files/test_error.png\\\"/>\" $i" >>.htaccess.new
+		add_description test_error "$i"
 	else
-		echo "AddDescription \"<img src=\\\"/.files/test_ok.png\\\"/>\" $i" >>.htaccess.new
+		add_description test_ok "$i"
 	fi
 done
 mv .htaccess.new .htaccess
@@ -241,10 +254,13 @@ PASS=0
 if [ ! -e HEADER.html ]; then
 	cp /home/ohpc/HEADER.tmpl HEADER.html
 	sed -e "s,@@VERSION@@,$1,g" -i HEADER.html
-	# Reset to header portion and remove detailed view sections for overview
-	sed '1,/<!-- END HEADER MARKER -->/!d' -i HEADER.html
-	sed '/<!-- DETAILED_VIEW_START -->/,/<!-- DETAILED_VIEW_END -->/d' -i HEADER.html
 fi
+
+# Reset to header portion and remove detailed view sections for overview.
+# This has to happen on every run, otherwise add_html_footer appends
+# another copy of its trailer to HEADER.html each time.
+sed '1,/<!-- END HEADER MARKER -->/!d' -i HEADER.html
+sed '/<!-- DETAILED_VIEW_START -->/,/<!-- DETAILED_VIEW_END -->/d' -i HEADER.html
 
 for i in "${1}"*; do
 	if [ ! -d "$i" ]; then
@@ -258,11 +274,11 @@ for i in "${1}"*; do
 		fi
 	done
 	if [ "$FAIL" -eq 0 ]; then
-		echo "AddDescription \"<img src=\\\"/.files/test_ok.png\\\"/>\" $i" >>.htaccess.new
+		add_description test_ok "$i"
 	elif [ "$PASS" -eq 0 ]; then
-		echo "AddDescription \"<img src=\\\"/.files/test_error.png\\\"/>\" $i" >>.htaccess.new
+		add_description test_error "$i"
 	else
-		echo "AddDescription \"<img src=\\\"/.files/test_warning.png\\\"/>\" $i" >>.htaccess.new
+		add_description test_warning "$i"
 	fi
 	FAIL=0
 	PASS=0
@@ -277,10 +293,11 @@ cd /results/
 if [ ! -e HEADER.html ]; then
 	cp /home/ohpc/HEADER.tmpl HEADER.html
 	sed -e "s,@@VERSION@@,Overall,g" -i HEADER.html
-	# Reset to header portion and remove detailed view sections for overview
-	sed '1,/<!-- END HEADER MARKER -->/!d' -i HEADER.html
-	sed '/<!-- DETAILED_VIEW_START -->/,/<!-- DETAILED_VIEW_END -->/d' -i HEADER.html
 fi
+
+# Reset to header portion and remove detailed view sections for overview.
+sed '1,/<!-- END HEADER MARKER -->/!d' -i HEADER.html
+sed '/<!-- DETAILED_VIEW_START -->/,/<!-- DETAILED_VIEW_END -->/d' -i HEADER.html
 
 for i in *; do
 	if [ ! -d "$i" ]; then
@@ -289,11 +306,11 @@ for i in *; do
 	ERRORS=$(grep -c test_error "$i/.htaccess" || true)
 	WARNINGS=$(grep -c test_warning "$i/.htaccess" || true)
 	if [ "$ERRORS" -gt 0 ] && [ "$WARNINGS" -eq 0 ]; then
-		echo "AddDescription \"<img src=\\\"/.files/test_error.png\\\"/>\" $i" >>.htaccess.new
+		add_description test_error "$i"
 	elif [ "$WARNINGS" -gt 0 ] && [ "$ERRORS" -eq 0 ]; then
-		echo "AddDescription \"<img src=\\\"/.files/test_warning.png\\\"/>\" $i" >>.htaccess.new
+		add_description test_warning "$i"
 	else
-		echo "AddDescription \"<img src=\\\"/.files/test_ok.png\\\"/>\" $i" >>.htaccess.new
+		add_description test_ok "$i"
 	fi
 done
 mv .htaccess.new .htaccess
