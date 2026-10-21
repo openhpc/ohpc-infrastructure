@@ -270,6 +270,19 @@ EOF
 	return "${USER_STATUS}"
 }
 
+confluent_sync_repos_and_proxy() {
+	# The compute nodes use the repository files, the dnf configuration
+	# and the proxy settings of the SMS, which are already adapted to the
+	# CI cluster.
+	echo "CI Customization: Use repository and proxy settings from the SMS on the compute nodes"
+	sed '/Add additional packages to compute image/a nodersync /etc/yum.repos.d/ compute:/etc/yum.repos.d/' -i "${recipeFile}"
+	if [[ "${Repo}" == "Staging" ]]; then
+		sed '/Install compute node base meta-package/a nodersync /etc/yum.repos.d/OpenHPC.repo compute:/etc/yum.repos.d/OpenHPC.repo' -i "${recipeFile}"
+	fi
+	sed '/ohpc_proxy:compute/a nodersync /etc/dnf/dnf.conf compute:/etc/dnf/dnf.conf' -i "${recipeFile}"
+	sed '/ohpc_proxy:compute/a nodersync /etc/profile.d/proxy.sh compute:/etc/profile.d/proxy.sh' -i "${recipeFile}"
+}
+
 install_openHPC_cluster() {
 
 	if [ ! -x "${recipeFile}" ]; then
@@ -339,6 +352,9 @@ install_openHPC_cluster() {
 				sed "/export CHROOT/a sed -i 's,\\\(baseurl=http\\\)s,\\\1,g' \$CHROOT/etc/yum.repos.d/openEuler.repo" -i "${recipeFile}"
 			fi
 		fi
+		if [ "${Provisioner}" == "confluent" ]; then
+			confluent_sync_repos_and_proxy
+		fi
 	elif [[ $CI_CLUSTER == "lenovo" ]]; then
 		echo "CI Customization: PXE boot selection is not persistent"
 		sed -e 's,ipmitool,ipmitool -E -I lanplus -H ${c_bmc[$i]} -U ${bmc_username} -P ${bmc_password} chassis bootdev pxe options=efiboot; ipmitool,g' -i "${recipeFile}"
@@ -355,13 +371,7 @@ install_openHPC_cluster() {
 			sed '/CHROOT install epel-release/a echo -e "[main]\\nuser_agent=curl" >> $CHROOT/etc/dnf/dnf.conf' -i "${recipeFile}"
 		fi
 		if [ "${Provisioner}" == "confluent" ]; then
-			echo "CI Customization: Switch to http in repository definition"
-			sed '/Add additional packages to compute image/a nodersync /etc/yum.repos.d/ compute:/etc/yum.repos.d/' -i "${recipeFile}"
-			if [[ "${Repo}" == "Staging" ]]; then
-				sed '/Install compute node base meta-package/a nodersync /etc/yum.repos.d/OpenHPC.repo compute:/etc/yum.repos.d/OpenHPC.repo' -i "${recipeFile}"
-			fi
-			sed '/ohpc_proxy:compute/a nodersync /etc/dnf/dnf.conf compute:/etc/dnf/dnf.conf' -i "${recipeFile}"
-			sed '/ohpc_proxy:compute/a nodersync /etc/profile.d/proxy.sh compute:/etc/profile.d/proxy.sh' -i "${recipeFile}"
+			confluent_sync_repos_and_proxy
 			echo "CI Customization: Switch to text mode installer (nouveau crashes otherwise)"
 			local PROFILE
 			PROFILE=$(grep "nodedeploy -n compute" "${recipeFile}" | cut -d\  -f 5)
