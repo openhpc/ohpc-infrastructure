@@ -1,8 +1,10 @@
 # WireGuard tunnel between the jump host and the Huawei repo server.
 #
 # The Huawei lab firewall blocks access to obs.openhpc.community on
-# port 82. The repo server routes the traffic to OBS (44.230.128.55)
-# through the tunnel and the jump host NATs it to the internet.
+# port 82, and the direct connection to hpc.lenovo.com is too slow. The
+# repo server routes the traffic to OBS (44.230.128.55) and to
+# hpc.lenovo.com (104.232.228.82) through the tunnel and the jump host
+# NATs it to the internet.
 #
 # The keys are generated on each host on the first run and never leave
 # the hosts, only the public keys are exchanged between the two plays.
@@ -73,7 +75,10 @@
     # default route interface on the jump host.
     wireguard_external_interface: eth0
     wireguard_nat_destinations:
+      # obs.openhpc.community
       - 44.230.128.55
+      # hpc.lenovo.com
+      - 104.232.228.82
 
   handlers:
     - name: Include handlers
@@ -130,7 +135,7 @@
       community.general.ufw:
         state: enabled
 
-    - name: Allow forwarding from the tunnel to OBS in ufw
+    - name: Allow forwarding from the tunnel to the NAT destinations in ufw
       community.general.ufw:
         rule: allow
         route: true
@@ -155,7 +160,10 @@
     # wg-quick installs a route through the tunnel for every entry
     wireguard_peer_allowed_ips:
       - 172.31.32.1/32
+      # obs.openhpc.community
       - 44.230.128.55/32
+      # hpc.lenovo.com
+      - 104.232.228.82/32
 
   handlers:
     - name: Include handlers
