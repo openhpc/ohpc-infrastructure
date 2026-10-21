@@ -523,13 +523,13 @@ if [[ "${PROVISIONER}" == "confluent" ]]; then
 		echo "export iso_path=/root/Rocky-9-latest-x86_64-dvd.iso" >>"${VARS}"
 	fi
 	if [[ "${DISTRIBUTION}" == "rocky10" ]]; then
-		echo "export iso_path=/root/Rocky-10.1-x86_64-dvd1.iso" >>"${VARS}"
+		echo "export iso_path=/root/Rocky-10-latest-x86_64-dvd.iso" >>"${VARS}"
 	fi
 	if [[ "${DISTRIBUTION}" == "almalinux"* ]]; then
 		echo "export iso_path=/root/AlmaLinux-9-latest-x86_64-dvd.iso" >>"${VARS}"
 	fi
 	if [[ "${DISTRIBUTION}" == "almalinux10" ]]; then
-		echo "export iso_path=/root/AlmaLinux-10.1-x86_64-dvd.iso" >>"${VARS}"
+		echo "export iso_path=/root/AlmaLinux-10-latest-x86_64-dvd.iso" >>"${VARS}"
 	fi
 fi
 
@@ -540,6 +540,9 @@ if [[ "${PROVISIONER}" == "xcat_"* ]]; then
 
 	if [[ "${DISTRIBUTION}" == "almalinux10" ]]; then
 		echo "export iso_path=/root/AlmaLinux-10-latest-x86_64-dvd.iso" >>"${VARS}"
+	fi
+	if [[ "${DISTRIBUTION}" == "rocky10" ]]; then
+		echo "export iso_path=/root/Rocky-10-latest-x86_64-dvd.iso" >>"${VARS}"
 	fi
 fi
 
