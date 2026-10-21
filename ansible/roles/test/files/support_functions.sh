@@ -784,7 +784,7 @@ pre_install_cmds() {
 	fi
 	if [[ "${Provisioner}" == "confluent" ]] || [[ "${Provisioner}" == "xcat_state"* ]]; then
 		echo "Downloading ISO image for compute nodes installation $(basename "${iso_path}")"
-		wget -q http://10.241.58.130/"$(basename "${iso_path}")"
+		wget -q http://"${REPO_SERVER}"/"$(basename "${iso_path}")"
 	fi
 	if [[ "${DISTRIBUTION}" == "leap"* ]] && [[ ${CI_CLUSTER} == "huawei" ]]; then
 		sed -e "s,download.opensuse.org/,mirrors.nju.edu.cn/opensuse/,g" -i /etc/zypp/repos.d/*repo

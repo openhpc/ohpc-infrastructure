@@ -42,6 +42,7 @@ for env in InstallCluster \
 	DisableDefaultRepo \
 	DefaultRepoConfig \
 	Provisioner \
+	REPO_SERVER \
 	RunLimit \
 	BUILD_ID \
 	Repo; do
