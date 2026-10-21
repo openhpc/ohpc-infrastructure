@@ -29,7 +29,8 @@ show_usage() {
 	echo "                                 run yet) in the previous run of the same version"
 	echo "                                 and repository, keep the successful ones"
 	echo "  -l, --list                     Show all combinations and their current state,"
-	echo "                                 do not run anything"
+	echo "                                 do not run anything; without --version show"
+	echo "                                 all runs tracked on this cluster"
 	echo "  -h, --help                     Show this help"
 	echo
 	echo "Options after '--' are passed to every run-ci.sh call (e.g. -- --no-upload)."
@@ -82,7 +83,8 @@ done
 # Everything left is passed on to run-ci.sh
 EXTRA_ARGS=("$@")
 
-if [ -z "${VERSION}" ]; then
+# --list works without a version, it then shows all tracked runs
+if [ -z "${VERSION}" ] && [ -z "${LIST_ONLY}" ]; then
 	show_usage
 	exit 1
 fi
@@ -195,15 +197,38 @@ print_overview() {
 	echo
 }
 
+list_combinations() {
+	echo "Combinations on ${CI_CLUSTER} (${TEST_ARCH}):"
+	for combination in "${COMBINATIONS[@]}"; do
+		echo "  ${combination%%|*}: run-ci.sh ${combination#*|} -v ${VERSION:-<VERSION>} -r ${REPO}"
+	done
+}
+
 if [ -n "${LIST_ONLY}" ]; then
-	if [ ! -e "${STATE}" ]; then
-		echo "No previous run found (${STATE} missing). Combinations:"
-		for combination in "${COMBINATIONS[@]}"; do
-			echo "  ${combination%%|*}: run-ci.sh ${combination#*|} -v ${VERSION} -r ${REPO}"
-		done
+	if [ -n "${VERSION}" ]; then
+		if [ -e "${STATE}" ]; then
+			print_overview
+		else
+			echo "No run of ${VERSION} (${REPO}) found (${STATE} missing)."
+			list_combinations
+		fi
 		exit 0
 	fi
-	print_overview
+	found=
+	for STATE in "${STATE_DIR}/run-all-ci-${CI_CLUSTER}-"*.state; do
+		[ -e "${STATE}" ] || continue
+		found=true
+		# run-all-ci-<cluster>-<version>-<repository>.state
+		name=$(basename "${STATE}" .state)
+		name=${name#run-all-ci-"${CI_CLUSTER}"-}
+		VERSION=${name%-*}
+		REPO=${name##*-}
+		print_overview
+	done
+	if [ -z "${found}" ]; then
+		echo "No runs found in ${STATE_DIR}."
+		list_combinations
+	fi
 	exit 0
 fi
 
