@@ -212,6 +212,8 @@ if [[ "${SMS}" == "ohpc-huawei-sms" ]]; then
 	COMPUTE_HOSTS="ohpc-huawei-c1, ohpc-huawei-c2"
 	((TIMEOUT += 100))
 	GATEWAY="192.168.24.1"
+	# ohpc-huawei-repo, serves the ISO images
+	REPO_SERVER="192.168.29.53"
 	SMS_INTERNAL="${SMS}"
 	if [[ "${DISTRIBUTION}" == "leap"* ]]; then
 		SMS_ETH_INTERNAL="eth0"
@@ -223,6 +225,8 @@ else
 	CI_CLUSTER=lenovo
 	COMPUTE_HOSTS="ohpc-lenovo-c1, ohpc-lenovo-c2"
 	GATEWAY="10.241.58.129"
+	# ohpc-lenovo-repo, serves the ISO images
+	REPO_SERVER="10.241.58.130"
 	SMS_INTERNAL="${SMS}"
 	if [[ "${DISTRIBUTION}" == "leap"* ]]; then
 		SMS_ETH_INTERNAL="eth0"
@@ -506,6 +510,7 @@ fi
 	echo "export USER_TEST_OPTIONS=\"${USER_TEST_OPTIONS}\""
 	echo "export dns_servers=1.1.1.1"
 	echo "export ipv4_gateway=${GATEWAY}"
+	echo "export REPO_SERVER=${REPO_SERVER}"
 	echo "export sms_eth_internal=${SMS_ETH_INTERNAL}"
 	echo "export InstallCluster=${INSTALL_CLUSTER}"
 	echo "export RootLevelTests=${ROOT_LEVEL_TESTS}"
@@ -523,13 +528,13 @@ if [[ "${PROVISIONER}" == "confluent" ]]; then
 		echo "export iso_path=/root/Rocky-9-latest-x86_64-dvd.iso" >>"${VARS}"
 	fi
 	if [[ "${DISTRIBUTION}" == "rocky10" ]]; then
-		echo "export iso_path=/root/Rocky-10-latest-x86_64-dvd.iso" >>"${VARS}"
+		echo "export iso_path=/root/Rocky-10-latest-${TEST_ARCH}-dvd.iso" >>"${VARS}"
 	fi
 	if [[ "${DISTRIBUTION}" == "almalinux"* ]]; then
 		echo "export iso_path=/root/AlmaLinux-9-latest-x86_64-dvd.iso" >>"${VARS}"
 	fi
 	if [[ "${DISTRIBUTION}" == "almalinux10" ]]; then
-		echo "export iso_path=/root/AlmaLinux-10-latest-x86_64-dvd.iso" >>"${VARS}"
+		echo "export iso_path=/root/AlmaLinux-10-latest-${TEST_ARCH}-dvd.iso" >>"${VARS}"
 	fi
 fi
 
@@ -539,10 +544,10 @@ if [[ "${PROVISIONER}" == "xcat_"* ]]; then
 	} >>"${VARS}"
 
 	if [[ "${DISTRIBUTION}" == "almalinux10" ]]; then
-		echo "export iso_path=/root/AlmaLinux-10-latest-x86_64-dvd.iso" >>"${VARS}"
+		echo "export iso_path=/root/AlmaLinux-10-latest-${TEST_ARCH}-dvd.iso" >>"${VARS}"
 	fi
 	if [[ "${DISTRIBUTION}" == "rocky10" ]]; then
-		echo "export iso_path=/root/Rocky-10-latest-x86_64-dvd.iso" >>"${VARS}"
+		echo "export iso_path=/root/Rocky-10-latest-${TEST_ARCH}-dvd.iso" >>"${VARS}"
 	fi
 fi
 
