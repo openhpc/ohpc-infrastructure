@@ -558,8 +558,7 @@ if [[ "${DISTRIBUTION}" == "rocky"* ]] && [[ "${SMS}" == "ohpc-huawei-sms" ]]; t
 	echo "export YUM_MIRROR_BASE=http://mirrors.nju.edu.cn/rocky/" >>"${VARS}"
 fi
 if [[ "${DISTRIBUTION}" == "openEuler"* ]] && [[ "${SMS}" == "ohpc-lenovo-sms" ]]; then
-	echo "export YUM_MIRROR_BASE=http://repo.huaweicloud.com/openeuler/" >>"${VARS}"
-	echo "export YUM_MIRROR_BASE=https://de-repo.openeuler.org/" >>"${VARS}"
+	echo "export YUM_MIRROR_BASE=http://mirror.maeen.sa/openeuler/" >>"${VARS}"
 fi
 if [[ "${DISTRIBUTION}" == "rocky"* ]] && [[ "${SMS}" == "ohpc-lenovo-sms" ]]; then
 	echo "export YUM_MIRROR_BASE=http://download.rockylinux.org/pub/rocky/" >>"${VARS}"
