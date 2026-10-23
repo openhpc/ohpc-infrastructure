@@ -38,11 +38,13 @@
 {%- set mirror1_base = mirror1~'/openEuler-'~release~'-LTS-'~SP~'/' -%}
 {%- endif -%}
 {%- set huawei = inventory_hostname_short.startswith('ohpc-huawei-repo') -%}
-{#- External mirrors as (repository name, base URL). On Lenovo they are
-    used during the installation, on Huawei they are only added in %post
-    with skip_if_unavailable so that an unreachable mirror does not break
-    the upgrade. The cost keeps them preferred over the default
-    repositories of the distribution (cost 1000). -#}
+{#- External mirrors as (repository name, base URL). On Huawei and for
+    openEuler on Lenovo they are not used during the installation, they
+    are only added in %post with skip_if_unavailable so that an
+    unreachable mirror does not break the upgrade. For EL on Lenovo they
+    are used during the installation. The cost keeps them preferred over
+    the default repositories of the distribution (cost 1000). -#}
+{%- set mirrors_in_post = huawei or type == 'openeuler' -%}
 {%- if type == 'el' -%}
 {%- set mirrors = [
   ('BaseOSMirror1', mirror1_base~'BaseOS/'~arch~'/os/'),
@@ -139,7 +141,7 @@ repo --cost=1 --install --name="AppStream" --baseurl="http://{{ repo }}/{{base}}
 {% elif type == 'openeuler' %}
 repo --cost=1 --install --name="DVD" --baseurl="http://{{ repo }}/{{ base }}"
 {% endif %}
-{% if not huawei %}
+{% if not mirrors_in_post %}
 {% for name, url in mirrors %}
 repo --cost=50 --install --name="{{ name }}" --baseurl="{{ url }}" --proxy="http://{{ proxy }}"
 {% endfor %}
@@ -172,7 +174,7 @@ export http_proxy=http://{{ proxy }}
 
 curl -so /dev/null http://{{ repo }}/kickstart-progress/post-started-{{ distro }} || true
 
-{% if huawei %}
+{% if mirrors_in_post %}
 # The external mirrors are not used during the installation. Add them
 # with skip_if_unavailable so that an unreachable mirror does not break
 # the upgrade, with a cost below the default repositories.

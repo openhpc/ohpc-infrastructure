@@ -16,7 +16,7 @@ dry_run=True  # do not make changes to OBS, just do a dry-run
 admin         = ["conman","docs","examples","ganglia","genders","lmod-defaults","lmod",
 	         "losf","meta-packages","mrsh","nagios","nagios-plugins","ndoutils","nhc","nrpe",
 		 "ohpc-filesystem","ohpc-release","hpc-workspace", "mdtoc",
-		 "modules-defaults",
+		 "modules-defaults", "environment-modules",
 		 "pdsh","prun","test-suite"]
 dev-tools     = ["autoconf","automake","cmake","cuda-devel","easybuild","golang",
 		 "hwloc","libtool","mpi4py","numpy",
@@ -56,6 +56,7 @@ standalone = ["docs", "test-suite", "warewulf", "gnu-compilers", "ohpc-filesyste
               "cmake", "pdsh", "intel-compilers-devel", "!pmix","golang",
               "impi-devel", "meta-packages", "easybuild", "spack", "hwloc", "ucx",
               "!conman", "examples", "charliecloud", "!magpie", "!mdtoc",
+              "environment-modules",
               "flux-security", "flux-core", "flux-sched", "flux-pmix",
               "python-Cython", "prun", "papi", "nhc", "!losf", "!paraver",
               "lmod", "genders", "hpc-workspace", "valgrind", "slurm", "!cuda-devel"]
