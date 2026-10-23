@@ -30,12 +30,11 @@
 {%- endif -%}
 {%- set base = 'openEuler-'~release~'-LTS-'~SP~'-everything/' -%}
 {%- if inventory_hostname_short.startswith('ohpc-lenovo-repo') -%}
-{%- set mirror1 = 'http://mirror.accum.se/mirror/openeuler.org/' -%}
-{%- set mirror1 = 'http://mirrors.dotsrc.org/openeuler/' -%}
+{%- set mirror1 = 'https://de-repo.openeuler.org/' -%}
 {%- elif inventory_hostname_short.startswith('ohpc-huawei-repo') -%}
 {%- set mirror1 = 'http://mirrors.nju.edu.cn/openeuler/' -%}
 {%- endif -%}
-{%- set mirror1_base = mirror1~'/openEuler-'~release~'-LTS-'~SP~'/' -%}
+{%- set mirror1_base = mirror1~'openEuler-'~release~'-LTS-'~SP~'/' -%}
 {%- endif -%}
 {%- set huawei = inventory_hostname_short.startswith('ohpc-huawei-repo') -%}
 {#- External mirrors as (repository name, base URL). On Huawei and for
