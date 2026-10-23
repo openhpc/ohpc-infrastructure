@@ -439,8 +439,18 @@ install_openHPC_cluster() {
 			# shellcheck disable=SC2016
 			sed '/export CHROOT/a echo  "user_agent=curl" >> $CHROOT/etc/dnf/dnf.conf' -i "${recipeFile}"
 			echo "CI Customization: Use OpenHPC repository files from host"
+			# The OpenHPC repository files on the SMS already point to
+			# Factory or Staging, copying them into the image covers both.
 			# shellcheck disable=SC2016
 			sed '/Add OpenHPC base components to compute image/i /usr/bin/cp -vf /etc/yum.repos.d/OpenHPC*repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
+			if [[ "${DISTRIBUTION}" == "openEuler"* ]]; then
+				# The repository file in the image uses the metalink
+				# service. The file on the SMS has been switched to a
+				# fixed mirror already.
+				echo "CI Customization: Use openEuler repository file from host"
+				# shellcheck disable=SC2016
+				sed '/export CHROOT/a /usr/bin/cp -vf /etc/yum.repos.d/openEuler.repo $CHROOT/etc/yum.repos.d' -i "${recipeFile}"
+			fi
 		fi
 		if [ "${enable_ib}" -eq 1 ] || [[ "${Provisioner}" == "warewulf"* ]]; then
 			echo "CI Customization: Install opensm on compute node"
