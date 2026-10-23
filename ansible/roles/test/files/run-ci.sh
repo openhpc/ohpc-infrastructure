@@ -29,7 +29,7 @@ show_usage() {
 	echo "  -h, --help                           Show this help"
 }
 
-TIMEOUT="100"
+TIMEOUT="120"
 
 # Parse command line options using external getopt
 if ! PARSED=$(getopt -o d:v:r:m:p:ig:nbo:h --long distribution:,version:,repository:,rms:,provisioner:,intel,gpu:,no-upload,infiniband,overwrite-rpm:,to-disk,install-only-baseos,help -n "$0" -- "$@"); then
