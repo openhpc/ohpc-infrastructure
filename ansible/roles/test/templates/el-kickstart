@@ -26,7 +26,7 @@
 {%- if release == '22.03' -%}
 {%- set SP = 'SP3' -%}
 {%- elif release == '24.03' -%}
-{%- set SP = 'SP2' -%}
+{%- set SP = 'SP3' -%}
 {%- endif -%}
 {%- set base = 'openEuler-'~release~'-LTS-'~SP~'-everything/' -%}
 {%- if inventory_hostname_short.startswith('ohpc-lenovo-repo') -%}
