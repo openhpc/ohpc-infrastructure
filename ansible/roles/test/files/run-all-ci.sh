@@ -133,6 +133,17 @@ if [[ "${CI_CLUSTER}" == "lenovo" ]]; then
 	)
 fi
 
+# Environment Modules instead of Lmod. The combinations above all use
+# Lmod, these few cover the other module tool on x86_64, with a
+# different distribution, provisioner and resource manager each.
+if [[ "${TEST_ARCH}" == "x86_64" ]]; then
+	COMBINATIONS+=(
+		"openeuler-warewulf-slurm-envmodules|-d openeuler -p warewulf -m slurm --environment-modules"
+		"rocky-confluent-slurm-envmodules|-d rocky -p confluent -m slurm --environment-modules"
+		"almalinux-warewulf-flux-envmodules|-d almalinux -p warewulf -m flux --environment-modules"
+	)
+fi
+
 mkdir -p "${STATE_DIR}"
 STATE="${STATE_DIR}/run-all-ci-${CI_CLUSTER}-${VERSION}-${REPO}.state"
 

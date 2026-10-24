@@ -122,6 +122,7 @@ my $enable_powerman  = "";
 my $enable_ipmisol   = "";
 my $enable_clustershell = "";
 my $enable_mpich_ucx = "";
+my $modules_package  = "";
 
 my @compute_ips      = ();
 my @compute_ipoibs   = ();
@@ -131,6 +132,12 @@ my @compute_bmcs     = ();
 # iso_path can be overridden by Jenkins env
 if( defined $ENV{iso_path} ) {
     $iso_path = $ENV{iso_path};
+}
+
+# The module tool is selected by the CI scripts via the environment.
+# If it is not set, the default from the template is kept.
+if( defined $ENV{MODULES_PACKAGE} ) {
+    $modules_package = $ENV{MODULES_PACKAGE};
 }
 
 open(IN,"<$mapfile")  || die "Cannot open file -> $mapfile\n";
@@ -322,6 +329,9 @@ while(my $line=<IN>) {
     } elsif ( update_var("enable_clustershell",$enable_clustershell,$line) ) {
 	print OUT $line;
     } elsif ( update_var("enable_mpich_ucx",$enable_mpich_ucx,$line) ) {
+	print OUT $line;
+    } elsif ( $modules_package ne "" &&
+	      update_var("modules_package",$modules_package,$line) ) {
 	print OUT $line;
     } elsif ($line =~ /^c_ip\[(\d)\]=\S+/) {
 	next if ($1 >= $num_computes);
