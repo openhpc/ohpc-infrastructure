@@ -400,8 +400,14 @@ cleanup() {
 			NAME="${NAME}-INTEL"
 		fi
 		NAME="${NAME}-gpu-${WITH_GPU}-${TEST_ARCH}-${RMS}"
+		# The module tool is always part of the name, like the GPU type,
+		# so that a result says which one it was tested with. Results
+		# from before this was added have no module tool in their name
+		# and are shown as Lmod, which was the only one back then.
 		if [[ "${MODULES_PACKAGE}" == "environment-modules-ohpc" ]]; then
 			NAME="${NAME}-envmodules"
+		else
+			NAME="${NAME}-lmod"
 		fi
 		DEST_NAME="$(date -u +"%Y-%m-%d-%H-%M-%S")-${RESULT}-${NAME}-${RANDOM}"
 		mv "${OUT}" "${DEST_DIR}/${DEST_NAME}"
