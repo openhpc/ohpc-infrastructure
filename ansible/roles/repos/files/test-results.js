@@ -15,6 +15,7 @@ class TestResultsManager {
             architecture: '',
             network: '',
             compiler: '',
+            modules: '',
             search: ''
         };
 
@@ -112,6 +113,8 @@ class TestResultsManager {
     parseTestConfiguration(testName) {
         // Parse test configuration names like: "3.4-almalinux9-confluent-ethernet-gpu-none-x86_64-slurm"
         // or "3.4-almalinux9-warewulf4-ethernet-INTEL-gpu-none-x86_64-slurm"
+        // The module tool is an optional trailing component, as in
+        // "4.2-rocky10-warewulf-ethernet-gpu-none-x86_64-slurm-envmodules"
         // Note: OHPC- prefix has been removed for cleaner display
 
         let config = {
@@ -121,7 +124,8 @@ class TestResultsManager {
             compiler: '',
             gpu: '',
             architecture: '',
-            rms: ''
+            rms: '',
+            modules: ''
         };
 
         // Split by hyphen and process parts
@@ -136,7 +140,8 @@ class TestResultsManager {
                 config.distribution = originalPart;
             }
             // Provisioner detection
-            else if (part === 'confluent' || part === 'warewulf' || part === 'warewulf4' || part === 'openchami') {
+            else if (part === 'confluent' || part === 'warewulf' || part === 'warewulf4' ||
+                     part === 'openchami' || part === 'xcat_stateful' || part === 'xcat_stateless') {
                 config.provisioner = originalPart;
             }
             // Network type
@@ -160,8 +165,12 @@ class TestResultsManager {
                 config.architecture = originalPart;
             }
             // Resource manager (usually at the end)
-            else if (part === 'slurm' || part === 'openpbs') {
+            else if (part === 'slurm' || part === 'openpbs' || part === 'flux') {
                 config.rms = originalPart;
+            }
+            // Module tool, named at the end of the newer test names
+            else if (part === 'lmod' || part === 'envmodules') {
+                config.modules = part === 'envmodules' ? 'Environment Modules' : 'Lmod';
             }
         }
 
@@ -180,6 +189,12 @@ class TestResultsManager {
         // Network defaults to ethernet if not specified
         if (!config.network) {
             config.network = 'ethernet';
+        }
+
+        // Test names that do not mention a module tool are runs with Lmod,
+        // which was the only module tool before the name gained a component
+        if (!config.modules) {
+            config.modules = 'Lmod';
         }
 
         return config;
@@ -252,6 +267,7 @@ class TestResultsManager {
         const architectures = [...new Set(this.testData.map(t => t.config.architecture).filter(Boolean))];
         const networks = [...new Set(this.testData.map(t => t.config.network).filter(Boolean))];
         const compilers = [...new Set(this.testData.map(t => t.config.compiler).filter(Boolean))];
+        const modules = [...new Set(this.testData.map(t => t.config.modules).filter(Boolean))];
 
         // Debug logging
         console.log('Filter values:');
@@ -261,6 +277,7 @@ class TestResultsManager {
         console.log('- Architectures:', architectures);
         console.log('- Networks:', networks);
         console.log('- Compilers:', compilers);
+        console.log('- Module tools:', modules);
 
         this.populateSelect('filter-distribution', distributions);
         this.populateSelect('filter-provisioner', provisioners);
@@ -268,6 +285,7 @@ class TestResultsManager {
         this.populateSelect('filter-architecture', architectures);
         this.populateSelect('filter-network', networks);
         this.populateSelect('filter-compiler', compilers);
+        this.populateSelect('filter-modules', modules);
     }
 
     populateSelect(id, options) {
@@ -354,6 +372,7 @@ class TestResultsManager {
             if (this.filters.architecture && !item.config.architecture.includes(this.filters.architecture)) return false;
             if (this.filters.network && !item.config.network.includes(this.filters.network)) return false;
             if (this.filters.compiler && !item.config.compiler.includes(this.filters.compiler)) return false;
+            if (this.filters.modules && !item.config.modules.includes(this.filters.modules)) return false;
             if (this.filters.status && item.status !== this.filters.status) return false;
             if (this.filters.search && !item.testName.toLowerCase().includes(this.filters.search)) return false;
 
