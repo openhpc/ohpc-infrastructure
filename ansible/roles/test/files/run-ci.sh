@@ -26,13 +26,18 @@ show_usage() {
 	echo "  -n, --no-upload                      Don't upload test results"
 	echo "      --to-disk                        Provision compute node image to disk"
 	echo "      --install-only-baseos            Install only base OS without OpenHPC cluster"
+	echo "      --environment-modules            Use Environment Modules instead of Lmod"
 	echo "  -h, --help                           Show this help"
 }
 
 TIMEOUT="120"
 
+# Module tool installed on the head node and the compute nodes and used
+# by the tests: "lmod-ohpc" or "environment-modules-ohpc".
+MODULES_PACKAGE="lmod-ohpc"
+
 # Parse command line options using external getopt
-if ! PARSED=$(getopt -o d:v:r:m:p:ig:nbo:h --long distribution:,version:,repository:,rms:,provisioner:,intel,gpu:,no-upload,infiniband,overwrite-rpm:,to-disk,install-only-baseos,help -n "$0" -- "$@"); then
+if ! PARSED=$(getopt -o d:v:r:m:p:ig:nbo:h --long distribution:,version:,repository:,rms:,provisioner:,intel,gpu:,no-upload,infiniband,overwrite-rpm:,to-disk,install-only-baseos,environment-modules,help -n "$0" -- "$@"); then
 	echo "Failed to parse options"
 	show_usage
 	exit 1
@@ -92,6 +97,10 @@ while true; do
 		;;
 	--install-only-baseos)
 		INSTALL_ONLY_BASEOS="true"
+		shift
+		;;
+	--environment-modules)
+		MODULES_PACKAGE="environment-modules-ohpc"
 		shift
 		;;
 	-h | --help)
@@ -275,6 +284,7 @@ print_overview() {
 	echo "--> test timeout:      ${TIMEOUT}m"
 	echo "--> resource manager:  ${RMS}"
 	echo "--> provisioner:       ${PROVISIONER}"
+	echo "--> module tool:       ${MODULES_PACKAGE}"
 	echo "--> test options:      ${USER_TEST_OPTIONS}"
 	echo "--> gateway:           ${GATEWAY}"
 	echo "--> gpu:               ${WITH_GPU}"
@@ -327,6 +337,7 @@ cleanup() {
 		echo "WITH_INTEL=${WITH_INTEL:-false}"
 		echo "WITH_GPU=${WITH_GPU}"
 		echo "USE_INFINIBAND=${USE_IB:-false}"
+		echo "MODULES_PACKAGE=${MODULES_PACKAGE}"
 		echo "TIMEOUT_MINUTES=${TIMEOUT}"
 		echo ""
 		echo "# System Information"
@@ -389,6 +400,9 @@ cleanup() {
 			NAME="${NAME}-INTEL"
 		fi
 		NAME="${NAME}-gpu-${WITH_GPU}-${TEST_ARCH}-${RMS}"
+		if [[ "${MODULES_PACKAGE}" == "environment-modules-ohpc" ]]; then
+			NAME="${NAME}-envmodules"
+		fi
 		DEST_NAME="$(date -u +"%Y-%m-%d-%H-%M-%S")-${RESULT}-${NAME}-${RANDOM}"
 		mv "${OUT}" "${DEST_DIR}/${DEST_NAME}"
 		chmod 755 "${DEST_DIR}/${DEST_NAME}"
@@ -454,6 +468,12 @@ if [ -n "${ENABLE_EESSI}" ]; then
 	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --enable-eessi"
 fi
 
+# Only the selected module tool is installed, so run its tests and skip
+# the tests of the other one.
+if [[ "${MODULES_PACKAGE}" == "environment-modules-ohpc" ]]; then
+	USER_TEST_OPTIONS="${USER_TEST_OPTIONS} --disable-lmod --enable-environment-modules"
+fi
+
 print_overview
 
 # Save old history
@@ -511,6 +531,7 @@ fi
 	echo "export CI_CLUSTER=${CI_CLUSTER}"
 	echo "export COMPUTE_HOSTS=\"${COMPUTE_HOSTS}\""
 	echo "export EnableOneAPI=${WITH_INTEL:-false}"
+	echo "export MODULES_PACKAGE=${MODULES_PACKAGE}"
 	echo "export USER_TEST_OPTIONS=\"${USER_TEST_OPTIONS}\""
 	echo "export dns_servers=1.1.1.1"
 	echo "export ipv4_gateway=${GATEWAY}"
