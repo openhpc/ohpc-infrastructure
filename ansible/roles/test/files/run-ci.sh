@@ -260,11 +260,14 @@ if [[ "${PROVISIONER}" == "openchami" ]]; then
 fi
 
 # EESSI is installed and tested on the Lenovo cluster only, for x86_64
-# with Warewulf and OpenHPC 4.x. EESSI does not support openEuler.
+# with Warewulf and OpenHPC 4.x. EESSI does not support openEuler. It
+# also needs Lmod, as it publishes its initialization modules only as
+# Lua modulefiles, which Environment Modules does not read.
 if [[ "${CI_CLUSTER}" == "lenovo" ]] &&
 	[[ "${TEST_ARCH}" == "x86_64" ]] &&
 	[[ "${VERSION_MAJOR}" == "4" ]] &&
 	[[ "${PROVISIONER}" == "warewulf" ]] &&
+	[[ "${MODULES_PACKAGE}" != "environment-modules-ohpc" ]] &&
 	[[ "${DISTRIBUTION}" != "openEuler"* ]]; then
 	ENABLE_EESSI="true"
 fi
