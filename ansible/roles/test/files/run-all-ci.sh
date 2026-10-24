@@ -114,12 +114,17 @@ COMBINATIONS=()
 for distro in almalinux rocky; do
 	COMBINATIONS+=(
 		"${distro}-confluent-slurm|-d ${distro} -p confluent -m slurm"
-		"${distro}-openchami-slurm|-d ${distro} -p openchami -m slurm"
 		"${distro}-warewulf-flux|-d ${distro} -p warewulf -m flux"
 		"${distro}-warewulf-slurm|-d ${distro} -p warewulf -m slurm"
-		"${distro}-xcat_stateful-slurm|-d ${distro} -p xcat_stateful -m slurm"
-		"${distro}-xcat_stateless-slurm|-d ${distro} -p xcat_stateless -m slurm"
 	)
+	# OpenCHAMI and xCAT are only tested on x86_64.
+	if [[ "${TEST_ARCH}" == "x86_64" ]]; then
+		COMBINATIONS+=(
+			"${distro}-openchami-slurm|-d ${distro} -p openchami -m slurm"
+			"${distro}-xcat_stateful-slurm|-d ${distro} -p xcat_stateful -m slurm"
+			"${distro}-xcat_stateless-slurm|-d ${distro} -p xcat_stateless -m slurm"
+		)
+	fi
 done
 COMBINATIONS+=("openeuler-warewulf-slurm|-d openeuler -p warewulf -m slurm")
 
@@ -134,13 +139,20 @@ if [[ "${CI_CLUSTER}" == "lenovo" ]]; then
 fi
 
 # Environment Modules instead of Lmod. The combinations above all use
-# Lmod, these few cover the other module tool on x86_64, with a
-# different distribution, provisioner and resource manager each.
+# Lmod, these few cover the other module tool, with a different
+# distribution, provisioner and resource manager each. The two
+# architectures use different ones to cover more of them.
 if [[ "${TEST_ARCH}" == "x86_64" ]]; then
 	COMBINATIONS+=(
 		"openeuler-warewulf-slurm-envmodules|-d openeuler -p warewulf -m slurm --environment-modules"
 		"rocky-confluent-slurm-envmodules|-d rocky -p confluent -m slurm --environment-modules"
 		"almalinux-warewulf-flux-envmodules|-d almalinux -p warewulf -m flux --environment-modules"
+	)
+else
+	COMBINATIONS+=(
+		"openeuler-warewulf-slurm-envmodules|-d openeuler -p warewulf -m slurm --environment-modules"
+		"almalinux-confluent-slurm-envmodules|-d almalinux -p confluent -m slurm --environment-modules"
+		"rocky-warewulf-flux-envmodules|-d rocky -p warewulf -m flux --environment-modules"
 	)
 fi
 
