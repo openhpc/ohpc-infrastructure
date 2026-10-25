@@ -22,6 +22,17 @@ teardown() {
 	[ -f "$TEMP_FILE" ] && rm -f "$TEMP_FILE"
 }
 
+# Report the uptime of each compute node, one host per line.
+#
+# Environment Modules prints the modules it loads on every login, so the
+# output of koomie_cf holds more than the /proc/uptime line of a host.
+# Keep only the lines that are a host name followed by the two numbers
+# of /proc/uptime and drop whatever the login printed around them.
+uptimes() {
+	koomie_cf -x "c\\d+" cat /proc/uptime |
+		grep -E '^[^[:space:]]+[[:space:]]+[0-9]+(\.[0-9]+)?[[:space:]]+[0-9]+(\.[0-9]+)?$'
+}
+
 @test "num_computes is greater than zero" {
 	[ "$num_computes" -gt 0 ]
 }
@@ -41,8 +52,8 @@ teardown() {
 }
 
 @test "correct number of compute hosts respond" {
-	# Run koomie_cf and count lines
-	koomie_cf -x "c\\d+" cat /proc/uptime >"$TEMP_FILE"
+	# Count the hosts that reported their uptime
+	uptimes >"$TEMP_FILE"
 	num_lines=$(wc -l <"$TEMP_FILE")
 	[ "$num_lines" -eq "$num_computes" ]
 }
@@ -53,7 +64,7 @@ teardown() {
 	num_bad=0
 
 	# Get uptime data
-	koomie_cf -x "c\\d+" cat /proc/uptime >"$TEMP_FILE"
+	uptimes >"$TEMP_FILE"
 
 	# Check that we have entries
 	[ -s "$TEMP_FILE" ]
