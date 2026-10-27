@@ -42,7 +42,7 @@ mpi-families=["impi-devel","mpich","mvapich2","openmpi","libfabric","ucx"]
 
 # define patterns for a given arch in which to disable builds
 skip_aarch=["-intel\\b","lustre-client","-impi\\b","-mvapich2\\b","likwid-arm1","geopm",
-            "intel-compilers-devel","impi-devel","mvapich2","openblas-arm1","cuda-devel"]
+            "intel-compilers-devel","impi-devel","mvapich2","openblas-arm1"]
 skip_x86  = ["-arm1"]
 
 # define compiler/MPI families: first entry in list is defined to be parent in OBS
@@ -59,7 +59,7 @@ standalone = ["docs", "test-suite", "warewulf", "gnu-compilers", "ohpc-filesyste
               "environment-modules",
               "flux-security", "flux-core", "flux-sched", "flux-pmix",
               "python-Cython", "prun", "papi", "nhc", "!losf", "!paraver",
-              "lmod", "genders", "hpc-workspace", "valgrind", "slurm", "!cuda-devel"]
+              "lmod", "genders", "hpc-workspace", "valgrind", "slurm", "cuda-devel"]
 
 mpi_dependent = ["otf2", "sionlib", "fftw", "scalapack", "hdf5",
 		 "scorep", "scalasca", "netcdf", "netcdf-fortran",
