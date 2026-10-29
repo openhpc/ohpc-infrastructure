@@ -539,13 +539,6 @@ install_openHPC_cluster() {
 		# Inserted before the marker as the marker itself is replaced later.
 		sed '/ohpc_proxy:compute/i cp /root/ohpc-ci-proxy /install/postscripts/ohpc-ci-proxy' -i "${recipeFile}"
 		sed '/ohpc_proxy:compute/i chdef compute -p postscripts=ohpc-ci-proxy' -i "${recipeFile}"
-		if [[ "${Repo}" == "Staging" ]]; then
-			# The otherpkgs repositories stay enabled on the nodes, only the
-			# OpenHPC.repo from ohpc-release needs to point to Staging.
-			echo "CI Customization: Sync the Staging repository file to the compute nodes"
-			# shellcheck disable=SC2016
-			sed '/ohpc_proxy:compute/i echo "/etc/yum.repos.d/OpenHPC.repo -> /etc/yum.repos.d/OpenHPC.repo" >> ${xcat_synclist_dir}/compute.synclist' -i "${recipeFile}"
-		fi
 	fi
 
 	if [[ "${Provisioner}" == "xcat_state"* ]]; then
