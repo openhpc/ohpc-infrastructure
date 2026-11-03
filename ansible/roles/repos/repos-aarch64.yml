@@ -476,7 +476,7 @@
       ansible.builtin.git:
         repo: https://github.com/openhpc/ohpc-log-analyzer.git
         dest: /home/ohpc/ohpc-log-analyzer.git
-        version: 4d2ab27d6eff2f28f8be27540ed9182fb8ba2934
+        version: 3b567094c8d0edd869c5f3a97cf5a6732f47f1fb
       become: true
       become_user: ohpc
       register: repos_ohpc_log_analyzer_downloaded
@@ -504,6 +504,17 @@
       tags:
         - skip_ansible_lint
 
+    - name: Create the ohpc-log-analyzer cache directory
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: directory
+        owner: ohpc
+        group: ohpc
+        mode: "{{ item.mode }}"
+      loop:
+        - { path: /home/ohpc/.cache, mode: "0755" }
+        - { path: /home/ohpc/.cache/ohpc-log-analyzer, mode: "0700" }
+
     - name: Run ohpc-log-analyzer via cron
       ansible.builtin.cron:
         name: "run ohpc-log-analyzer"
@@ -511,6 +522,7 @@
         user: ohpc
         job: >
           time /usr/local/bin/ohpc-log-analyzer
+          --cache-directory /home/ohpc/.cache/ohpc-log-analyzer
           /var/log/httpd/*-access*
           /var/log/httpd/old/access_log* >> /var/log/httpd/old/log-ohpc-log-analyzer
 

@@ -655,13 +655,6 @@ post_install_cmds() {
 		ERROR "Unknown provisioner type -> ${Provisioner}"
 	fi
 
-	# Disable the test that checks for matching kernels on SMS and compute
-	# nodes. OpenHPC no longer ships kernel modules, so the kernel version
-	# match is no longer necessary. This test can probably be removed
-	# entirely from the test suite.
-	# shellcheck disable=SC2016
-	sed -e 's,assert_equal $kernel $sms_kernel,/bin/true,g' -i /home/ohpc-test/tests/bos/computes
-
 	# This test does not seem to really work. Disable it.
 	sed '/warewulf-ipmi-ohpc/a skip "broken"' -i /home/ohpc-test/tests/oob/warewulf-ipmi
 
