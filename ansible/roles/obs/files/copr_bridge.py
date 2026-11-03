@@ -14,7 +14,7 @@ import sys
 import time
 from ctypes import CDLL, c_char_p, c_int, c_uint32, get_errno
 from ctypes.util import find_library
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import coloredlogs
@@ -38,7 +38,7 @@ def ERROR(output):
 
 def now_iso():
     """Return current UTC time as ISO 8601 string."""
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S")
 
 
 class InotifyWatcher:
