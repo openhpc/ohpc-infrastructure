@@ -276,6 +276,7 @@
       with_items:
         - styles.css
         - repos.css
+        - site.css
         - test_error.png
         - test_ok.png
         - test_warning.png
