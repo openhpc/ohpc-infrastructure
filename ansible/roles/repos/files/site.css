@@ -1,6 +1,29 @@
-/* Header and footer shared by the /repos and /results listings */
+/* Header and footer shared by the /repos, /results and /stats pages */
 
-/* repos.css and styles.css both define the custom properties below. */
+/* repos.css and styles.css redefine most of these for their own rules.
+   They are declared here as well so that /stats, which loads no other
+   stylesheet, still renders the header and the footer. */
+:root {
+	--primary-color: #2c3e50;
+	--secondary-color: #3498db;
+	--background-color: #f4f6f8;
+	--surface-color: #ffffff;
+	--text-color: #2c3e50;
+	--muted-color: #7f8c8d;
+	--border-color: #dee2e6;
+	--row-hover-color: #eaf4fb;
+	--shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* The header spans the full window, so the default body margin of the
+   browser would leave a strip of background along its left and right. */
+body {
+	margin: 0;
+	background: var(--background-color);
+	color: var(--text-color);
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+	line-height: 1.6;
+}
 
 .site-header {
 	background: var(--surface-color);
