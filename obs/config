@@ -48,7 +48,7 @@ skip_x86  = ["-arm1"]
 # define compiler/MPI families: first entry in list is defined to be parent in OBS
 compiler_families=["gnu16", "intel"]
 mpi_families=["openmpi5","mpich","mvapich2","impi"]
-standalone = ["docs", "easybuild"]
+standalone = ["docs", "easybuild", "test-suite"]
 skip_on_distro_EL_10 = ["golang"]
 skip_on_distro_openEuler_24.03 = ["-arm1","-intel","-impi","impi-devel","intel-compilers-devel",
               			"flux-security", "flux-core", "flux-sched", "flux-pmix",
