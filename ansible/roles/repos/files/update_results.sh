@@ -2,17 +2,30 @@
 
 set -ex
 
-# Emit an AddDescription line that matches the given name exactly.
-# Apache treats a plain file argument as a substring match and uses the
-# first match, so "4.1" would also match "4.1.1". Wrapping the first
-# character in brackets turns the argument into a wildcard pattern that
-# is matched against the whole name with fnmatch().
+# Collect one "name<tab>icon" line for write_htaccess.
 add_description() {
 	local icon="$1"
 	local name="$2"
-	local pattern="[${name:0:1}]${name:1}"
 
-	echo "AddDescription \"<img src=\\\"/.files/${icon}.png\\\"/>\" \"${pattern}\"" >>.htaccess.new
+	printf '%s\t%s\n' "$name" "$icon" >>.htaccess.list
+}
+
+# Write the collected descriptions into the .htaccess of the current
+# directory, longest name first. Wrapping the first character of a name
+# in brackets makes the argument a wildcard pattern, which mod_autoindex
+# pads with a "*" on each side, so the pattern for "4.2" also matches
+# "4.2.1". mod_autoindex uses the first line that matches, so the line
+# for "4.2.1" has to come before the line for "4.2".
+write_htaccess() {
+	touch .htaccess.list
+	awk -F'\t' '{ printf "%d\t%s\n", length($1), $0 }' .htaccess.list |
+		sort -rn -k1,1 | cut -f2- |
+		while IFS=$'\t' read -r name icon; do
+			pattern="[${name:0:1}]${name:1}"
+			echo "AddDescription \"<img src=\\\"/.files/${icon}.png\\\"/>\" \"${pattern}\""
+		done >.htaccess.new
+	rm .htaccess.list
+	mv .htaccess.new .htaccess
 }
 
 # Emit the site footer that the /repos listings also use.
@@ -85,11 +98,11 @@ add_html_footer() {
 
 cd "/results/$1/$2"
 
-if [ ! -e HEADER.html ]; then
-	cp /home/ohpc/HEADER.tmpl HEADER.html
-	sed -e "s,@@VERSION@@,$2,g" -i HEADER.html
-	sed -e "s,@@MAJOR_VERSION@@,$1,g" -i HEADER.html
-fi
+# The copy happens on every run, so that a change to the template also
+# reaches a directory whose HEADER.html already exists.
+cp /home/ohpc/HEADER.tmpl HEADER.html
+sed -e "s,@@VERSION@@,$2,g" -i HEADER.html
+sed -e "s,@@MAJOR_VERSION@@,$1,g" -i HEADER.html
 
 for i in *OHPC*; do
 	if [ -e "$i/FAIL" ]; then
@@ -98,10 +111,7 @@ for i in *OHPC*; do
 		add_description test_ok "$i"
 	fi
 done
-mv .htaccess.new .htaccess
-
-# Reset HEADER.html to just the header portion
-sed '1,/<!-- END HEADER MARKER -->/!d' -i HEADER.html
+write_htaccess
 
 # For specific version pages, show detailed view; remove markers
 sed -e '/<!-- DETAILED_VIEW_START -->/d' -e '/<!-- DETAILED_VIEW_END -->/d' -i HEADER.html
@@ -264,15 +274,12 @@ cd "/results/$1"
 FAIL=0
 PASS=0
 
-if [ ! -e HEADER.html ]; then
-	cp /home/ohpc/HEADER.tmpl HEADER.html
-	sed -e "s,@@VERSION@@,$1,g" -i HEADER.html
-fi
+# The copy happens on every run, so that a change to the template also
+# reaches a directory whose HEADER.html already exists.
+cp /home/ohpc/HEADER.tmpl HEADER.html
+sed -e "s,@@VERSION@@,$1,g" -i HEADER.html
 
-# Reset to header portion and remove detailed view sections for overview.
-# This has to happen on every run, otherwise add_html_footer appends
-# another copy of its trailer to HEADER.html each time.
-sed '1,/<!-- END HEADER MARKER -->/!d' -i HEADER.html
+# Remove the detailed view section, which only the version pages show.
 sed '/<!-- DETAILED_VIEW_START -->/,/<!-- DETAILED_VIEW_END -->/d' -i HEADER.html
 
 for i in "${1}"*; do
@@ -296,37 +303,42 @@ for i in "${1}"*; do
 	FAIL=0
 	PASS=0
 done
-mv .htaccess.new .htaccess
+write_htaccess
 
 # Add appropriate footer for major version overview page
 add_html_footer "/results/$1" "$1" "" ""
 
 cd /results/
 
-if [ ! -e HEADER.html ]; then
-	cp /home/ohpc/HEADER.tmpl HEADER.html
-	sed -e "s,@@VERSION@@,Overall,g" -i HEADER.html
-fi
+# The copy happens on every run, so that a change to the template also
+# reaches a directory whose HEADER.html already exists.
+cp /home/ohpc/HEADER.tmpl HEADER.html
+sed -e "s,@@VERSION@@,Overall,g" -i HEADER.html
 
-# Reset to header portion and remove detailed view sections for overview.
-sed '1,/<!-- END HEADER MARKER -->/!d' -i HEADER.html
+# Remove the detailed view section, which only the version pages show.
 sed '/<!-- DETAILED_VIEW_START -->/,/<!-- DETAILED_VIEW_END -->/d' -i HEADER.html
 
 for i in *; do
 	if [ ! -d "$i" ]; then
 		continue
 	fi
+	# A major version directory without an .htaccess has no test results
+	# yet, and grep on the missing file would end the script via "set -e".
+	if [ ! -e "$i/.htaccess" ]; then
+		continue
+	fi
 	ERRORS=$(grep -c test_error "$i/.htaccess" || true)
 	WARNINGS=$(grep -c test_warning "$i/.htaccess" || true)
-	if [ "$ERRORS" -gt 0 ] && [ "$WARNINGS" -eq 0 ]; then
-		add_description test_error "$i"
-	elif [ "$WARNINGS" -gt 0 ] && [ "$ERRORS" -eq 0 ]; then
-		add_description test_warning "$i"
-	else
+	OKS=$(grep -c test_ok "$i/.htaccess" || true)
+	if [ "$ERRORS" -eq 0 ] && [ "$WARNINGS" -eq 0 ]; then
 		add_description test_ok "$i"
+	elif [ "$OKS" -eq 0 ] && [ "$WARNINGS" -eq 0 ]; then
+		add_description test_error "$i"
+	else
+		add_description test_warning "$i"
 	fi
 done
-mv .htaccess.new .htaccess
+write_htaccess
 
 # Add appropriate footer for overall results overview page
 add_html_footer "/results" "" "" ""

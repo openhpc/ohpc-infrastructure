@@ -313,6 +313,18 @@ tr:hover {
         color: var(--warning-color);
 }
 
+/* The link of the name cell gets an invisible overlay that covers its
+   whole row, so a click anywhere on a highlighted row opens the link. */
+#indexlist tr {
+        position: relative;
+}
+
+#indexlist td.indexcolname a::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+}
+
 /* Hide Apache directory listing columns we don't need */
 th.indexcolsize,
 td.indexcolsize {
