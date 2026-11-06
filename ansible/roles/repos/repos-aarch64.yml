@@ -277,6 +277,7 @@
         - styles.css
         - repos.css
         - site.css
+        - favicon.ico
         - test_error.png
         - test_ok.png
         - test_warning.png
