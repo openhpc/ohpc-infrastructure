@@ -39,50 +39,6 @@ a:active {
 	color: var(--primary-color);
 }
 
-/* Site header with logo and links */
-.site-header {
-	background: var(--surface-color);
-	border-bottom: 1px solid var(--border-color);
-	box-shadow: var(--shadow);
-}
-
-.site-header-inner {
-	max-width: 1200px;
-	margin: 0 auto;
-	padding: 14px 24px;
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	flex-wrap: wrap;
-	gap: 12px 24px;
-}
-
-.site-logo img {
-	display: block;
-	height: 44px;
-	width: auto;
-}
-
-.site-nav {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 4px;
-}
-
-.site-nav a {
-	padding: 6px 12px;
-	border-radius: 6px;
-	color: var(--primary-color);
-	font-size: 0.95em;
-	font-weight: 500;
-	white-space: nowrap;
-}
-
-.site-nav a:hover {
-	background: var(--row-hover-color);
-	color: var(--secondary-color);
-}
-
 /* Main content card */
 .container {
 	max-width: 1200px;
@@ -304,27 +260,8 @@ html.is-root .quick-links {
 	content: "\2705";
 }
 
-/* Footer */
-.site-footer {
-	max-width: 1200px;
-	margin: 0 auto 30px auto;
-	padding: 0 24px;
-	text-align: center;
-	font-size: 0.9em;
-	color: var(--muted-color);
-}
-
 /* Responsive design */
 @media (max-width: 768px) {
-	.site-header-inner {
-		justify-content: center;
-		padding: 12px 16px;
-	}
-
-	.site-nav {
-		justify-content: center;
-	}
-
 	.container {
 		margin: 12px;
 		padding: 16px;

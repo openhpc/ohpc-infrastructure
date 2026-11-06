@@ -38,6 +38,29 @@ perf-tools    = ["dimemas","extrae","geopm","imb","likwid","msr-safe","omb","pap
 compiler-families=["gnu-compilers","intel-compilers-devel","arm-compilers-devel","llvm-compilers"]
 mpi-families=["impi-devel","mpich","mvapich2","openmpi","libfabric","ucx"]
 
+[4.2.1]
+
+# define patterns for a given arch in which to disable builds
+skip_aarch=["-intel\\b","lustre-client","-impi\\b","-mvapich2\\b","likwid-arm1","geopm",
+            "intel-compilers-devel","impi-devel","mvapich2","openblas-arm1"]
+skip_x86  = ["-arm1"]
+
+# define compiler/MPI families: first entry in list is defined to be parent in OBS
+compiler_families=["gnu16", "intel"]
+mpi_families=["openmpi5","mpich","mvapich2","impi"]
+standalone = ["docs", "easybuild"]
+skip_on_distro_EL_10 = ["golang"]
+skip_on_distro_openEuler_24.03 = ["-arm1","-intel","-impi","impi-devel","intel-compilers-devel",
+              			"flux-security", "flux-core", "flux-sched", "flux-pmix",
+				  "arm-compilers-devel","cuda-devel", "docs"]
+openblas_compiler=["gnu16"]
+R_compiler=["gnu16"]
+opencoarrays_compiler=["gnu16"]
+scipy_compiler=["gnu16"]
+mpi_dependent_to_non_mpi=["netcdf","netcdf-fortran","netcdf-cxx","scotch","hdf5"]
+with_ucx=["mpich"]
+with_pmix=["openmpi"]
+
 [4.2.0]
 
 # define patterns for a given arch in which to disable builds

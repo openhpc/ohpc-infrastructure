@@ -15,6 +15,17 @@ add_description() {
 	echo "AddDescription \"<img src=\\\"/.files/${icon}.png\\\"/>\" \"${pattern}\"" >>.htaccess.new
 }
 
+# Emit the site footer that the /repos listings also use.
+add_site_footer() {
+	echo ""
+	echo "        <footer class=\"site-footer\">"
+	echo "                <a href=\"https://openhpc.community/\">OpenHPC</a> package repository &middot;"
+	echo "                <a href=\"/results/\">Test Results</a> &middot;"
+	echo "                <a href=\"/stats/\">Download Statistics</a> &middot;"
+	echo "                <a href=\"https://lists.openhpc.community/\">Mailing Lists</a>"
+	echo "        </footer>"
+}
+
 # Function to add appropriate closing HTML based on page type
 add_html_footer() {
 	local current_path="$1"
@@ -42,6 +53,7 @@ add_html_footer() {
 		# Create FOOTER.html to close container and add JavaScript
 		{
 			echo "        </div>"
+			add_site_footer
 			echo ""
 			if [ -n "$stats_script" ]; then
 				echo "        <!-- Update statistics -->"
@@ -64,6 +76,7 @@ add_html_footer() {
 		# Create FOOTER.html to close the container
 		{
 			echo "        </div>"
+			add_site_footer
 			echo "</body>"
 			echo "</html>"
 		} >FOOTER.html

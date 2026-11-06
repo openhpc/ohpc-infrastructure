@@ -276,6 +276,8 @@
       with_items:
         - styles.css
         - repos.css
+        - site.css
+        - favicon.ico
         - test_error.png
         - test_ok.png
         - test_warning.png
@@ -476,7 +478,7 @@
       ansible.builtin.git:
         repo: https://github.com/openhpc/ohpc-log-analyzer.git
         dest: /home/ohpc/ohpc-log-analyzer.git
-        version: 3b567094c8d0edd869c5f3a97cf5a6732f47f1fb
+        version: d7fb09300b12b38f733cd8d55887b67ec39b507a
       become: true
       become_user: ohpc
       register: repos_ohpc_log_analyzer_downloaded
