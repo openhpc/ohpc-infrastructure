@@ -478,7 +478,7 @@
       ansible.builtin.git:
         repo: https://github.com/openhpc/ohpc-log-analyzer.git
         dest: /home/ohpc/ohpc-log-analyzer.git
-        version: d7fb09300b12b38f733cd8d55887b67ec39b507a
+        version: d057a9f62351fa167d171b99de3136fb425efd7a
       become: true
       become_user: ohpc
       register: repos_ohpc_log_analyzer_downloaded
