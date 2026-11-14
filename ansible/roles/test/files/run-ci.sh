@@ -222,7 +222,7 @@ if [[ "${SMS}" == "ohpc-huawei-sms" ]]; then
 	((TIMEOUT += 100))
 	GATEWAY="192.168.24.1"
 	# ohpc-huawei-repo, serves the ISO images
-	REPO_SERVER="192.168.29.53"
+	REPO_SERVER="192.168.29.56"
 	SMS_INTERNAL="${SMS}"
 	if [[ "${DISTRIBUTION}" == "leap"* ]]; then
 		SMS_ETH_INTERNAL="eth0"

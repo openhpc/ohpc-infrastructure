@@ -4,8 +4,8 @@
   vars:
     distro: openEuler_22.03
     disks: sda
-    repo: 192.168.29.53
-    proxy: 192.168.29.53:3128
+    repo: 192.168.29.56
+    proxy: 192.168.29.56:3128
     cluster: huawei
     arch: aarch64
     arch_short: aa64

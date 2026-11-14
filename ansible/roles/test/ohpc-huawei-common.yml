@@ -4,14 +4,14 @@
     marker: "# {mark} ANSIBLE MANAGED BLOCK (ohpc-huawei)"
     block: |
       129.114.60.186 test.openhpc.community
-      192.168.29.53 ohpc-huawei-repo repo agent01
+      192.168.29.56 ohpc-huawei-repo repo agent04
       192.168.29.54 ohpc-huawei-sms sms agent02
       192.168.29.55 ohpc-huawei-c1 c1 agent03
-      192.168.29.56 ohpc-huawei-c2 c2 agent04
-      192.168.28.53 mohpc-huawei-repo
+      192.168.29.53 ohpc-huawei-c2 c2 agent01
+      192.168.28.56 mohpc-huawei-repo
       192.168.28.54 mohpc-huawei-sms
       192.168.28.55 mohpc-huawei-c1
-      192.168.28.56 mohpc-huawei-c2
+      192.168.28.53 mohpc-huawei-c2
 
 - name: Set a hostname to "{{ inventory_hostname_short }}"
   ansible.builtin.hostname:

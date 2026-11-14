@@ -30,7 +30,7 @@
         "reservations": [
           {
             "hw-address": "18:56:44:a5:82:fa",
-            "next-server": "192.168.29.53",
+            "next-server": "192.168.29.56",
             "ip-address": "192.168.29.54"
           }
         ]
