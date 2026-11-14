@@ -6,6 +6,10 @@
 # hpc.lenovo.com (104.232.228.82) through the tunnel and the jump host
 # NATs it to the internet.
 #
+# NTP requests from the Huawei lab to public NTP servers mostly get no
+# reply. chronyd on the jump host serves time to the repo server through
+# the tunnel, and the repo server serves time to the SMS.
+#
 # The keys are generated on each host on the first run and never leave
 # the hosts, only the public keys are exchanged between the two plays.
 # The jump host initiates the connection to the repo server. Override
@@ -144,6 +148,30 @@
         to_ip: "{{ item }}"
       with_items: "{{ wireguard_nat_destinations }}"
 
+    # chrony replaces systemd-timesyncd, which cannot serve time to other
+    # hosts.
+    - name: Install chrony
+      ansible.builtin.package:
+        state: present
+        name: chrony
+
+    - name: Allow time sync from the repo server
+      ansible.builtin.lineinfile:
+        path: /etc/chrony/chrony.conf
+        state: present
+        line: allow 172.31.32.2
+      notify:
+        - Restart chronyd
+
+    - name: Allow NTP from the repo server in ufw
+      community.general.ufw:
+        rule: allow
+        interface: wg0
+        direction: in
+        from_ip: 172.31.32.2
+        port: "123"
+        proto: udp
+
     - name: Enable wg-quick@wg0
       ansible.builtin.service:
         name: wg-quick@wg0
@@ -206,3 +234,11 @@
         name: wg-quick@wg0
         enabled: true
         state: started
+
+    - name: Sync time from the jump host
+      ansible.builtin.lineinfile:
+        path: /etc/chrony.conf
+        state: present
+        line: server 172.31.32.1 iburst
+      notify:
+        - Restart chronyd
