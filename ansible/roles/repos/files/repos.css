@@ -180,6 +180,18 @@ html.is-root .quick-links {
 	background: var(--row-hover-color);
 }
 
+/* The link of the name cell gets an invisible overlay that covers its
+   whole row, so a click anywhere on a highlighted row opens the link. */
+#indexlist tr {
+	position: relative;
+}
+
+#indexlist td.indexcolname a::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+}
+
 /* Hide the separator rows and the legacy icon column */
 #indexlist tr.indexbreakrow,
 #indexlist .indexcolicon {

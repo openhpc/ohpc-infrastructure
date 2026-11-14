@@ -12,7 +12,7 @@ enable_clustershell=1
 enable_geopm=1
 enable_magpie=1
 
-ntp_server=192.168.29.53
+ntp_server=192.168.29.56
 
 sms_eth_internal_rocky10=enp125s0f0
 sms_eth_internal_almalinux10=enp125s0f0
@@ -41,17 +41,17 @@ bmc_username=root
 # Compute node IPs
 
 ohpc-huawei-c1_ip=192.168.29.55
-ohpc-huawei-c2_ip=192.168.29.56
+ohpc-huawei-c2_ip=192.168.29.53
 
 # Compute node BMCs
 
 ohpc-huawei-c1_bmc=192.168.28.55
-ohpc-huawei-c2_bmc=192.168.28.56
+ohpc-huawei-c2_bmc=192.168.28.53
 
 # Compute node MACs
 
 ohpc-huawei-c1_mac=f4:e5:f2:c1:3b:f7
-ohpc-huawei-c2_mac=18:56:44:a4:f6:98
+ohpc-huawei-c2_mac=f4:e5:f2:e6:90:c2
 
 
 # Compute node IPoIB (not used)
