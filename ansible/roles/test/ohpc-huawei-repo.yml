@@ -28,6 +28,19 @@
       notify:
         - Restart chronyd
 
+    # The SMS uses this host as its NTP server (ntp_server in
+    # huawei.mapping). firewalld drops the NTP requests of the SMS unless
+    # the ntp service is enabled.
+    - name: Allow NTP in firewalld
+      ansible.posix.firewalld:
+        zone: public
+        service: ntp
+        permanent: true
+        immediate: true
+        state: enabled
+      tags:
+        - skip_ansible_lint
+
     - name: Configure proxy
       ansible.builtin.copy:
         dest: /etc/profile.d/proxy.sh

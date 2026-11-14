@@ -16,8 +16,9 @@
       ansible.builtin.lineinfile:
         path: /etc/chrony.conf
         state: present
-        line: 'server 192.168.29.56'
-      register: test_chrony_changed
+        line: 'server 192.168.29.56 iburst'
+      notify:
+        - Restart chronyd
 
     - name: Allow time jumps
       ansible.builtin.lineinfile:
