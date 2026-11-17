@@ -281,7 +281,8 @@ def _extract_packages(commits, compiler, mpi):
                 if m:
                     category, pkg = m.group(1), m.group(2)
                     packages.add(_tag_package(category, pkg, compiler, mpi))
-                elif re.match(r"^docs/recipes/", path):
+                # 2.x keeps the recipes in docs/recipes, 3.x and 4.x in docs/install
+                elif re.match(r"^docs/(recipes|install)/", path):
                     packages.add("docs")
                 elif re.match(r"^tests/", path):
                     packages.add("test-suite")
