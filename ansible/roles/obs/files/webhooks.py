@@ -52,10 +52,13 @@ def _run_osc_raw(*args):
     """Run an osc command during init (before globals are fully set)."""
     cmd = ["osc", "-A", OBS_API] + list(args)
     log.debug("running: %s", " ".join(cmd))
-    result = subprocess.run(
+    result = subprocess.run(  # noqa: UP022
         cmd,
-        capture_output=True,
-        text=True,
+        # The OBS server runs Python 3.6. Its subprocess.run() raises TypeError
+        # for capture_output= and text=, which were added in Python 3.7.
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        universal_newlines=True,  # noqa: UP021
         timeout=120,
         check=False,
     )
@@ -321,10 +324,13 @@ def _run_osc(*args):
     """Run an osc command and return (returncode, stdout, stderr)."""
     cmd = ["osc", "-A", OBS_API] + list(args)
     log.info("running: %s", " ".join(cmd))
-    result = subprocess.run(
+    result = subprocess.run(  # noqa: UP022
         cmd,
-        capture_output=True,
-        text=True,
+        # The OBS server runs Python 3.6. Its subprocess.run() raises TypeError
+        # for capture_output= and text=, which were added in Python 3.7.
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        universal_newlines=True,  # noqa: UP021
         timeout=120,
         check=False,
     )
