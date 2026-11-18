@@ -5,7 +5,8 @@
             "project": "OpenHPC"
         },
         "3.x": {
-            "project": "OpenHPC3"
+            "project": "OpenHPC3",
+            "default_compiler": "gnu16"
         },
         "4.x": {
             "project": "OpenHPC4",
