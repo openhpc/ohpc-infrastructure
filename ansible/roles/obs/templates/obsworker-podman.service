@@ -1,6 +1,7 @@
 [Unit]
 Description=OBS Worker Container
 After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
@@ -10,7 +11,7 @@ ExecStartPre=-/usr/bin/podman rm obsworker
 ExecStart=/usr/bin/podman run --name obsworker --net host \
 	--uts host --privileged \
 {% if obs_openhpc_community_ip is defined %}
-	--add-host obs.openhpc-community:{{ obs_openhpc_community_ip }} \
+	--add-host obs.openhpc.community:{{ obs_openhpc_community_ip }} \
 {% endif %}
 	-v /workers/:/workers/:z \
 	-v /etc/sysconfig/obs-server:/etc/sysconfig/obs-server:z \

@@ -92,14 +92,16 @@
         owner: root
         group: root
         mode: "0644"
+      notify: Systemd daemon-reload
 
     - name: Install obsworker override.conf
-      ansible.builtin.copy:
+      ansible.builtin.template:
         src: obsworker-podman.service.override.conf
         dest: /etc/systemd/system/obsworker-podman.service.d/override.conf
         owner: root
         group: root
         mode: "0644"
+      notify: Systemd daemon-reload
 
     - name: Include obs.yml
       ansible.builtin.include_tasks: ../common/obs.yml
