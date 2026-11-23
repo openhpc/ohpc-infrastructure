@@ -5,7 +5,6 @@
   vars:
     obs_worker_instances: 4
     obs_worker_jobs: 6
-    container_tag: latest
     obs_repository_server: 172.31.13.66
     obs_openhpc_community_ip: 172.31.13.66
     swapfile: /swapfile

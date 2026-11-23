@@ -14,14 +14,16 @@ shellcheck-lint:
 		-o quote-safe-variables,deprecate-which,avoid-nullary-conditions \
 		$$(find . -name *\.sh) \
 		ansible/roles/test/files/*.bats \
-		ansible/roles/obs/files/test_copr_bridge.bats
+		ansible/roles/obs/files/test_copr_bridge.bats \
+		.github/scripts/test_cleanup_ghcr_untagged.bats
 
 shfmt-lint:
 	@echo "Running 'shfmt' on all shell scripts"
 	shfmt -w -d \
 		$$(find . -name *\.sh) \
 		ansible/roles/test/files/*.bats \
-		ansible/roles/obs/files/test_copr_bridge.bats
+		ansible/roles/obs/files/test_copr_bridge.bats \
+		.github/scripts/test_cleanup_ghcr_untagged.bats
 
 ansible-lint:
 	@echo "Running 'ansible-lint' on selected yaml files"
@@ -39,7 +41,8 @@ ansible-lint:
 bats-test:
 	@echo "Running 'bats' tests"
 	bats \
-		ansible/roles/obs/files/test_copr_bridge.bats
+		ansible/roles/obs/files/test_copr_bridge.bats \
+		.github/scripts/test_cleanup_ghcr_untagged.bats
 
 ruff-lint:
 	@echo "Running 'ruff' on selected Python files"

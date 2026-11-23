@@ -1,20 +1,24 @@
 [Unit]
 Description=OBS Worker Container
 After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
 TimeoutStartSec=5m
 ExecStartPre=-/usr/bin/podman rm obsworker
+# "--pull newer" leaves the previous image without a tag in the local
+# storage. Each service start removes the untagged images.
+ExecStartPre=-/usr/bin/podman image prune -f
 
-ExecStart=/usr/bin/podman run --name obsworker --net host \
+ExecStart=/usr/bin/podman run --name obsworker --pull newer --net host \
 	--uts host --privileged \
 {% if obs_openhpc_community_ip is defined %}
-	--add-host obs.openhpc-community:{{ obs_openhpc_community_ip }} \
+	--add-host obs.openhpc.community:{{ obs_openhpc_community_ip }} \
 {% endif %}
 	-v /workers/:/workers/:z \
 	-v /etc/sysconfig/obs-server:/etc/sysconfig/obs-server:z \
-        quay.io/ohpc/openhpc-obs-worker:"{{ container_tag }}"
+	ghcr.io/openhpc/obs-worker:latest
 
 ExecReload=/usr/bin/podman stop obsworker
 ExecReload=/usr/bin/podman rm obsworker

@@ -1,11 +1,13 @@
-FROM registry.opensuse.org/opensuse/leap:15.5
+FROM registry.opensuse.org/opensuse/leap:16.0
 
-MAINTAINER The OpenHPC Project
+LABEL maintainer="The OpenHPC Project"
 
 COPY OBS_Server_2.10.repo /etc/zypp/repos.d/OBS_Server_2.10.repo
 
-RUN zypper --no-gpg-checks -n install obs-worker hostname
+RUN zypper --no-gpg-checks -n install obs-worker hostname procps psmisc && \
+	zypper clean -a
 
 COPY obs-server /etc/sysconfig/obs-server
+COPY entrypoint.sh /usr/local/sbin/entrypoint.sh
 
-ENTRYPOINT  ["/bin/bash", "-c", "/usr/sbin/obsworker start; sleep infinity"]
+ENTRYPOINT ["/usr/local/sbin/entrypoint.sh"]

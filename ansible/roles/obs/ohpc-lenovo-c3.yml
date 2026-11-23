@@ -7,7 +7,6 @@
   vars:
     obs_worker_instances: 30
     obs_worker_jobs: 6
-    container_tag: amd64
     obs_repository_server: 10.255.254.0
     stunnel_remote_port: 8444
     openvpn_ifconfig: "10.255.254.1 10.255.254.0"
@@ -92,14 +91,16 @@
         owner: root
         group: root
         mode: "0644"
+      notify: Systemd daemon-reload
 
     - name: Install obsworker override.conf
-      ansible.builtin.copy:
+      ansible.builtin.template:
         src: obsworker-podman.service.override.conf
         dest: /etc/systemd/system/obsworker-podman.service.d/override.conf
         owner: root
         group: root
         mode: "0644"
+      notify: Systemd daemon-reload
 
     - name: Include obs.yml
       ansible.builtin.include_tasks: ../common/obs.yml
