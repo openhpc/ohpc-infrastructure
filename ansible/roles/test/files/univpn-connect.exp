@@ -1,0 +1,99 @@
+#!/usr/bin/expect -f
+#
+# Exit codes: 0 stopped by SIGTERM, 1 connection lost, 2 no login prompt,
+# 3 login rejected, 4 another UniVPNCS is already running.
+
+set timeout 60
+set connection $env(VPN_CONNECTION)
+set stopping 0
+
+proc fail {code message} {
+    puts "\n\[univpn\] $message"
+    exit $code
+}
+
+proc hide_password {output} {
+    global env
+    set hidden [list $env(VPN_PASS) "***" $env(VPN_USER) "***"]
+    return [string trim [string map $hidden $output]]
+}
+
+cd $env(UNIVPN_DIR)
+spawn ./UniVPNCS
+
+expect {
+    "Client has been running" { fail 4 "another UniVPNCS is already running" }
+    -re "(\\d+):$connection\\r" { set number $expect_out(1,string) }
+    -re {<Connection Name List>\r\n-+\r} {
+        fail 2 "the client lists no connection profiles"
+    }
+    timeout { fail 2 "connection '$connection' is not in the menu" }
+    eof { fail 2 "client exited before showing the menu" }
+}
+send -- "$number\r"
+
+expect {
+    "1:Connect" { send -- "1\r" }
+    timeout { fail 2 "no connect menu" }
+    eof { fail 2 "client exited before the connect menu" }
+}
+
+expect {
+    "Please input the login user name" {}
+    "Connect error!" {
+        # The client prints the reason on the next line and then its
+        # main menu. Waiting for the menu gets the reason into the journal.
+        expect -timeout 5 "Welcome to UniVPN!"
+        fail 2 "the client could not connect to the VPN gateway"
+    }
+    timeout { fail 2 "no user name prompt" }
+    eof { fail 2 "client exited before the user name prompt" }
+}
+
+# The journal records everything expect prints, and the terminal echoes
+# the user name. Logging stays off until the client has answered, in case
+# the client also prints the password.
+log_user 0
+send -- "$env(VPN_USER)\r"
+expect {
+    "Please input the login user password" {}
+    timeout { fail 2 "no password prompt" }
+    eof { fail 2 "client exited before the password prompt" }
+}
+send -- "$env(VPN_PASS)\r"
+expect {
+    "Successful login." {}
+    timeout {
+        # expect fills expect_out(buffer) only on a match. "expect *"
+        # matches the output that the client has printed so far.
+        expect *
+        fail 3 "login failed: [hide_password $expect_out(buffer)]"
+    }
+    eof {
+        fail 3 "client exited during login: [hide_password $expect_out(buffer)]"
+    }
+}
+log_user 1
+
+# The client does not always print "Connect Success,Enjoy!" after the
+# login, so univpn-watchdog.sh checks with ping that the tunnel works.
+close [open $env(RUNTIME_DIRECTORY)/logged-in w]
+puts "\n\[univpn\] logged in"
+
+# The client disconnects on "q". The client segfaults after that, which
+# expect sees as eof.
+trap {
+    set stopping 1
+    send -- "q\r"
+} SIGTERM
+
+set timeout -1
+expect {
+    "Welcome to UniVPN!" { fail 1 "client returned to the main menu" }
+    eof {
+        if {$stopping} {
+            fail 0 "disconnected"
+        }
+        fail 1 "client exited"
+    }
+}
