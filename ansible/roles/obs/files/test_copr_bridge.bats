@@ -3,21 +3,39 @@
 
 SCRIPT="ansible/roles/obs/files/copr_bridge.py"
 COMMON_ARGS="--copr-project test/project --chroot rhel+epel-10-ppc64le"
+SUBMITTED='s/.*Would submit //; s/ to .*//'
+
+# mksrpm <release> <distro> <arch> <package> <srpm> <mtime> creates an empty
+# SRPM in the layout of the OBS build directory.
+mksrpm() {
+	local dir="${TEST_DIR}/OpenHPC4:$1:Factory/$2/$3/$4"
+	mkdir -p "${dir}"
+	touch -t "$6" "${dir}/$5"
+}
 
 setup() {
 	TEST_DIR=$(mktemp -d)
 	STATE_FILE="${TEST_DIR}/state.json"
 
 	# Create fake SRPMs with distinct mtimes (oldest first)
-	touch -t 202506260000 "${TEST_DIR}/ohpc-filesystem-4.2-420.ohpc.1.1.src.rpm"
-	touch -t 202506261500 "${TEST_DIR}/docs-ohpc-4.1.0-420.ohpc.2.2.src.rpm"
-	touch -t 202506270900 "${TEST_DIR}/hwloc-ohpc-2.14.0-420.ohpc.2.1.src.rpm"
-	touch -t 202506271600 "${TEST_DIR}/R-gnu15-ohpc-4.6.1-420.ohpc.1.1.src.rpm"
-	touch -t 202506280900 "${TEST_DIR}/otf2-gnu15-mpich-ohpc-3.2-420.ohpc.3.1.src.rpm"
-	touch -t 202506281000 "${TEST_DIR}/otf2-gnu15-openmpi5-ohpc-3.2-420.ohpc.2.1.src.rpm"
+	mksrpm 4.2 EL_10 aarch64 ohpc-filesystem ohpc-filesystem-4.2-420.ohpc.1.1.src.rpm 202506260000
+	mksrpm 4.2 EL_10 aarch64 docs docs-ohpc-4.1.0-420.ohpc.2.2.src.rpm 202506261500
+	mksrpm 4.2 EL_10 aarch64 hwloc hwloc-ohpc-2.14.0-420.ohpc.2.1.src.rpm 202506270900
+	mksrpm 4.2 EL_10 aarch64 R-gnu15 R-gnu15-ohpc-4.6.1-420.ohpc.1.1.src.rpm 202506271600
+	mksrpm 4.2 EL_10 aarch64 otf2-gnu15-mpich otf2-gnu15-mpich-ohpc-3.2-420.ohpc.3.1.src.rpm 202506280900
+	mksrpm 4.2 EL_10 aarch64 otf2-gnu15-openmpi5 otf2-gnu15-openmpi5-ohpc-3.2-420.ohpc.2.1.src.rpm 202506281000
 
 	# Create a binary RPM that should be ignored
-	touch "${TEST_DIR}/hwloc-ohpc-2.14.0-420.ohpc.2.1.aarch64.rpm"
+	touch "${TEST_DIR}/OpenHPC4:4.2:Factory/EL_10/aarch64/hwloc/hwloc-ohpc-2.14.0-420.ohpc.2.1.aarch64.rpm"
+
+	# Create SRPMs that should be ignored: other arch, other distro, other
+	# major release, the dependency project and an OBS internal directory
+	mksrpm 4.2 EL_10 x86_64 impi-devel intel-mpi-devel-ohpc-2021.16-420.ohpc.1.1.src.rpm 202506290000
+	mksrpm 4.2 openEuler_24.03 aarch64 hwloc hwloc-ohpc-2.14.0-420.ohpc.5.1.src.rpm 202506290000
+	mksrpm 4.2 EL_10 aarch64 :repo lmod-ohpc-8.7-420.ohpc.1.1.src.rpm 202506290000
+	mksrpm 4.x:Dep EL_10 aarch64 lua lua-ohpc-5.4-1.1.src.rpm 202506290000
+	mkdir -p "${TEST_DIR}/OpenHPC3:3.4:Factory/EL_10/aarch64/hwloc"
+	touch "${TEST_DIR}/OpenHPC3:3.4:Factory/EL_10/aarch64/hwloc/hwloc-ohpc-2.11.0-340.ohpc.1.1.src.rpm"
 }
 
 teardown() {
@@ -64,9 +82,14 @@ teardown() {
 		--dry-run \
 		--state-file "${STATE_FILE}"
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"Found 6 SRPMs"* ]]
+	[[ "$output" == *"Found 6 SRPMs for EL_10/aarch64 in 1 releases"* ]]
 	# Binary RPM must not appear
 	[[ "$output" != *"aarch64.rpm"* ]]
+	[[ "$output" != *"intel-mpi-devel"* ]]
+	[[ "$output" != *"lmod-ohpc"* ]]
+	[[ "$output" != *"lua-ohpc"* ]]
+	[[ "$output" != *"340.ohpc"* ]]
+	[[ "$output" != *"420.ohpc.5.1"* ]]
 }
 
 @test "dry-run scan processes SRPMs in mtime order" {
@@ -78,7 +101,7 @@ teardown() {
 	[ "$status" -eq 0 ]
 
 	# Extract the order of dry-run submissions
-	order=$(echo "$output" | grep '\[dry-run\]' | sed 's/.*Would submit //' | sed 's/ to .*//')
+	order=$(echo "$output" | grep '\[dry-run\]' | sed "${SUBMITTED}")
 	first=$(echo "$order" | head -1)
 	last=$(echo "$order" | tail -1)
 
@@ -396,7 +419,7 @@ print('broken-ohpc-1.0-1.src.rpm' not in s['builds'])
 		--dry-run \
 		--state-file "${STATE_FILE}"
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"Found 0 SRPMs"* ]]
+	[[ "$output" == *"Found 0 SRPMs for EL_10/aarch64 in 0 releases"* ]]
 	[[ "$output" == *"0 succeeded, 0 skipped, 0 failed"* ]]
 
 	rmdir "${empty_dir}"
@@ -565,4 +588,117 @@ print('broken-ohpc-1.0-1.src.rpm' not in s['builds'])
 	# 3 gnu15 + 1 docs = 4 skipped, 2 remaining
 	submitted=$(echo "$output" | grep -c '\[dry-run\]')
 	[ "$submitted" -eq 2 ]
+}
+
+@test "only the SRPM from the highest release is submitted" {
+	mksrpm 4.2.1 EL_10 aarch64 hwloc hwloc-ohpc-2.14.1-421.ohpc.1.1.src.rpm 202507010000
+	mksrpm 4.3 EL_10 aarch64 hwloc hwloc-ohpc-2.15.0-430.ohpc.1.1.src.rpm 202508010000
+	# A patch release that is built after 4.3 must not win over 4.3.
+	mksrpm 4.2.2 EL_10 aarch64 hwloc hwloc-ohpc-2.14.2-422.ohpc.1.1.src.rpm 202509010000
+	mksrpm 4.2.1 EL_10 aarch64 docs docs-ohpc-4.2.1-421.ohpc.1.1.src.rpm 202507010000
+	# 4.10 is newer than 4.3 although it sorts lower as a string.
+	mksrpm 4.10 EL_10 aarch64 ohpc-filesystem ohpc-filesystem-4.10-4100.ohpc.1.1.src.rpm 202601010000
+	mksrpm 4.3 EL_10 aarch64 ohpc-filesystem ohpc-filesystem-4.3-430.ohpc.1.1.src.rpm 202508010000
+
+	run python3 "${SCRIPT}" \
+		--srpm-dir "${TEST_DIR}" \
+		${COMMON_ARGS} \
+		--dry-run \
+		--state-file "${STATE_FILE}"
+	[ "$status" -eq 0 ]
+	[[ "$output" == *"Found 12 SRPMs for EL_10/aarch64 in 5 releases, 6 are the newest"* ]]
+
+	submitted=$(echo "$output" | grep '\[dry-run\]' | sed "${SUBMITTED}" | sort)
+	expected=$(
+		sort <<-'EOF'
+			hwloc-ohpc-2.15.0-430.ohpc.1.1.src.rpm
+			docs-ohpc-4.2.1-421.ohpc.1.1.src.rpm
+			ohpc-filesystem-4.10-4100.ohpc.1.1.src.rpm
+			R-gnu15-ohpc-4.6.1-420.ohpc.1.1.src.rpm
+			otf2-gnu15-mpich-ohpc-3.2-420.ohpc.3.1.src.rpm
+			otf2-gnu15-openmpi5-ohpc-3.2-420.ohpc.2.1.src.rpm
+		EOF
+	)
+	[ "$submitted" = "$expected" ]
+}
+
+@test "Update project naming is treated as a patch release" {
+	mkdir -p "${TEST_DIR}/OpenHPC4:4.2:Update1:Factory/EL_10/aarch64/hwloc"
+	touch "${TEST_DIR}/OpenHPC4:4.2:Update1:Factory/EL_10/aarch64/hwloc/hwloc-ohpc-2.14.1-421.ohpc.1.1.src.rpm"
+
+	run python3 "${SCRIPT}" \
+		--srpm-dir "${TEST_DIR}" \
+		${COMMON_ARGS} \
+		--dry-run \
+		--state-file "${STATE_FILE}"
+	[ "$status" -eq 0 ]
+	[[ "$output" == *"Would submit hwloc-ohpc-2.14.1-421.ohpc.1.1.src.rpm"* ]]
+	[[ "$output" != *"Would submit hwloc-ohpc-2.14.0"* ]]
+}
+
+@test "arch, distro and major select a different set of SRPMs" {
+	run python3 "${SCRIPT}" \
+		--srpm-dir "${TEST_DIR}" \
+		${COMMON_ARGS} \
+		--arch x86_64 \
+		--dry-run \
+		--state-file "${STATE_FILE}"
+	[ "$status" -eq 0 ]
+	[ "$(echo "$output" | grep '\[dry-run\]' | sed "${SUBMITTED}")" = "intel-mpi-devel-ohpc-2021.16-420.ohpc.1.1.src.rpm" ]
+
+	run python3 "${SCRIPT}" \
+		--srpm-dir "${TEST_DIR}" \
+		${COMMON_ARGS} \
+		--distro openEuler_24.03 \
+		--dry-run \
+		--state-file "${STATE_FILE}"
+	[ "$status" -eq 0 ]
+	[ "$(echo "$output" | grep '\[dry-run\]' | sed "${SUBMITTED}")" = "hwloc-ohpc-2.14.0-420.ohpc.5.1.src.rpm" ]
+
+	run python3 "${SCRIPT}" \
+		--srpm-dir "${TEST_DIR}" \
+		${COMMON_ARGS} \
+		--major 3 \
+		--dry-run \
+		--state-file "${STATE_FILE}"
+	[ "$status" -eq 0 ]
+	[ "$(echo "$output" | grep '\[dry-run\]' | sed "${SUBMITTED}")" = "hwloc-ohpc-2.11.0-340.ohpc.1.1.src.rpm" ]
+}
+
+@test "copr-project defaults to the OpenHPC group project of the major release" {
+	run python3 "${SCRIPT}" \
+		--srpm-dir "${TEST_DIR}" \
+		--dry-run \
+		--state-file "${STATE_FILE}"
+	[ "$status" -eq 0 ]
+	[[ "$output" == *"to @openhpc/openhpc-4.x"* ]]
+}
+
+@test "watch mode picks up a new SRPM and does not resubmit old ones" {
+	python3 "${SCRIPT}" \
+		--srpm-dir "${TEST_DIR}" \
+		${COMMON_ARGS} \
+		--dry-run \
+		--mode watch \
+		--scan-interval 1 \
+		--state-file "${STATE_FILE}" >"${TEST_DIR}/watch.log" 2>&1 &
+	pid=$!
+
+	for _ in $(seq 50); do
+		grep -q 'otf2-gnu15-openmpi5' "${TEST_DIR}/watch.log" && break
+		sleep 0.2
+	done
+	mksrpm 4.3 EL_10 aarch64 hwloc hwloc-ohpc-2.15.0-430.ohpc.1.1.src.rpm 202508010000
+	for _ in $(seq 50); do
+		grep -q 'hwloc-ohpc-2.15.0' "${TEST_DIR}/watch.log" && break
+		sleep 0.2
+	done
+	sleep 2.5
+
+	kill -TERM "${pid}"
+	wait "${pid}"
+
+	[ "$(grep -c 'Would submit hwloc-ohpc-2.15.0' "${TEST_DIR}/watch.log")" -eq 1 ]
+	[ "$(grep -c 'Would submit' "${TEST_DIR}/watch.log")" -eq 7 ]
+	grep -q 'shutting down gracefully' "${TEST_DIR}/watch.log"
 }

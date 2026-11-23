@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 #
-# Utility to bridge OBS-built SRPMs to Fedora COPR for ppc64le builds.
-# Supports scan and watch modes for processing SRPMs serially.
+# Utility to rebuild OBS-built SRPMs in Fedora COPR.
+#
+# --srpm-dir is the OBS build directory (usually /srv/obs/build):
+#   <srpm-dir>/OpenHPC4:4.3:Factory/EL_10/aarch64/<package>/*.src.rpm
+# All releases of one major version are searched and only the SRPM from the
+# highest release is built for each package. Scan mode does this once, watch
+# mode repeats it every --scan-interval seconds.
 # --
 import argparse
 import json
@@ -9,11 +14,8 @@ import logging
 import os
 import re
 import signal
-import struct
 import sys
 import time
-from ctypes import CDLL, c_char_p, c_int, c_uint32, get_errno
-from ctypes.util import find_library
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -41,51 +43,6 @@ def now_iso():
     return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S")
 
 
-class InotifyWatcher:
-    """Minimal inotify wrapper using ctypes (Linux only)."""
-
-    IN_CLOSE_WRITE = 0x00000008
-    IN_MOVED_TO = 0x00000080
-    EVENT_HEADER_SIZE = struct.calcsize("iIII")
-
-    def __init__(self):
-        libc = CDLL(find_library("c"), use_errno=True)
-        self._inotify_init = libc.inotify_init
-        self._inotify_init.restype = c_int
-        self._inotify_add_watch = libc.inotify_add_watch
-        self._inotify_add_watch.restype = c_int
-        self._inotify_add_watch.argtypes = [c_int, c_char_p, c_uint32]
-        self._fd = self._inotify_init()
-        if self._fd < 0:
-            raise OSError(get_errno(), "inotify_init failed")
-
-    def add_watch(self, path, mask):
-        """Add an inotify watch on the given path."""
-        wd = self._inotify_add_watch(
-            c_int(self._fd),
-            path.encode(),
-            c_uint32(mask),
-        )
-        if wd < 0:
-            raise OSError(get_errno(), f"inotify_add_watch failed for {path}")
-        return wd
-
-    def read_events(self):
-        """Block until events are available, then yield (wd, mask, cookie, name) tuples."""
-        buf = os.read(self._fd, 8192)
-        offset = 0
-        while offset < len(buf):
-            wd, mask, cookie, name_len = struct.unpack_from("iIII", buf, offset)
-            offset += self.EVENT_HEADER_SIZE
-            name = buf[offset : offset + name_len].rstrip(b"\x00").decode()
-            offset += name_len
-            yield (wd, mask, cookie, name)
-
-    def close(self):
-        """Close the inotify file descriptor."""
-        os.close(self._fd)
-
-
 class CoprBridge:
     """Bridge OBS SRPMs to Fedora COPR builds."""
 
@@ -93,7 +50,14 @@ class CoprBridge:
 
     def __init__(self, args):
         self.srpm_dir = args.srpm_dir
-        self.copr_project = args.copr_project
+        self.distro = args.distro
+        self.arch = args.arch
+        self.scan_interval = args.scan_interval
+        self.copr_project = args.copr_project or f"@openhpc/openhpc-{args.major}.x"
+        # OBS names a patch release either 4.2.1 or 4.2:Update1.
+        self.release_pattern = re.compile(
+            rf"^OpenHPC\d*:{args.major}\.(\d+)(?:\.(\d+)|:Update(\d+))?:Factory$"
+        )
         self.chroot = args.chroot
         self.state_file = args.state_file
         self.dryrun = args.dryrun
@@ -118,6 +82,11 @@ class CoprBridge:
 
         self.state = self.load_state()
         self._shutdown = False
+        # A failed or dry-run SRPM is not marked as processed in the state
+        # file. Without this set watch mode would submit it again on every
+        # rescan.
+        self._attempted = set()
+        self._last_scan = None
 
     def _parse_copr_project(self):
         """Split copr_project into (ownername, projectname)."""
@@ -174,16 +143,63 @@ class CoprBridge:
         except OSError as e:
             logger.error("Failed to save state file: %s", e)
 
+    def _parse_release(self, project_name):
+        """Return (minor, patch) for an OBS project of the major release."""
+        m = self.release_pattern.match(project_name)
+        if not m:
+            return None
+        return int(m.group(1)), int(m.group(2) or m.group(3) or 0)
+
+    def _sleep(self, seconds):
+        """Sleep in one second steps so that a signal ends the wait early."""
+        deadline = time.monotonic() + seconds
+        while not self._shutdown and time.monotonic() < deadline:
+            time.sleep(1)
+
     def scan_srpms(self):
-        """Scan srpm_dir for *.src.rpm files, return sorted by mtime ascending."""
+        """Return the newest SRPM of each package, sorted by mtime ascending."""
         srpm_dir = Path(self.srpm_dir)
         if not srpm_dir.is_dir():
             ERROR(f"SRPM directory does not exist: {self.srpm_dir}")
 
-        srpms = list(srpm_dir.glob("*.src.rpm"))
-        srpms.sort(key=lambda p: p.stat().st_mtime)
-        logger.info("Found %d SRPMs in %s", len(srpms), self.srpm_dir)
-        return srpms
+        releases = []
+        for project_dir in srpm_dir.iterdir():
+            release = self._parse_release(project_dir.name)
+            if release is not None:
+                releases.append((release, project_dir))
+        releases.sort()
+
+        total = 0
+        newest = {}
+        for release, project_dir in releases:
+            # OBS keeps its own data in directories like ":full" and ":repo".
+            pattern = f"{self.distro}/{self.arch}/[!:]*/*.src.rpm"
+            for srpm_path in project_dir.glob(pattern):
+                nvr = self._parse_srpm_nvr(srpm_path.name)
+                if nvr is None:
+                    logger.warning("Could not parse NVR from %s, ignoring", srpm_path)
+                    continue
+                try:
+                    mtime = srpm_path.stat().st_mtime
+                except FileNotFoundError:
+                    # OBS replaced the SRPM between the glob and the stat.
+                    continue
+                total += 1
+                candidate = (release, mtime, srpm_path)
+                if nvr[0] not in newest or candidate[:2] > newest[nvr[0]][:2]:
+                    newest[nvr[0]] = candidate
+
+        summary = (
+            f"Found {total} SRPMs for {self.distro}/{self.arch} in "
+            f"{len(releases)} releases, {len(newest)} are the newest of their package"
+        )
+        logger.log(
+            logging.INFO if summary != self._last_scan else logging.DEBUG, summary
+        )
+        self._last_scan = summary
+
+        srpms = sorted(newest.values(), key=lambda c: c[1])
+        return [srpm_path for _release, _mtime, srpm_path in srpms]
 
     def should_process(self, srpm_name):
         """Check if an SRPM should be processed based on include/skip patterns."""
@@ -291,7 +307,7 @@ class CoprBridge:
                 logger.error("Build %d entered unknown state", build_id)
                 return build
 
-            time.sleep(self.poll_interval)
+            self._sleep(self.poll_interval)
 
         return None
 
@@ -299,6 +315,13 @@ class CoprBridge:
         """Submit an SRPM to COPR, poll until done, update state. Return True on success."""
         srpm_name = srpm_path.name
         mtime = srpm_path.stat().st_mtime
+
+        entry = self.state["builds"].get(srpm_name, {})
+        resume = entry.get("status") == "pending" and entry.get("copr_build_id")
+
+        if self.dryrun and resume:
+            logger.info("[dry-run] Would resume COPR build for %s", srpm_name)
+            return True
 
         if self.dryrun:
             logger.info("[dry-run] Would submit %s to %s", srpm_name, self.copr_project)
@@ -310,31 +333,42 @@ class CoprBridge:
             self.save_state()
             return True
 
-        build = self.submit_build(srpm_path)
-        if build is None:
+        if resume:
+            # The bridge was stopped while this build was running in COPR.
+            # Submitting the SRPM again would start a duplicate build.
+            build_id = entry["copr_build_id"]
+            logger.info("Resuming COPR build %d for %s", build_id, srpm_name)
+        else:
+            build = self.submit_build(srpm_path)
+            if build is None:
+                self.state["builds"][srpm_name] = {
+                    "status": "failed",
+                    "reason": "submission error",
+                    "submitted_at": now_iso(),
+                    "mtime": mtime,
+                }
+                self.state["blocked_on"] = srpm_name
+                self.save_state()
+                return False
+
+            build_id = build.id
             self.state["builds"][srpm_name] = {
-                "status": "failed",
-                "reason": "submission error",
+                "status": "pending",
+                "copr_build_id": build_id,
                 "submitted_at": now_iso(),
                 "mtime": mtime,
             }
-            self.state["blocked_on"] = srpm_name
             self.save_state()
+
+        result = self.poll_build(build_id)
+
+        if result is None and self._shutdown:
+            logger.info("Build %d stays pending and is resumed on restart", build_id)
             return False
-
-        self.state["builds"][srpm_name] = {
-            "status": "pending",
-            "copr_build_id": build.id,
-            "submitted_at": now_iso(),
-            "mtime": mtime,
-        }
-        self.save_state()
-
-        result = self.poll_build(build.id)
 
         if result is None:
             self.state["builds"][srpm_name]["status"] = "failed"
-            self.state["builds"][srpm_name]["reason"] = "poll failure or shutdown"
+            self.state["builds"][srpm_name]["reason"] = "poll failure"
             self.state["builds"][srpm_name]["completed_at"] = now_iso()
             self.state["blocked_on"] = srpm_name
             self.save_state()
@@ -438,12 +472,18 @@ class CoprBridge:
         self.state["blocked_on"] = None
         self.save_state()
 
-    def run_scan(self):
-        """Scan mode: process all SRPMs in directory sorted by mtime."""
-        self._auto_reset_blocked()
+    def _skip(self, srpm_path, reason):
+        self.state["builds"][srpm_path.name] = {
+            "status": "skipped",
+            "reason": reason,
+            "mtime": srpm_path.stat().st_mtime,
+        }
+        self.save_state()
 
+    def run_scan(self, stop_on_failure=True):
+        """Build the newest SRPM of each package that COPR does not have yet."""
         srpms = self.scan_srpms()
-        existing_builds = self._fetch_existing_builds()
+        existing_builds = None
         succeeded_names = []
         skipped_names = []
         failed_names = []
@@ -461,158 +501,72 @@ class CoprBridge:
                 skipped_names.append(srpm_name)
                 continue
 
+            if srpm_name in self._attempted:
+                continue
+
             if not self.should_process(srpm_name):
-                self.state["builds"][srpm_name] = {
-                    "status": "skipped",
-                    "reason": "filtered",
-                    "mtime": srpm_path.stat().st_mtime,
-                }
-                self.save_state()
+                self._skip(srpm_path, "filtered")
                 skipped_names.append(srpm_name)
                 continue
+
+            if existing_builds is None:
+                existing_builds = self._fetch_existing_builds()
 
             if self._already_in_copr(srpm_name, existing_builds):
                 logger.info("Skipping %s (already built in COPR)", srpm_name)
-                self.state["builds"][srpm_name] = {
-                    "status": "skipped",
-                    "reason": "already-in-copr",
-                    "mtime": srpm_path.stat().st_mtime,
-                }
-                self.save_state()
+                self._skip(srpm_path, "already-in-copr")
                 skipped_names.append(srpm_name)
                 continue
 
-            ok = self.process_srpm(srpm_path)
-            if ok:
+            self._attempted.add(srpm_name)
+            if self.process_srpm(srpm_path):
                 succeeded_names.append(srpm_name)
-            else:
-                failed_names.append(srpm_name)
-                if self.ignore_errors:
-                    self.state["blocked_on"] = None
-                    self.save_state()
-                    continue
+                continue
+            if self._shutdown:
                 break
+            failed_names.append(srpm_name)
+            if stop_on_failure and not self.ignore_errors:
+                break
+            self.state["blocked_on"] = None
+            self.save_state()
 
+        return succeeded_names, skipped_names, failed_names, len(srpms)
+
+    @staticmethod
+    def _log_summary(succeeded_names, skipped_names, failed_names, total):
         logger.info(
             "Scan complete: %d succeeded, %d skipped, %d failed (of %d total)",
             len(succeeded_names),
             len(skipped_names),
             len(failed_names),
-            len(srpms),
+            total,
         )
-        if succeeded_names:
-            logger.info("  Succeeded:")
-            for name in succeeded_names:
-                logger.info("    - %s", name)
-        if skipped_names:
-            logger.info("  Skipped:")
-            for name in skipped_names:
-                logger.info("    - %s", name)
-        if failed_names:
-            logger.info("  Failed:")
-            for name in failed_names:
-                logger.info("    - %s", name)
+        for title, names in (
+            ("Succeeded", succeeded_names),
+            ("Skipped", skipped_names),
+            ("Failed", failed_names),
+        ):
+            if names:
+                logger.info("  %s:", title)
+                for name in names:
+                    logger.info("    - %s", name)
+
+    def run_once(self):
+        """Scan mode: process the SRPM tree once."""
+        self._auto_reset_blocked()
+        self._log_summary(*self.run_scan())
 
     def run_watch(self):
-        """Watch mode: initial scan then inotify event loop."""
-        # Run initial scan first
-        logger.info("Running initial scan before entering watch mode")
+        """Watch mode: process the SRPM tree every scan_interval seconds."""
         self._auto_reset_blocked()
-
-        srpms = self.scan_srpms()
-        existing_builds = self._fetch_existing_builds()
-        for srpm_path in srpms:
-            if self._shutdown:
-                return
-            srpm_name = srpm_path.name
-            if self.already_processed(srpm_name):
-                continue
-            if not self.should_process(srpm_name):
-                self.state["builds"][srpm_name] = {
-                    "status": "skipped",
-                    "reason": "filtered",
-                    "mtime": srpm_path.stat().st_mtime,
-                }
-                self.save_state()
-                continue
-            if self._already_in_copr(srpm_name, existing_builds):
-                logger.info("Skipping %s (already built in COPR)", srpm_name)
-                self.state["builds"][srpm_name] = {
-                    "status": "skipped",
-                    "reason": "already-in-copr",
-                    "mtime": srpm_path.stat().st_mtime,
-                }
-                self.save_state()
-                continue
-            if not self.process_srpm(srpm_path):
-                if self.ignore_errors:
-                    self.state["blocked_on"] = None
-                    self.save_state()
-                    continue
-                ERROR(
-                    "Build failed during initial scan. "
-                    "Fix and restart with --reset-failed."
-                )
-
-        # Set up inotify
-        watcher = InotifyWatcher()
-        mask = InotifyWatcher.IN_CLOSE_WRITE | InotifyWatcher.IN_MOVED_TO
-        watcher.add_watch(self.srpm_dir, mask)
-        logger.info("Watching %s for new SRPMs...", self.srpm_dir)
-
-        try:
-            while not self._shutdown:
-                for _wd, _mask, _cookie, name in watcher.read_events():
-                    if self._shutdown:
-                        break
-                    if not name.endswith(".src.rpm"):
-                        continue
-
-                    # Brief delay to let file writes settle
-                    time.sleep(0.5)
-
-                    srpm_path = Path(self.srpm_dir) / name
-                    if not srpm_path.exists():
-                        continue
-
-                    srpm_name = srpm_path.name
-                    if self.already_processed(srpm_name):
-                        logger.debug("Already processed %s, ignoring", srpm_name)
-                        continue
-                    if not self.should_process(srpm_name):
-                        self.state["builds"][srpm_name] = {
-                            "status": "skipped",
-                            "reason": "filtered",
-                            "mtime": srpm_path.stat().st_mtime,
-                        }
-                        self.save_state()
-                        continue
-
-                    if self._already_in_copr(srpm_name, existing_builds):
-                        logger.info(
-                            "Skipping %s (already built in COPR)",
-                            srpm_name,
-                        )
-                        self.state["builds"][srpm_name] = {
-                            "status": "skipped",
-                            "reason": "already-in-copr",
-                            "mtime": srpm_path.stat().st_mtime,
-                        }
-                        self.save_state()
-                        continue
-
-                    logger.info("New SRPM detected: %s", srpm_name)
-                    if not self.process_srpm(srpm_path):
-                        if self.ignore_errors:
-                            self.state["blocked_on"] = None
-                            self.save_state()
-                            continue
-                        ERROR(
-                            f"Build failed for {srpm_name}. "
-                            "Fix and restart with --reset-failed."
-                        )
-        finally:
-            watcher.close()
+        logger.info("Scanning %s every %d seconds", self.srpm_dir, self.scan_interval)
+        while not self._shutdown:
+            succeeded_names, _skipped, failed_names, total = self.run_scan(
+                stop_on_failure=False
+            )
+            if succeeded_names or failed_names:
+                self._log_summary(succeeded_names, [], failed_names, total)
+            self._sleep(self.scan_interval)
 
     def reset_failed(self, srpm_name):
         """Remove a failed SRPM from state so it will be retried."""
@@ -652,18 +606,36 @@ class CoprBridge:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Bridge OBS SRPMs to Fedora COPR for ppc64le builds",
+        description="Bridge OBS SRPMs to Fedora COPR",
     )
     parser.add_argument(
         "--srpm-dir",
         required=True,
-        help="path to directory containing SRPMs",
+        help="OBS build directory containing the <project>:<release>:Factory "
+        "directories (usually /srv/obs/build)",
+        type=str,
+    )
+    parser.add_argument(
+        "--major",
+        default=4,
+        help="OpenHPC major release whose releases are searched (default: 4)",
+        type=int,
+    )
+    parser.add_argument(
+        "--distro",
+        default="EL_10",
+        help="OBS repository to take SRPMs from (default: EL_10)",
+        type=str,
+    )
+    parser.add_argument(
+        "--arch",
+        default="aarch64",
+        help="OBS architecture to take SRPMs from (default: aarch64)",
         type=str,
     )
     parser.add_argument(
         "--copr-project",
-        required=True,
-        help="COPR project (e.g. @openhpc/ohpc-ppc64le)",
+        help="COPR project (default: @openhpc/openhpc-<major>.x)",
         type=str,
     )
     parser.add_argument(
@@ -681,8 +653,15 @@ def main():
         "--mode",
         choices=["scan", "watch"],
         default="scan",
-        help="operation mode (default: scan)",
+        help="scan processes the SRPMs once, watch keeps running and scans "
+        "again every --scan-interval seconds (default: scan)",
         type=str,
+    )
+    parser.add_argument(
+        "--scan-interval",
+        default=300,
+        help="seconds between scans in watch mode (default: 300)",
+        type=int,
     )
     parser.add_argument(
         "--skip-pattern",
@@ -755,7 +734,7 @@ def main():
         return
 
     if args.mode == "scan":
-        bridge.run_scan()
+        bridge.run_once()
     elif args.mode == "watch":
         bridge.run_watch()
 
