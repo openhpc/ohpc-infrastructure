@@ -2,6 +2,18 @@
   hosts: ohpc_huawei_jumper
   become: true
   gather_facts: true
+  vars:
+    # The name of the connection profile in the menu of UniVPNCS.
+    univpn_connection: hpc
+    # The VPN tunnel counts as up while at least one of the hosts answers
+    # a ping. All hosts are only reachable through the tunnel.
+    univpn_check_hosts:
+      # ohpc-huawei-repo
+      - 192.168.29.56
+      # mohpc-huawei-repo
+      - 192.168.28.56
+      # mohpc-huawei-sms
+      - 192.168.28.54
 
   handlers:
     - name: Include handlers
@@ -15,6 +27,7 @@
       ansible.builtin.package:
         state: present
         name:
+          - expect
           - ipmitool
           - rsync
 
@@ -30,3 +43,49 @@
         user: root
         key: "{{ lookup('file', 'results-sync.pub') }}"
         key_options: 'restrict,port-forwarding,permitopen="ohpc-huawei-repo:22"'
+
+    # univpn.service logs in to the Huawei lab VPN with the UniVPN
+    # command-line client and reconnects when the tunnel is down. The
+    # service needs /etc/univpn.env (mode 0600) with the lines
+    # VPN_USER=... and VPN_PASS=..., which is created by hand on the host
+    # to keep the credentials out of this repository. The service is
+    # enabled but not started here, because starting it while a client
+    # runs in a tmux session fails.
+    #
+    #   status:        systemctl status univpn / journalctl -u univpn -f
+    #   stop / start:  systemctl stop|start univpn
+    #   credentials:   edit /etc/univpn.env, then systemctl restart univpn
+    - name: Create /opt/univpn
+      ansible.builtin.file:
+        path: /opt/univpn
+        state: directory
+        owner: root
+        group: root
+        mode: "0750"
+
+    - name: Install UniVPN reconnect scripts
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: /opt/univpn/
+        owner: root
+        group: root
+        mode: "0750"
+      loop:
+        - univpn-connect.exp
+        - univpn-watchdog.sh
+
+    - name: Install univpn.service
+      ansible.builtin.template:
+        src: univpn.service
+        dest: /etc/systemd/system/univpn.service
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Systemd daemon-reload
+
+    - name: Enable univpn.service
+      ansible.builtin.systemd_service:
+        name: univpn
+        enabled: true
+        daemon_reload: true
+      ignore_errors: "{{ ansible_check_mode }}"

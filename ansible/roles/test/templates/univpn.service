@@ -1,0 +1,37 @@
+[Unit]
+Description=UniVPN client with automatic reconnect
+After=network-online.target
+Wants=network-online.target
+# /etc/univpn.env contains the VPN credentials. It is created by hand and
+# is not part of the Ansible repository.
+ConditionPathExists=/etc/univpn.env
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/univpn.env
+# systemd sets HOME, USER, LOGNAME and SHELL only for a service with
+# User=. Without HOME the client lists no connection profiles. With only
+# HOME and PATH set the client fails with "ssl connect failed".
+User=root
+# The client writes a core file of about 45 MB on each disconnect.
+LimitCORE=0
+Environment=UNIVPN_DIR=/usr/local/UniVPN/serviceclient
+Environment=VPN_CONNECTION={{ univpn_connection }}
+Environment="CHECK_HOSTS={{ univpn_check_hosts | join(' ') }}"
+RuntimeDirectory=univpn
+StateDirectory=univpn
+ExecStart=/opt/univpn/univpn-watchdog.sh
+Restart=always
+RestartSec=15
+# Exit status 3 means that the VPN gateway rejected the login several
+# times. Exit status 4 means that a UniVPNCS started by hand is running.
+RestartPreventExitStatus=3 4
+# systemd sends SIGTERM only to univpn-watchdog.sh, which disconnects the
+# client. KillMode=control-group would kill the client before it could
+# disconnect.
+KillMode=mixed
+TimeoutStopSec=45
+
+[Install]
+WantedBy=multi-user.target
