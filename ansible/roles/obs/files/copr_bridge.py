@@ -101,6 +101,8 @@ class CoprBridge:
         # file. Without this set watch mode would submit it again on every
         # rescan.
         self._attempted = set()
+        self._failed = set()
+        self._blocked = set()
         self._last_scan = None
 
     def _parse_copr_project(self):
@@ -510,6 +512,13 @@ class CoprBridge:
 
     def _dependencies(self, srpms):
         """Map each SRPM name to the names of the SRPMs it has to be built after."""
+        if rpmfile is None:
+            logger.warning(
+                "Python module rpmfile is not installed, "
+                "building in mtime order without dependency resolution"
+            )
+            return {}
+
         provider = {}
         requires = {}
         foundation = {}
@@ -542,16 +551,12 @@ class CoprBridge:
             dependencies[name].discard(name)
         return dependencies
 
-    def order_by_dependencies(self, srpms):
+    @staticmethod
+    def order_by_dependencies(srpms, dependencies):
         """Sort SRPMs so that each one comes after the SRPMs it depends on."""
-        if rpmfile is None:
-            logger.warning(
-                "Python module rpmfile is not installed, "
-                "building in mtime order without dependency resolution"
-            )
+        if not dependencies:
             return srpms
 
-        dependencies = self._dependencies(srpms)
         remaining = list(srpms)
         ordered = []
         while remaining:
@@ -594,7 +599,7 @@ class CoprBridge:
                 skipped_names.append(srpm_name)
                 continue
 
-            if srpm_name in self._attempted:
+            if srpm_name in self._attempted and srpm_name not in self._failed:
                 continue
 
             if not self.should_process(srpm_name):
@@ -608,13 +613,24 @@ class CoprBridge:
             if self._already_in_copr(srpm_name, existing_builds):
                 logger.info("Skipping %s (already built in COPR)", srpm_name)
                 self._skip(srpm_path, "already-in-copr")
+                # A failed build can be resubmitted in the COPR web interface.
+                # Its dependents are built once that build has succeeded.
+                self._failed.discard(srpm_name)
                 skipped_names.append(srpm_name)
                 continue
 
-            pending.append(srpm_path)
+            if srpm_name not in self._failed:
+                pending.append(srpm_path)
 
-        if len(pending) > 1:
-            pending = self.order_by_dependencies(pending)
+        dependencies = {}
+        if pending:
+            failed = [p for p in srpms if p.name in self._failed]
+            dependencies = self._dependencies(pending + failed)
+            pending = self.order_by_dependencies(pending, dependencies)
+
+        # A failed SRPM that is no longer the newest of its package must not
+        # hold back the dependents of the newer SRPM.
+        not_built = self._failed & {p.name for p in srpms}
 
         for srpm_path in pending:
             if self._shutdown:
@@ -622,6 +638,22 @@ class CoprBridge:
                 break
 
             srpm_name = srpm_path.name
+
+            missing = dependencies.get(srpm_name, set()) & not_built
+            if missing:
+                not_built.add(srpm_name)
+                # Watch mode finds the same dependents again on every scan.
+                first = srpm_name not in self._blocked
+                self._blocked.add(srpm_name)
+                logger.log(
+                    logging.INFO if first else logging.DEBUG,
+                    "Skipping %s, because %s was not built",
+                    srpm_name,
+                    ", ".join(sorted(missing)),
+                )
+                skipped_names.append(srpm_name)
+                continue
+
             self._attempted.add(srpm_name)
             if self.process_srpm(srpm_path):
                 succeeded_names.append(srpm_name)
@@ -629,6 +661,8 @@ class CoprBridge:
             if self._shutdown:
                 break
             failed_names.append(srpm_name)
+            self._failed.add(srpm_name)
+            not_built.add(srpm_name)
             if stop_on_failure and not self.ignore_errors:
                 break
             self.state["blocked_on"] = None
