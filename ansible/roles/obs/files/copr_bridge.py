@@ -8,9 +8,10 @@
 # highest release is built for each package. Scan mode does this once, watch
 # mode repeats it every --scan-interval seconds.
 #
-# The SRPMs are built one after the other. An SRPM is built after the SRPMs
-# that provide its build dependencies. The dependencies are read from the RPM
-# headers of the SRPM and of the binary RPMs in the same package directory.
+# An SRPM is built after the SRPMs that provide its build dependencies. Up to
+# --max-parallel SRPMs that do not depend on each other are built at the same
+# time. The dependencies are read from the RPM headers of the SRPM and of the
+# binary RPMs in the same package directory.
 # --
 import argparse
 import json
@@ -43,9 +44,8 @@ TERMINAL_STATES = ("succeeded", "skipped", "failed", "canceled")
 # ohpc-buildroot needs the modules environment that lmod-ohpc provides.
 FOUNDATION_PACKAGES = ("ohpc-filesystem", "lmod-ohpc")
 
-# Default retry settings for transient errors
+# A build is marked as failed after this number of failed status polls in a row.
 MAX_RETRIES = 5
-RETRY_BASE_SECONDS = 10
 
 
 def ERROR(output):
@@ -68,6 +68,7 @@ class CoprBridge:
         self.distro = args.distro
         self.arch = args.arch
         self.scan_interval = args.scan_interval
+        self.max_parallel = args.max_parallel
         self.copr_project = args.copr_project or f"@openhpc/openhpc-{args.major}.x"
         # OBS names a patch release either 4.2.1 or 4.2:Update1.
         self.release_pattern = re.compile(
@@ -278,136 +279,107 @@ class CoprBridge:
             logger.error("COPR API error submitting %s: %s", srpm_path.name, e)
             return None
 
-    def poll_build(self, build_id):
-        """Poll COPR for build status until a terminal state is reached."""
-        last_state = None
-        retries = 0
+    def _is_pending(self, srpm_name):
+        """Return True if COPR was building the SRPM when the bridge stopped."""
+        entry = self.state["builds"].get(srpm_name, {})
+        return entry.get("status") == "pending" and bool(entry.get("copr_build_id"))
 
-        while not self._shutdown:
-            try:
-                build = self.client.build_proxy.get(build_id)
-                retries = 0
-            except (CoprException, OSError) as e:
-                retries += 1
-                if retries > MAX_RETRIES:
-                    logger.error(
-                        "Failed to poll build %d after %d retries: %s",
-                        build_id,
-                        MAX_RETRIES,
-                        e,
-                    )
-                    return None
-                wait_time = RETRY_BASE_SECONDS * (2 ** (retries - 1))
-                logger.warning(
-                    "Poll failed (attempt %d/%d), retrying in %ds: %s",
-                    retries,
-                    MAX_RETRIES,
-                    wait_time,
-                    e,
-                )
-                time.sleep(wait_time)
-                continue
+    def _dry_run(self, srpm_path):
+        srpm_name = srpm_path.name
+        if self._is_pending(srpm_name):
+            logger.info("[dry-run] Would resume COPR build for %s", srpm_name)
+            return
+        logger.info("[dry-run] Would submit %s to %s", srpm_name, self.copr_project)
+        self.state["builds"][srpm_name] = {
+            "status": "skipped",
+            "reason": "dry-run",
+            "mtime": srpm_path.stat().st_mtime,
+        }
+        self.save_state()
 
-            if build.state != last_state:
-                logger.info(
-                    "Build %d: %s -> %s",
-                    build_id,
-                    last_state or "(new)",
-                    build.state,
-                )
-                last_state = build.state
-
-            if build.state in TERMINAL_STATES:
-                return build
-
-            if build.state == "unknown":
-                logger.error("Build %d entered unknown state", build_id)
-                return build
-
-            self._sleep(self.poll_interval)
-
-        return None
-
-    def process_srpm(self, srpm_path):
-        """Submit an SRPM to COPR, poll until done, update state. Return True on success."""
+    def start_build(self, srpm_path):
+        """Submit an SRPM to COPR. Return the build id, or None on an error."""
         srpm_name = srpm_path.name
         mtime = srpm_path.stat().st_mtime
 
-        entry = self.state["builds"].get(srpm_name, {})
-        resume = entry.get("status") == "pending" and entry.get("copr_build_id")
-
-        if self.dryrun and resume:
-            logger.info("[dry-run] Would resume COPR build for %s", srpm_name)
-            return True
-
-        if self.dryrun:
-            logger.info("[dry-run] Would submit %s to %s", srpm_name, self.copr_project)
-            self.state["builds"][srpm_name] = {
-                "status": "skipped",
-                "reason": "dry-run",
-                "mtime": mtime,
-            }
-            self.save_state()
-            return True
-
-        if resume:
-            # The bridge was stopped while this build was running in COPR.
+        if self._is_pending(srpm_name):
             # Submitting the SRPM again would start a duplicate build.
-            build_id = entry["copr_build_id"]
+            build_id = self.state["builds"][srpm_name]["copr_build_id"]
             logger.info("Resuming COPR build %d for %s", build_id, srpm_name)
-        else:
-            build = self.submit_build(srpm_path)
-            if build is None:
-                self.state["builds"][srpm_name] = {
-                    "status": "failed",
-                    "reason": "submission error",
-                    "submitted_at": now_iso(),
-                    "mtime": mtime,
-                }
-                self.state["blocked_on"] = srpm_name
-                self.save_state()
-                return False
+            return build_id
 
-            build_id = build.id
+        build = self.submit_build(srpm_path)
+        if build is None:
             self.state["builds"][srpm_name] = {
-                "status": "pending",
-                "copr_build_id": build_id,
+                "status": "failed",
+                "reason": "submission error",
                 "submitted_at": now_iso(),
                 "mtime": mtime,
             }
-            self.save_state()
-
-        result = self.poll_build(build_id)
-
-        if result is None and self._shutdown:
-            logger.info("Build %d stays pending and is resumed on restart", build_id)
-            return False
-
-        if result is None:
-            self.state["builds"][srpm_name]["status"] = "failed"
-            self.state["builds"][srpm_name]["reason"] = "poll failure"
-            self.state["builds"][srpm_name]["completed_at"] = now_iso()
             self.state["blocked_on"] = srpm_name
             self.save_state()
-            return False
+            return None
 
-        build_url = f"https://copr.fedorainfracloud.org/coprs/build/{result.id}/"
-
-        if result.state == "succeeded":
-            self.state["builds"][srpm_name]["status"] = "succeeded"
-            self.state["builds"][srpm_name]["completed_at"] = now_iso()
-            self.state["last_succeeded"] = srpm_name
-            self.save_state()
-            logger.info("Build succeeded: %s (%s)", srpm_name, build_url)
-            return True
-
-        self.state["builds"][srpm_name]["status"] = result.state
-        self.state["builds"][srpm_name]["completed_at"] = now_iso()
-        self.state["builds"][srpm_name]["build_url"] = build_url
-        self.state["blocked_on"] = srpm_name
+        self.state["builds"][srpm_name] = {
+            "status": "pending",
+            "copr_build_id": build.id,
+            "submitted_at": now_iso(),
+            "mtime": mtime,
+        }
         self.save_state()
-        logger.error("Build %s for %s. See: %s", result.state, srpm_name, build_url)
-        return False
+        return build.id
+
+    def check_build(self, srpm_name, job):
+        """Poll COPR once. Return the final build state, or None while it runs."""
+        build_id = job["id"]
+        entry = self.state["builds"][srpm_name]
+        try:
+            build = self.client.build_proxy.get(build_id)
+            job["retries"] = 0
+        except (CoprException, OSError) as e:
+            job["retries"] += 1
+            if job["retries"] <= MAX_RETRIES:
+                logger.warning(
+                    "Polling build %d failed (attempt %d/%d): %s",
+                    build_id,
+                    job["retries"],
+                    MAX_RETRIES,
+                    e,
+                )
+                return None
+            logger.error("Giving up on build %d for %s: %s", build_id, srpm_name, e)
+            entry["status"] = "failed"
+            entry["reason"] = "poll failure"
+            entry["completed_at"] = now_iso()
+            self.state["blocked_on"] = srpm_name
+            self.save_state()
+            return "failed"
+
+        if build.state != job["state"]:
+            logger.info(
+                "Build %d (%s): %s -> %s",
+                build_id,
+                srpm_name,
+                job["state"] or "(new)",
+                build.state,
+            )
+            job["state"] = build.state
+
+        if build.state not in TERMINAL_STATES and build.state != "unknown":
+            return None
+
+        build_url = f"https://copr.fedorainfracloud.org/coprs/build/{build_id}/"
+        entry["status"] = build.state
+        entry["completed_at"] = now_iso()
+        if build.state == "succeeded":
+            self.state["last_succeeded"] = srpm_name
+            logger.info("Build succeeded: %s (%s)", srpm_name, build_url)
+        else:
+            entry["build_url"] = build_url
+            self.state["blocked_on"] = srpm_name
+            logger.error("Build %s for %s. See: %s", build.state, srpm_name, build_url)
+        self.save_state()
+        return build.state
 
     @staticmethod
     def _parse_srpm_nvr(srpm_name):
@@ -500,12 +472,8 @@ class CoprBridge:
     @staticmethod
     def _read_header(rpm_path, tag):
         """Return the list of strings that an RPM header stores for tag."""
-        try:
-            with rpmfile.open(rpm_path) as rpm:
-                values = rpm.headers.get(tag, [])
-        except (OSError, ValueError, AssertionError, struct.error) as e:
-            logger.warning("Cannot read the RPM header of %s: %s", rpm_path, e)
-            return []
+        with rpmfile.open(rpm_path) as rpm:
+            values = rpm.headers.get(tag, [])
         if not isinstance(values, list):
             values = [values]
         return [v.decode() if isinstance(v, bytes) else str(v) for v in values]
@@ -519,6 +487,18 @@ class CoprBridge:
             )
             return {}
 
+        try:
+            return self._read_dependencies(srpms)
+        except (OSError, ValueError, AssertionError, struct.error) as e:
+            # An unreadable RPM can provide a dependency of any other SRPM.
+            logger.warning(
+                "Cannot read an RPM header (%s), "
+                "building in mtime order without dependency resolution",
+                e,
+            )
+            return {}
+
+    def _read_dependencies(self, srpms):
         provider = {}
         requires = {}
         foundation = {}
@@ -551,35 +531,117 @@ class CoprBridge:
             dependencies[name].discard(name)
         return dependencies
 
-    @staticmethod
-    def order_by_dependencies(srpms, dependencies):
-        """Sort SRPMs so that each one comes after the SRPMs it depends on."""
-        if not dependencies:
-            return srpms
+    def build_pending(self, pending, dependencies, stop_on_failure):
+        """Build SRPMs in dependency order, independent SRPMs in parallel."""
+        # Without dependency information a parallel build could start before
+        # the build of its dependency has finished.
+        limit = self.max_parallel if dependencies else 1
+        waiting = list(pending)
+        waiting_names = {p.name for p in waiting}
+        running = {}
+        succeeded_names = []
+        skipped_names = []
+        failed_names = []
+        # A failed SRPM that is no longer the newest of its package must not
+        # hold back the dependents of the newer SRPM.
+        not_built = set(self._failed)
+        forced = None
+        stop = False
 
-        remaining = list(srpms)
-        ordered = []
-        while remaining:
-            names = {p.name for p in remaining}
-            ready = [p for p in remaining if not dependencies[p.name] & names]
-            if not ready:
-                # The remaining SRPMs depend on each other in a cycle.
-                ready = [remaining[0]]
+        def failed(srpm_name):
+            failed_names.append(srpm_name)
+            self._failed.add(srpm_name)
+            not_built.add(srpm_name)
+            if stop_on_failure and not self.ignore_errors:
+                return True
+            self.state["blocked_on"] = None
+            self.save_state()
+            return False
+
+        while not self._shutdown and (running or (waiting and not stop)):
+            progress = False
+            for srpm_path in [] if stop else list(waiting):
+                if len(running) >= limit:
+                    break
+                srpm_name = srpm_path.name
+                depends_on = dependencies.get(srpm_name, set())
+
+                if not self._is_pending(srpm_name):
+                    missing = depends_on & not_built
+                    if missing:
+                        waiting.remove(srpm_path)
+                        waiting_names.discard(srpm_name)
+                        not_built.add(srpm_name)
+                        # Watch mode finds the same dependents on every scan.
+                        first = srpm_name not in self._blocked
+                        self._blocked.add(srpm_name)
+                        logger.log(
+                            logging.INFO if first else logging.DEBUG,
+                            "Skipping %s, because %s was not built",
+                            srpm_name,
+                            ", ".join(sorted(missing)),
+                        )
+                        skipped_names.append(srpm_name)
+                        progress = True
+                        continue
+                    unfinished = depends_on & (waiting_names | set(running))
+                    if unfinished and srpm_name != forced:
+                        continue
+
+                waiting.remove(srpm_path)
+                waiting_names.discard(srpm_name)
+                self._attempted.add(srpm_name)
+                progress = True
+                logger.debug(
+                    "Build order: %s after %s",
+                    srpm_name,
+                    sorted(depends_on) or "nothing",
+                )
+
+                if self.dryrun:
+                    self._dry_run(srpm_path)
+                    succeeded_names.append(srpm_name)
+                    # The list is searched from the start again so that the
+                    # oldest SRPM without an unbuilt dependency comes next.
+                    break
+
+                build_id = self.start_build(srpm_path)
+                if build_id is None:
+                    stop = failed(srpm_name)
+                    if stop:
+                        break
+                    continue
+                running[srpm_name] = {"id": build_id, "state": None, "retries": 0}
+
+            if waiting and not running and not progress and not stop:
+                # The waiting SRPMs depend on each other in a cycle.
+                forced = waiting[0].name
                 logger.warning(
                     "Dependency cycle among %d SRPMs, building %s first",
-                    len(remaining),
-                    remaining[0].name,
+                    len(waiting),
+                    forced,
                 )
-            # Only the first ready SRPM is taken so that SRPMs without a
-            # dependency on each other stay in mtime order.
-            ordered.append(ready[0])
-            remaining.remove(ready[0])
-            logger.debug(
-                "Build order: %s after %s",
-                ready[0].name,
-                sorted(dependencies[ready[0].name]) or "nothing",
+                continue
+
+            for srpm_name, job in list(running.items()):
+                result = self.check_build(srpm_name, job)
+                if result is None:
+                    continue
+                del running[srpm_name]
+                progress = True
+                if result == "succeeded":
+                    succeeded_names.append(srpm_name)
+                elif failed(srpm_name):
+                    stop = True
+
+            if running and not progress:
+                self._sleep(self.poll_interval)
+
+        if running:
+            logger.info(
+                "%d builds stay pending and are resumed on restart", len(running)
             )
-        return ordered
+        return succeeded_names, skipped_names, failed_names
 
     def run_scan(self, stop_on_failure=True):
         """Build the newest SRPM of each package that COPR does not have yet."""
@@ -622,51 +684,14 @@ class CoprBridge:
             if srpm_name not in self._failed:
                 pending.append(srpm_path)
 
-        dependencies = {}
         if pending:
+            self._failed &= {p.name for p in srpms}
             failed = [p for p in srpms if p.name in self._failed]
             dependencies = self._dependencies(pending + failed)
-            pending = self.order_by_dependencies(pending, dependencies)
-
-        # A failed SRPM that is no longer the newest of its package must not
-        # hold back the dependents of the newer SRPM.
-        not_built = self._failed & {p.name for p in srpms}
-
-        for srpm_path in pending:
-            if self._shutdown:
-                logger.info("Shutdown requested, stopping scan")
-                break
-
-            srpm_name = srpm_path.name
-
-            missing = dependencies.get(srpm_name, set()) & not_built
-            if missing:
-                not_built.add(srpm_name)
-                # Watch mode finds the same dependents again on every scan.
-                first = srpm_name not in self._blocked
-                self._blocked.add(srpm_name)
-                logger.log(
-                    logging.INFO if first else logging.DEBUG,
-                    "Skipping %s, because %s was not built",
-                    srpm_name,
-                    ", ".join(sorted(missing)),
-                )
-                skipped_names.append(srpm_name)
-                continue
-
-            self._attempted.add(srpm_name)
-            if self.process_srpm(srpm_path):
-                succeeded_names.append(srpm_name)
-                continue
-            if self._shutdown:
-                break
-            failed_names.append(srpm_name)
-            self._failed.add(srpm_name)
-            not_built.add(srpm_name)
-            if stop_on_failure and not self.ignore_errors:
-                break
-            self.state["blocked_on"] = None
-            self.save_state()
+            succeeded_names, blocked_names, failed_names = self.build_pending(
+                pending, dependencies, stop_on_failure
+            )
+            skipped_names += blocked_names
 
         return succeeded_names, skipped_names, failed_names, len(srpms)
 
@@ -794,6 +819,13 @@ def main():
         help="scan processes the SRPMs once, watch keeps running and scans "
         "again every --scan-interval seconds (default: scan)",
         type=str,
+    )
+    parser.add_argument(
+        "--max-parallel",
+        default=10,
+        help="number of COPR builds that run at the same time; only SRPMs "
+        "that do not depend on each other are built in parallel (default: 10)",
+        type=int,
     )
     parser.add_argument(
         "--scan-interval",
