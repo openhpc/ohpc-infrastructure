@@ -57,7 +57,11 @@ jobs:
       image: registry.fedoraproject.org/fedora:latest
     steps:
       - name: Setup
-        run: dnf -y install bats make python3-copr python3-coloredlogs jq
+        run: |
+          dnf -y install bats make python3-copr python3-coloredlogs jq \
+            python3-pip rpm-build
+          # Fedora has no package for rpmfile.
+          pip install rpmfile
       - uses: actions/checkout@v4
       - name: Run ${{ matrix.step }}
         run: make ${{ matrix.step }}-test

@@ -38,6 +38,33 @@ setup() {
 	touch "${TEST_DIR}/OpenHPC3:3.4:Factory/EL_10/aarch64/hwloc/hwloc-ohpc-2.11.0-340.ohpc.1.1.src.rpm"
 }
 
+# mkrpm <dir> <name> <mtime> [<spec line>...] builds a real SRPM and binary
+# RPM with the given spec lines and puts them into the package directory
+# <dir>/OpenHPC4:4.3:Factory/EL_10/aarch64/<name>.
+mkrpm() {
+	local tree="$1" name="$2" mtime="$3"
+	shift 3
+	local dir="${tree}/OpenHPC4:4.3:Factory/EL_10/aarch64/${name}"
+	mkdir -p "${dir}"
+	{
+		echo "Name: ${name}"
+		echo "Version: 1.0"
+		echo "Release: 1"
+		echo "Summary: test"
+		echo "License: MIT"
+		echo "BuildArch: noarch"
+		printf '%s\n' "$@"
+		echo "%description"
+		echo "test"
+		echo "%files"
+	} >"${tree}/${name}.spec"
+	rpmbuild --quiet --nodeps --define "_topdir ${tree}/rpmbuild" \
+		-ba "${tree}/${name}.spec" 2>/dev/null
+	mv "${tree}/rpmbuild/SRPMS/${name}-1.0-1.src.rpm" \
+		"${tree}/rpmbuild/RPMS/noarch/${name}-1.0-1.noarch.rpm" "${dir}"
+	touch -t "${mtime}" "${dir}/${name}-1.0-1.src.rpm"
+}
+
 teardown() {
 	rm -rf "${TEST_DIR}"
 }
@@ -84,7 +111,7 @@ teardown() {
 	[ "$status" -eq 0 ]
 	[[ "$output" == *"Found 6 SRPMs for EL_10/aarch64 in 1 releases"* ]]
 	# Binary RPM must not appear
-	[[ "$output" != *"aarch64.rpm"* ]]
+	[[ "$output" != *"Would submit"*"aarch64.rpm"* ]]
 	[[ "$output" != *"intel-mpi-devel"* ]]
 	[[ "$output" != *"lmod-ohpc"* ]]
 	[[ "$output" != *"lua-ohpc"* ]]
@@ -701,4 +728,31 @@ print('broken-ohpc-1.0-1.src.rpm' not in s['builds'])
 	[ "$(grep -c 'Would submit hwloc-ohpc-2.15.0' "${TEST_DIR}/watch.log")" -eq 1 ]
 	[ "$(grep -c 'Would submit' "${TEST_DIR}/watch.log")" -eq 7 ]
 	grep -q 'shutting down gracefully' "${TEST_DIR}/watch.log"
+}
+
+@test "SRPMs are submitted after the SRPMs they depend on" {
+	command -v rpmbuild >/dev/null || skip "rpmbuild is not installed"
+	python3 -c 'import rpmfile' 2>/dev/null || skip "rpmfile is not installed"
+
+	tree="${TEST_DIR}/deps"
+	mkrpm "${tree}" libb-ohpc 202501010000 "BuildRequires: liba-ohpc >= 1.0"
+	mkrpm "${tree}" tool-ohpc 202501020000
+	# The runtime requirement of liba-ohpc is only in its binary RPM.
+	mkrpm "${tree}" liba-ohpc 202501030000 "Requires: librt(ohpc)"
+	mkrpm "${tree}" cyc1-ohpc 202501040000 "BuildRequires: cyc2-ohpc"
+	mkrpm "${tree}" cyc2-ohpc 202501050000 "BuildRequires: cyc1-ohpc"
+	mkrpm "${tree}" rt-ohpc 202501060000 "Provides: librt(ohpc)"
+	mkrpm "${tree}" lmod-ohpc 202501070000
+	mkrpm "${tree}" ohpc-filesystem 202501080000
+
+	run python3 "${SCRIPT}" \
+		--srpm-dir "${tree}" \
+		${COMMON_ARGS} \
+		--dry-run \
+		--state-file "${STATE_FILE}"
+	[ "$status" -eq 0 ]
+	[[ "$output" == *"Dependency cycle among 2 SRPMs"* ]]
+
+	order=$(echo "$output" | grep '\[dry-run\]' | sed "${SUBMITTED}" | sed 's/-1.0-1.src.rpm//' | tr '\n' ' ')
+	[ "$order" = "ohpc-filesystem lmod-ohpc tool-ohpc rt-ohpc liba-ohpc libb-ohpc cyc1-ohpc cyc2-ohpc " ]
 }

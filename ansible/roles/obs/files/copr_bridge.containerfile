@@ -3,7 +3,7 @@ FROM registry.access.redhat.com/hi/python:latest-builder AS builder
 USER root
 # The Python version of the base image changes over time and with it the
 # site-packages path. A fixed --target directory keeps the COPY below valid.
-RUN pip install --no-cache-dir --target /app/site-packages copr coloredlogs
+RUN pip install --no-cache-dir --target /app/site-packages copr coloredlogs rpmfile
 
 # Runtime stage
 FROM registry.access.redhat.com/hi/python:latest
