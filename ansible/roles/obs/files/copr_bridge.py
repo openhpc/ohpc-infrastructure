@@ -7,6 +7,10 @@
 # All releases of one major version are searched and only the SRPM from the
 # highest release is built for each package. Scan mode does this once, watch
 # mode repeats it every --scan-interval seconds.
+#
+# The SRPMs are built one after the other. An SRPM is built after the SRPMs
+# that provide its build dependencies. The dependencies are read from the RPM
+# headers of the SRPM and of the binary RPMs in the same package directory.
 # --
 import argparse
 import json
@@ -14,6 +18,7 @@ import logging
 import os
 import re
 import signal
+import struct
 import sys
 import time
 from datetime import UTC, datetime
@@ -23,10 +28,20 @@ import coloredlogs
 from copr.v3 import Client
 from copr.v3.exceptions import CoprAuthException, CoprException
 
+try:
+    import rpmfile
+except ImportError:
+    rpmfile = None
+
 logger = logging.getLogger(__name__)
 
 # Terminal build states from copr.v3
 TERMINAL_STATES = ("succeeded", "skipped", "failed", "canceled")
+
+# No RPM header contains the dependency on these packages. ohpc-filesystem
+# installs the RPM macros that every other package needs for its build, and
+# ohpc-buildroot needs the modules environment that lmod-ohpc provides.
+FOUNDATION_PACKAGES = ("ohpc-filesystem", "lmod-ohpc")
 
 # Default retry settings for transient errors
 MAX_RETRIES = 5
@@ -480,19 +495,97 @@ class CoprBridge:
         }
         self.save_state()
 
+    @staticmethod
+    def _read_header(rpm_path, tag):
+        """Return the list of strings that an RPM header stores for tag."""
+        try:
+            with rpmfile.open(rpm_path) as rpm:
+                values = rpm.headers.get(tag, [])
+        except (OSError, ValueError, AssertionError, struct.error) as e:
+            logger.warning("Cannot read the RPM header of %s: %s", rpm_path, e)
+            return []
+        if not isinstance(values, list):
+            values = [values]
+        return [v.decode() if isinstance(v, bytes) else str(v) for v in values]
+
+    def _dependencies(self, srpms):
+        """Map each SRPM name to the names of the SRPMs it has to be built after."""
+        provider = {}
+        requires = {}
+        foundation = {}
+        for srpm_path in srpms:
+            name = srpm_path.name
+            package = self._parse_srpm_nvr(name)[0]
+            if package in FOUNDATION_PACKAGES:
+                foundation[package] = name
+            # The requirements of an SRPM are the BuildRequires of its spec file.
+            requires[name] = set(self._read_header(srpm_path, "requirename"))
+            for rpm_path in srpm_path.parent.glob("*.rpm"):
+                if rpm_path.name.endswith(".src.rpm"):
+                    continue
+                # A package that needs this binary RPM for its build also
+                # needs the runtime requirements of the binary RPM installed.
+                requires[name].update(self._read_header(rpm_path, "requirename"))
+                for capability in self._read_header(rpm_path, "provides"):
+                    provider[capability] = name
+
+        dependencies = {}
+        for name, capabilities in requires.items():
+            package = self._parse_srpm_nvr(name)[0]
+            if package in FOUNDATION_PACKAGES:
+                index = FOUNDATION_PACKAGES.index(package)
+                earlier = FOUNDATION_PACKAGES[:index]
+                dependencies[name] = {foundation[p] for p in earlier if p in foundation}
+                continue
+            dependencies[name] = {provider[c] for c in capabilities if c in provider}
+            dependencies[name].update(foundation.values())
+            dependencies[name].discard(name)
+        return dependencies
+
+    def order_by_dependencies(self, srpms):
+        """Sort SRPMs so that each one comes after the SRPMs it depends on."""
+        if rpmfile is None:
+            logger.warning(
+                "Python module rpmfile is not installed, "
+                "building in mtime order without dependency resolution"
+            )
+            return srpms
+
+        dependencies = self._dependencies(srpms)
+        remaining = list(srpms)
+        ordered = []
+        while remaining:
+            names = {p.name for p in remaining}
+            ready = [p for p in remaining if not dependencies[p.name] & names]
+            if not ready:
+                # The remaining SRPMs depend on each other in a cycle.
+                ready = [remaining[0]]
+                logger.warning(
+                    "Dependency cycle among %d SRPMs, building %s first",
+                    len(remaining),
+                    remaining[0].name,
+                )
+            # Only the first ready SRPM is taken so that SRPMs without a
+            # dependency on each other stay in mtime order.
+            ordered.append(ready[0])
+            remaining.remove(ready[0])
+            logger.debug(
+                "Build order: %s after %s",
+                ready[0].name,
+                sorted(dependencies[ready[0].name]) or "nothing",
+            )
+        return ordered
+
     def run_scan(self, stop_on_failure=True):
         """Build the newest SRPM of each package that COPR does not have yet."""
         srpms = self.scan_srpms()
         existing_builds = None
+        pending = []
         succeeded_names = []
         skipped_names = []
         failed_names = []
 
         for srpm_path in srpms:
-            if self._shutdown:
-                logger.info("Shutdown requested, stopping scan")
-                break
-
             srpm_name = srpm_path.name
 
             if self.already_processed(srpm_name):
@@ -518,6 +611,17 @@ class CoprBridge:
                 skipped_names.append(srpm_name)
                 continue
 
+            pending.append(srpm_path)
+
+        if len(pending) > 1:
+            pending = self.order_by_dependencies(pending)
+
+        for srpm_path in pending:
+            if self._shutdown:
+                logger.info("Shutdown requested, stopping scan")
+                break
+
+            srpm_name = srpm_path.name
             self._attempted.add(srpm_name)
             if self.process_srpm(srpm_path):
                 succeeded_names.append(srpm_name)
