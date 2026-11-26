@@ -11,8 +11,12 @@ ExecStartPre=-/usr/bin/podman rm obsworker
 # storage. Each service start removes the untagged images.
 ExecStartPre=-/usr/bin/podman image prune -f
 
+# podman limits a container to 2048 processes and threads by default.
+# All worker instances build in this one container, so parallel builds
+# exceed that limit and fail with "fork/exec: resource temporarily
+# unavailable".
 ExecStart=/usr/bin/podman run --name obsworker --pull newer --net host \
-	--uts host --privileged \
+	--uts host --privileged --pids-limit=-1 \
 {% if obs_openhpc_community_ip is defined %}
 	--add-host obs.openhpc.community:{{ obs_openhpc_community_ip }} \
 {% endif %}
