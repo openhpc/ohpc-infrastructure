@@ -23,8 +23,10 @@ REGISTRY="${REGISTRY:-localhost:5000}"
 
 IMAGES=(
 	ghcr.io/openchami/image-build:latest
+	ghcr.io/warewulf/warewulf-almalinux:9
 	ghcr.io/warewulf/warewulf-almalinux:10
 	ghcr.io/warewulf/warewulf-openeuler:24.03
+	ghcr.io/warewulf/warewulf-rockylinux:9
 	ghcr.io/warewulf/warewulf-rockylinux:10
 )
 
